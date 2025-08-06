@@ -1,164 +1,106 @@
-'use client'
+'use client';
 
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
-  Heart,
-  Music,
-  Upload,
-  Repeat,
-  Shuffle
-} from 'lucide-react'
+import { useState } from 'react';
+import { Sidebar } from '@/components/sidebar';
+import { PlayerLayout, PlayerLeftSection, PlayerRightSection } from '@/components/player-layout';
+import { AlbumCover, SongInfo } from '@/components/song-info';
+import { PlayerControls } from '@/components/player-controls';
+import { LyricsCard } from '@/components/lyrics-display';
+import { ThemeToggle } from '@/components/theme-toggle';
+
+// Mock data for demonstration
+const mockSong = {
+  id: '1',
+  title: '选择一首歌曲开始播放',
+  artist: 'Self-Music Platform',
+  album: '欢迎使用',
+  duration: 204, // 3:24 in seconds
+  mood: ['放松', '专注', '快乐'],
+};
+
+const mockLyrics = [
+  { time: 0, text: '欢迎使用 Self-Music' },
+  { time: 5, text: '你的专属音乐流媒体平台' },
+  { time: 10, text: '在这里发现更多美妙的音乐' },
+  { time: 15, text: '让音乐陪伴你的每一刻' },
+  { time: 20, text: '♪ 享受音乐带来的快乐 ♪' },
+  { time: 30, text: '欢迎使用 Self-Music' },
+  { time: 35, text: '你的专属音乐流媒体平台' },
+  { time: 40, text: '在这里发现更多美妙的音乐' },
+  { time: 45, text: '让音乐陪伴你的每一刻' },
+  { time: 50, text: '♪ 享受音乐带来的快乐 ♪' },
+];
 
 export default function Home() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [volume, setVolume] = useState(75);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  const handlePlayPause = () => setIsPlaying(!isPlaying);
+  const handlePrevious = () => console.log('Previous song');
+  const handleNext = () => console.log('Next song');
+  const handleShuffle = () => setIsShuffle(!isShuffle);
+  const handleRepeat = () => setIsRepeat(!isRepeat);
+  const handleMute = () => setIsMuted(!isMuted);
+  const handleLike = () => setIsLiked(!isLiked);
+  const handleVolumeChange = (value: number[]) => setVolume(value[0]);
+  const handleSeek = (value: number[]) => setCurrentTime(value[0]);
+  const handleLyricClick = (time: number) => setCurrentTime(time);
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Music className="h-6 w-6" />
-            <h1 className="text-xl font-semibold">Self-Music</h1>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
-              <Upload className="mr-2 h-4 w-4" />
-              上传音乐
-            </Button>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <Sidebar />
+      
       {/* Main Content */}
-      <main className="container py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Player Section */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Album Art */}
-                  <div className="flex justify-center">
-                    <div className="aspect-square w-full max-w-sm bg-muted rounded-lg flex items-center justify-center">
-                      <Music className="h-16 w-16 text-muted-foreground" />
-                    </div>
-                  </div>
-
-                  {/* Song Info and Controls */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-bold">选择一首歌曲开始播放</h2>
-                      <p className="text-muted-foreground">Self-Music Platform</p>
-                    </div>
-
-                    {/* Mood Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">放松</Badge>
-                      <Badge variant="secondary">专注</Badge>
-                      <Badge variant="secondary">快乐</Badge>
-                    </div>
-
-                    <Separator />
-
-                    {/* Progress */}
-                    <div className="space-y-2">
-                      <Progress value={33} className="w-full" />
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>0:00</span>
-                        <span>3:24</span>
-                      </div>
-                    </div>
-
-                    {/* Player Controls */}
-                    <div className="flex items-center justify-center space-x-2">
-                      <Button variant="ghost" size="icon">
-                        <Shuffle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <SkipBack className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" className="h-12 w-12">
-                        <Play className="h-5 w-5" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <SkipForward className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Repeat className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Volume and Like */}
-                    <div className="flex items-center justify-between">
-                      <Button variant="ghost" size="icon">
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                      <div className="flex items-center space-x-2">
-                        <Volume2 className="h-4 w-4" />
-                        <div className="w-24">
-                          <Progress value={75} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">快速操作</h3>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Music className="mr-2 h-4 w-4" />
-                    浏览歌单
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Heart className="mr-2 h-4 w-4" />
-                    我的收藏
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Shuffle className="mr-2 h-4 w-4" />
-                    心情电台
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Playlists */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4">最近播放</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                      <Music className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">暂无播放记录</p>
-                      <p className="text-sm text-muted-foreground truncate">开始播放音乐</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="flex-1 flex flex-col">
+        {/* Theme Toggle */}
+        <div className="absolute top-4 right-4 z-30">
+          <ThemeToggle />
         </div>
-      </main>
+
+        {/* Player Layout */}
+        <PlayerLayout className="pt-16 lg:pt-0">
+          {/* Left Section - Album Cover and Song Info */}
+          <PlayerLeftSection>
+            <AlbumCover song={mockSong} />
+            <SongInfo song={mockSong} />
+            <PlayerControls
+              isPlaying={isPlaying}
+              isShuffle={isShuffle}
+              isRepeat={isRepeat}
+              isMuted={isMuted}
+              isLiked={isLiked}
+              volume={volume}
+              currentTime={currentTime}
+              duration={mockSong.duration}
+              onPlayPause={handlePlayPause}
+              onPrevious={handlePrevious}
+              onNext={handleNext}
+              onShuffle={handleShuffle}
+              onRepeat={handleRepeat}
+              onMute={handleMute}
+              onLike={handleLike}
+              onVolumeChange={handleVolumeChange}
+              onSeek={handleSeek}
+              className="w-full max-w-md"
+            />
+          </PlayerLeftSection>
+
+          {/* Right Section - Lyrics */}
+          <PlayerRightSection>
+            <LyricsCard
+              lyrics={mockLyrics}
+              currentTime={currentTime}
+              onLyricClick={handleLyricClick}
+            />
+          </PlayerRightSection>
+        </PlayerLayout>
+      </div>
     </div>
-  )
+  );
 }
