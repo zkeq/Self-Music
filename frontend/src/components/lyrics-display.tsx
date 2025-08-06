@@ -23,8 +23,7 @@ export function LyricsDisplay({
   className,
 }: LyricsDisplayProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const currentLineRef = useRef<HTMLDivElement>(null);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
 
   // Find current lyric line
   useEffect(() => {
@@ -32,13 +31,18 @@ export function LyricsDisplay({
     setCurrentLineIndex(lineIndex);
   }, [currentTime, lyrics]);
 
-  // Auto-scroll to current line
+  // Auto-scroll with smooth animation - translate the entire container
   useEffect(() => {
-    if (currentLineRef.current && scrollAreaRef.current) {
-      currentLineRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
+    if (lyricsContainerRef.current && currentLineIndex >= 0) {
+      // Calculate the offset to keep current line in center
+      // Each line has approximately 64px height (py-3 + text + spacing)
+      const lineHeight = 64;
+      const containerHeight = lyricsContainerRef.current.parentElement?.clientHeight || 0;
+      const centerOffset = containerHeight / 2;
+      const translateY = centerOffset - (currentLineIndex * lineHeight) - (lineHeight / 2);
+      
+      lyricsContainerRef.current.style.transform = `translateY(${translateY}px)`;
+      lyricsContainerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
     }
   }, [currentLineIndex]);
 
@@ -57,45 +61,42 @@ export function LyricsDisplay({
   }
 
   return (
-    <div className={cn("h-full flex items-center justify-center", className)}>
-      <ScrollArea className="h-full w-full custom-scrollbar" ref={scrollAreaRef}>
-        <div className="space-y-4 py-8 px-4">
-          {lyrics.map((lyric, index) => {
-            const isActive = index === currentLineIndex;
-            const isPassed = index < currentLineIndex;
+    <div className={cn("h-full relative overflow-hidden", className)}>
+      <div 
+        ref={lyricsContainerRef}
+        className="absolute inset-0 space-y-4 px-4"
+      >
+        {lyrics.map((lyric, index) => {
+          const isActive = index === currentLineIndex;
+          const isPassed = index < currentLineIndex;
 
-            return (
-              <div
-                key={index}
-                ref={isActive ? currentLineRef : undefined}
+          return (
+            <div
+              key={index}
+              className={cn(
+                "cursor-pointer transition-all duration-300 ease-in-out",
+                "hover:bg-accent/20 rounded-lg px-4 py-3",
+                "text-center min-h-[64px] flex items-center justify-center"
+              )}
+              onClick={() => onLyricClick(lyric.time)}
+            >
+              <p
                 className={cn(
-                  "cursor-pointer transition-all duration-300 ease-in-out",
-                  "hover:bg-accent/20 rounded-lg px-4 py-3",
-                  "text-center"
+                  "text-base leading-relaxed transition-all duration-300",
+                  "select-none",
+                  {
+                    "text-xl lg:text-2xl font-semibold text-primary": isActive,
+                    "text-muted-foreground/60 hover:text-muted-foreground": isPassed,
+                    "text-muted-foreground hover:text-foreground": !isActive && !isPassed,
+                  }
                 )}
-                onClick={() => onLyricClick(lyric.time)}
               >
-                <p
-                  className={cn(
-                    "text-base leading-relaxed transition-all duration-300",
-                    "select-none",
-                    {
-                      "text-xl lg:text-2xl font-semibold text-primary": isActive,
-                      "text-muted-foreground/60 hover:text-muted-foreground": isPassed,
-                      "text-muted-foreground hover:text-foreground": !isActive && !isPassed,
-                    }
-                  )}
-                >
-                  {lyric.text}
-                </p>
-              </div>
-            );
-          })}
-          
-          {/* Bottom padding for better scrolling */}
-          <div className="h-32" />
-        </div>
-      </ScrollArea>
+                {lyric.text}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
