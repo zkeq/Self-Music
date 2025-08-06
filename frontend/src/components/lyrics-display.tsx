@@ -113,7 +113,7 @@ export function LyricsCard({
   currentTime,
   onLyricClick,
   className,
-  title = "歌词",
+  title = "",
 }: LyricsCardProps) {
   return (
     <div className={cn("w-full h-full max-w-lg flex flex-col", className)}>
