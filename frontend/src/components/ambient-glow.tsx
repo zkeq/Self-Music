@@ -18,7 +18,7 @@ export function AmbientGlow({
   intensity = 'medium',
   animated = true 
 }: AmbientGlowProps) {
-  const [colorPalette, setColorPalette] = useState<ColorPalette>(getDefaultColorPalette());
+  const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
   const [cssVars, setCssVars] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -40,6 +40,11 @@ export function AmbientGlow({
       setCssVars(createColorCSSVariables(defaultPalette));
     }
   }, [imageUrl]);
+
+  // Don't render until we have a color palette to avoid hydration mismatch
+  if (!colorPalette) {
+    return null;
+  }
 
   const intensityConfig = {
     low: { blur: 'blur-3xl', opacity: 'opacity-20', scale: 'scale-150' },
