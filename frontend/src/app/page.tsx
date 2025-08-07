@@ -7,6 +7,7 @@ import { AlbumCover, SongInfo } from '@/components/song-info';
 import { PlayerControls } from '@/components/player-controls';
 import { LyricsCard } from '@/components/lyrics-display';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AmbientGlow } from '@/components/ambient-glow';
 
 // Mock data for demonstration
 const mockSong = {
@@ -16,6 +17,7 @@ const mockSong = {
   album: '欢迎使用',
   duration: 204, // 3:24 in seconds
   mood: ['放松', '专注', '快乐'],
+  coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=face', // Sample cover
 };
 
 const mockLyrics = [
@@ -52,12 +54,19 @@ export default function Home() {
   const handleLyricClick = (time: number) => setCurrentTime(time);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative overflow-hidden">
+      {/* Dynamic Ambient Glow Background */}
+      <AmbientGlow 
+        imageUrl={mockSong.coverUrl} 
+        intensity="medium"
+        className="fixed inset-0 z-0" 
+      />
+      
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar className="relative z-10" />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4 z-30">
           <ThemeToggle />
