@@ -6,6 +6,7 @@ import { PlayerLayout, PlayerLeftSection, PlayerRightSection } from '@/component
 import { AlbumCover, SongInfo } from '@/components/song-info';
 import { PlayerControls } from '@/components/player-controls';
 import { LyricsCard } from '@/components/lyrics-display';
+import { FullscreenLyrics } from '@/components/fullscreen-lyrics';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AmbientGlow } from '@/components/ambient-glow';
 
@@ -41,6 +42,7 @@ export default function Home() {
   const [isLiked, setIsLiked] = useState(false);
   const [volume, setVolume] = useState(75);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isFullscreenLyrics, setIsFullscreenLyrics] = useState(false);
 
   const handlePlayPause = () => setIsPlaying(!isPlaying);
   const handlePrevious = () => console.log('Previous song');
@@ -52,6 +54,8 @@ export default function Home() {
   const handleVolumeChange = (value: number[]) => setVolume(value[0]);
   const handleSeek = (value: number[]) => setCurrentTime(value[0]);
   const handleLyricClick = (time: number) => setCurrentTime(time);
+  const handleFullscreenLyrics = () => setIsFullscreenLyrics(true);
+  const handleCloseFullscreenLyrics = () => setIsFullscreenLyrics(false);
 
   return (
     <div className="min-h-screen bg-background flex relative overflow-hidden">
@@ -62,10 +66,10 @@ export default function Home() {
         className="fixed inset-0 z-0" 
       />
       
-      {/* Sidebar */}
-      <Sidebar className="relative z-10" />
+      {/* Sidebar - Always fixed overlay, never takes layout space */}
+      <Sidebar />
       
-      {/* Main Content */}
+      {/* Main Content - Always full width */}
       <div className="flex-1 flex flex-col relative z-10">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4 z-30">
@@ -106,10 +110,22 @@ export default function Home() {
               lyrics={mockLyrics}
               currentTime={currentTime}
               onLyricClick={handleLyricClick}
+              onFullscreen={handleFullscreenLyrics}
             />
           </PlayerRightSection>
         </PlayerLayout>
       </div>
+
+      {/* Fullscreen Lyrics Modal */}
+      <FullscreenLyrics
+        lyrics={mockLyrics}
+        currentTime={currentTime}
+        onLyricClick={handleLyricClick}
+        isOpen={isFullscreenLyrics}
+        onClose={handleCloseFullscreenLyrics}
+        songTitle={mockSong.title}
+        artistName={mockSong.artist}
+      />
     </div>
   );
 }

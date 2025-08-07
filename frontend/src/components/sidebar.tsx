@@ -19,7 +19,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems = [
@@ -40,10 +39,6 @@ export function Sidebar({ className }: SidebarProps) {
     },
   ];
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
   const toggleMobile = () => {
     setIsMobileOpen(!isMobileOpen);
   };
@@ -58,7 +53,7 @@ export function Sidebar({ className }: SidebarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[45] lg:hidden"
             onClick={toggleMobile}
           />
         )}
@@ -78,42 +73,25 @@ export function Sidebar({ className }: SidebarProps) {
       <aside
         className={cn(
           "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
-          "fixed left-0 top-0 z-40 lg:relative lg:z-auto",
-          // Mobile: hidden by default, show when open
-          "transform -translate-x-full lg:translate-x-0",
+          // Always fixed positioning, never takes layout space
+          "fixed left-0 top-0 z-[50] w-[280px]",
+          // Hidden by default on mobile, always visible on desktop
+          "-translate-x-full lg:translate-x-0",
           isMobileOpen && "translate-x-0",
           className
         )}
-        style={{
-          width: isCollapsed ? '64px' : '280px',
-        }}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-6">
-            {!isCollapsed && (
-              <div className="flex flex-col">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  Self-Music
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  你的音乐流媒体平台
-                </p>
-              </div>
-            )}
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleCollapse}
-              className="hidden lg:flex shrink-0 h-8 w-8"
-            >
-              {isCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Self-Music
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                你的音乐流媒体平台
+              </p>
+            </div>
           </div>
 
           <Separator />
@@ -129,16 +107,14 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-full justify-start text-left font-normal transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
-                    isCollapsed ? "px-2" : "px-3"
+                    "px-3"
                   )}
                   onClick={() => setIsMobileOpen(false)}
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", isCollapsed ? "" : "mr-3")} />
-                  {!isCollapsed && (
-                    <span className="truncate">
-                      {item.label}
-                    </span>
-                  )}
+                  <Icon className="h-4 w-4 shrink-0 mr-3" />
+                  <span className="truncate">
+                    {item.label}
+                  </span>
                 </Button>
               );
             })}
@@ -146,11 +122,9 @@ export function Sidebar({ className }: SidebarProps) {
 
           {/* Footer */}
           <div className="p-4">
-            {!isCollapsed && (
-              <div className="text-xs text-muted-foreground text-center">
-                © 2024 Self-Music
-              </div>
-            )}
+            <div className="text-xs text-muted-foreground text-center">
+              © 2024 Self-Music
+            </div>
           </div>
         </div>
       </aside>
