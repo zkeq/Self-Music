@@ -31,20 +31,36 @@ export function LyricsDisplay({
     setCurrentLineIndex(lineIndex);
   }, [currentTime, lyrics]);
 
-  // Auto-scroll with smooth animation - translate the entire container
+  // Auto-scroll with smooth animation - keep current line centered
   useEffect(() => {
-    if (lyricsContainerRef.current && currentLineIndex >= 0) {
-      // Calculate the offset to keep current line in center
-      // Each line has approximately 64px height (py-3 + text + spacing)
-      const lineHeight = 64;
-      const containerHeight = lyricsContainerRef.current.parentElement?.clientHeight || 0;
-      const centerOffset = containerHeight / 2;
-      const translateY = centerOffset - (currentLineIndex * lineHeight) - (lineHeight / 2);
+    if (lyricsContainerRef.current && currentLineIndex >= 0 && lyrics.length > 0) {
+      const container = lyricsContainerRef.current;
+      const parentContainer = container.parentElement;
       
-      lyricsContainerRef.current.style.transform = `translateY(${translateY}px)`;
-      lyricsContainerRef.current.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
+      if (!parentContainer) return;
+      
+      // Wait for DOM to update, then measure positions
+      setTimeout(() => {
+        const currentLineElement = container.children[currentLineIndex] as HTMLElement;
+        if (!currentLineElement) return;
+        
+        const parentHeight = parentContainer.clientHeight;
+        const parentCenterY = parentHeight / 2;
+        
+        // Get current line's position relative to its container
+        const containerTop = container.offsetTop;
+        const lineTop = currentLineElement.offsetTop;
+        const lineHeight = currentLineElement.offsetHeight;
+        const lineCenterY = lineTop + lineHeight / 2;
+        
+        // Calculate how much to translate to center the current line
+        const translateY = parentCenterY - lineCenterY;
+        
+        container.style.transform = `translateY(${translateY}px)`;
+        container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
+      }, 0);
     }
-  }, [currentLineIndex]);
+  }, [currentLineIndex, lyrics]);
 
   if (!lyrics.length) {
     return (
