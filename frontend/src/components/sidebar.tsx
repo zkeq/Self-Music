@@ -73,9 +73,9 @@ export function Sidebar({ className }: SidebarProps) {
       <aside
         className={cn(
           "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
-          // Always fixed positioning, never takes layout space
-          "fixed left-0 top-0 z-[50] w-[280px]",
-          // Hidden by default on mobile, always visible on desktop
+          // Mobile: fixed overlay, Desktop: takes layout space
+          "fixed left-0 top-0 z-[50] w-[280px] lg:relative lg:z-auto",
+          // Mobile: hidden by default, Desktop: always visible
           "-translate-x-full lg:translate-x-0",
           isMobileOpen && "translate-x-0",
           className

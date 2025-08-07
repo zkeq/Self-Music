@@ -58,7 +58,7 @@ export default function Home() {
   const handleCloseFullscreenLyrics = () => setIsFullscreenLyrics(false);
 
   return (
-    <div className="min-h-screen bg-background flex relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden lg:flex">
       {/* Dynamic Ambient Glow Background */}
       <AmbientGlow 
         imageUrl={mockSong.coverUrl} 
@@ -66,10 +66,10 @@ export default function Home() {
         className="fixed inset-0 z-0" 
       />
       
-      {/* Sidebar - Always fixed overlay, never takes layout space */}
+      {/* Sidebar - Mobile: Fixed overlay, Desktop: Takes layout space */}
       <Sidebar />
       
-      {/* Main Content - Always full width */}
+      {/* Main Content - Full width on mobile, flex-1 on desktop */}
       <div className="flex-1 flex flex-col relative z-10">
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4 z-30">
