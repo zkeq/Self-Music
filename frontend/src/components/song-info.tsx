@@ -255,15 +255,79 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          {song.mood.map((mood) => (
-            <Badge
-              key={mood}
-              variant="secondary"
-              className="px-3 py-1 text-xs bg-primary/10 text-primary border-primary/20"
-            >
-              {mood}
-            </Badge>
-          ))}
+          {song.mood.map((mood) => {
+            const getMoodVariant = (mood: string) => {
+              const moodStyles: Record<string, { 
+                className: string; 
+                style?: React.CSSProperties;
+              }> = {
+                '快乐': {
+                  className: 'border-amber-200/40 bg-gradient-to-br from-amber-50/80 to-yellow-50/50 text-amber-800 dark:border-amber-800/30 dark:from-amber-950/50 dark:to-yellow-950/30 dark:text-amber-200 shadow-amber-500/10',
+                },
+                '放松': {
+                  className: 'border-emerald-200/40 bg-gradient-to-br from-emerald-50/80 to-teal-50/50 text-emerald-800 dark:border-emerald-800/30 dark:from-emerald-950/50 dark:to-teal-950/30 dark:text-emerald-200 shadow-emerald-500/10',
+                },
+                '专注': {
+                  className: 'border-blue-200/40 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 text-blue-800 dark:border-blue-800/30 dark:from-blue-950/50 dark:to-indigo-950/30 dark:text-blue-200 shadow-blue-500/10',
+                },
+                '浪漫': {
+                  className: 'border-rose-200/40 bg-gradient-to-br from-rose-50/80 to-pink-50/50 text-rose-800 dark:border-rose-800/30 dark:from-rose-950/50 dark:to-pink-950/30 dark:text-rose-200 shadow-rose-500/10',
+                },
+                '活力': {
+                  className: 'border-red-200/40 bg-gradient-to-br from-red-50/80 to-orange-50/50 text-red-800 dark:border-red-800/30 dark:from-red-950/50 dark:to-orange-950/30 dark:text-red-200 shadow-red-500/10',
+                },
+                '怀旧': {
+                  className: 'border-orange-200/40 bg-gradient-to-br from-orange-50/80 to-amber-50/50 text-orange-800 dark:border-orange-800/30 dark:from-orange-950/50 dark:to-amber-950/30 dark:text-orange-200 shadow-orange-500/10',
+                },
+                '忧郁': {
+                  className: 'border-slate-200/40 bg-gradient-to-br from-slate-50/80 to-gray-50/50 text-slate-700 dark:border-slate-700/30 dark:from-slate-900/50 dark:to-gray-900/30 dark:text-slate-300 shadow-slate-500/10',
+                },
+                '动感': {
+                  className: 'border-cyan-200/40 bg-gradient-to-br from-cyan-50/80 to-sky-50/50 text-cyan-800 dark:border-cyan-800/30 dark:from-cyan-950/50 dark:to-sky-950/30 dark:text-cyan-200 shadow-cyan-500/10',
+                },
+                '温暖': {
+                  className: 'border-orange-200/40 bg-gradient-to-br from-orange-50/80 to-red-50/50 text-orange-800 dark:border-orange-800/30 dark:from-orange-950/50 dark:to-red-950/30 dark:text-orange-200 shadow-orange-500/10',
+                },
+                '清新': {
+                  className: 'border-green-200/40 bg-gradient-to-br from-green-50/80 to-emerald-50/50 text-green-800 dark:border-green-800/30 dark:from-green-950/50 dark:to-emerald-950/30 dark:text-green-200 shadow-green-500/10',
+                }
+              };
+              
+              return moodStyles[mood] || {
+                className: 'border-gray-200/40 bg-gradient-to-br from-gray-50/80 to-slate-50/50 text-gray-700 dark:border-gray-700/30 dark:from-gray-900/50 dark:to-slate-900/30 dark:text-gray-300 shadow-gray-500/10',
+              };
+            };
+
+            const moodStyle = getMoodVariant(mood);
+            
+            return (
+              <motion.div
+                key={mood}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ 
+                  delay: 0.6 + song.mood.indexOf(mood) * 0.08,
+                  duration: 0.4,
+                  ease: [0.4, 0, 0.2, 1]
+                }}
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium transition-all duration-300 cursor-default",
+                    "hover:shadow-lg backdrop-blur-sm border-2",
+                    "ring-0 focus-visible:ring-2 focus-visible:ring-offset-2",
+                    moodStyle.className
+                  )}
+                  style={moodStyle.style}
+                >
+                  {mood}
+                </Badge>
+              </motion.div>
+            );
+          })}
         </motion.div>
       )}
     </motion.div>
