@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getSafariOptimizedAnimation, getIOSScrollFix } from '@/lib/safari-fixes';
 
 interface LyricLine {
   time: number;
@@ -40,6 +41,10 @@ export function LyricsDisplay({
   const touchRafRef = useRef<number | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  
+  // Get Safari and iOS optimizations
+  const safariAnimationStyles = getSafariOptimizedAnimation();
+  const iosScrollStyles = getIOSScrollFix();
 
   // Initialize component after mount to prevent hydration mismatch
   useEffect(() => {
@@ -123,7 +128,7 @@ export function LyricsDisplay({
       
       if (!parentContainer) return;
       
-      // Use requestAnimationFrame for better performance
+      // Use requestAnimationFrame for better performance and avoid layout thrashing
       const updateTransform = () => {
         const currentLineElement = container.children[currentLineIndex] as HTMLElement;
         if (!currentLineElement) return;
@@ -140,18 +145,21 @@ export function LyricsDisplay({
         const baseTranslateY = parentCenterY - lineCenterY;
         
         if (!isUserScrolling) {
-          // Normal auto-scroll mode
-          container.style.transform = `translateY(${baseTranslateY}px)`;
+          // Normal auto-scroll mode - use CSS custom property for better performance
+          container.style.setProperty('--translate-y', `${baseTranslateY}px`);
+          container.style.transform = 'translateY(var(--translate-y)) translateZ(0)'; // Force GPU acceleration
           container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
         } else if (isTouchScrolling) {
           // Touch scrolling - no transition for immediate response
           const finalTranslateY = baseTranslateY - manualScrollOffset;
-          container.style.transform = `translateY(${finalTranslateY}px)`;
+          container.style.setProperty('--translate-y', `${finalTranslateY}px`);
+          container.style.transform = 'translateY(var(--translate-y)) translateZ(0)';
           container.style.transition = 'none';
         } else {
           // Mouse wheel scrolling - slight transition for smoothness
           const finalTranslateY = baseTranslateY - manualScrollOffset;
-          container.style.transform = `translateY(${finalTranslateY}px)`;
+          container.style.setProperty('--translate-y', `${finalTranslateY}px`);
+          container.style.transform = 'translateY(var(--translate-y)) translateZ(0)';
           container.style.transition = 'transform 0.1s ease-out';
         }
       };
@@ -221,12 +229,14 @@ export function LyricsDisplay({
         }
         handleScrollEnd();
       }}
-      style={{ 
-        touchAction: 'none', // 阻止默认的触摸滚动行为
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none'
-      }}
+        style={{
+          ...safariAnimationStyles,
+          ...iosScrollStyles,
+          touchAction: 'none', // 阻止默认的触摸滚动行为
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none'
+        }}
     >
       {/* Manual scroll indicator */}
       <AnimatePresence>
@@ -246,10 +256,15 @@ export function LyricsDisplay({
         ref={lyricsContainerRef}
         className={cn(
           "absolute inset-0 space-y-3 md:space-y-4 px-2 md:px-4 min-h-full",
-          "transition-transform duration-200",
+          "will-change-transform", // Optimize for transform animations
           isTouchScrolling ? "cursor-grabbing" : "cursor-grab",
           "select-none"
         )}
+        style={{
+          ...safariAnimationStyles,
+          backfaceVisibility: 'hidden', // Reduce flickering
+          perspective: '1000px', // Enable 3D acceleration
+        }}
       >
         {lyrics.map((lyric, index) => {
           const isActive = index === currentLineIndex;

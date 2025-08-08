@@ -53,13 +53,13 @@ export function extractColorsFromImage(imageUrl: string): Promise<ColorPalette> 
 }
 
 /**
- * Extract dominant colors from image data using a simplified color quantization
+ * Extract dominant colors from image data using optimized color quantization
  */
 function extractDominantColors(imageData: Uint8ClampedArray): ColorPalette {
   const colorMap = new Map<string, number>();
-  const step = 4; // Sample every 4th pixel for performance
+  const step = 8; // Increased step size for better performance (was 4)
   
-  // Sample pixels and count colors
+  // Sample pixels and count colors - reduced iterations
   for (let i = 0; i < imageData.length; i += step * 4) {
     const r = imageData[i];
     const g = imageData[i + 1];
@@ -69,34 +69,34 @@ function extractDominantColors(imageData: Uint8ClampedArray): ColorPalette {
     // Skip transparent pixels
     if (alpha < 128) continue;
     
-    // Quantize colors to reduce palette size
-    const qR = Math.round(r / 32) * 32;
-    const qG = Math.round(g / 32) * 32;
-    const qB = Math.round(b / 32) * 32;
+    // More aggressive quantization to reduce palette size
+    const qR = Math.round(r / 48) * 48; // Increased from 32
+    const qG = Math.round(g / 48) * 48;
+    const qB = Math.round(b / 48) * 48;
     
     const colorKey = `${qR},${qG},${qB}`;
     colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
   }
   
-  // Sort by frequency and get top colors
+  // Get top 5 colors instead of 10 for faster processing
   const sortedColors = Array.from(colorMap.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
+    .slice(0, 5)
     .map(([color]) => {
       const [r, g, b] = color.split(',').map(Number);
       return { r, g, b };
     });
   
-  // Filter out too dark or too light colors
+  // Simplified color filtering
   const filteredColors = sortedColors.filter(color => {
     const brightness = (color.r + color.g + color.b) / 3;
-    return brightness > 40 && brightness < 215;
+    return brightness > 50 && brightness < 200; // Tighter range
   });
   
-  // Select colors based on characteristics
+  // Use fallbacks if filtering removes all colors
   const dominant = filteredColors[0] || { r: 120, g: 120, b: 120 };
-  const accent = findAccentColor(filteredColors, dominant) || { r: 80, g: 120, b: 160 };
-  const muted = findMutedColor(filteredColors) || { r: 100, g: 100, b: 120 };
+  const accent = filteredColors[1] || findAccentColor(sortedColors, dominant) || { r: 80, g: 120, b: 160 };
+  const muted = filteredColors[2] || findMutedColor(sortedColors) || { r: 100, g: 100, b: 120 };
   
   return {
     dominant: createExtractedColor(dominant),

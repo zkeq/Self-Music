@@ -1,0 +1,94 @@
+/**
+ * Performance-optimized global CSS
+ */
+
+/* Hardware acceleration for common animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Optimize font rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce layout shifts */
+img {
+  font-size: 0;
+}
+
+/* Optimize scrolling performance */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Safari-specific optimizations */
+@supports (-webkit-backdrop-filter: blur(10px)) {
+  .backdrop-blur-optimized {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+@supports not (-webkit-backdrop-filter: blur(10px)) {
+  .backdrop-blur-optimized {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Reduce animation complexity on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Optimize for 60fps animations */
+.fps-60-animation {
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+}
+
+/* Prevent layout shifts during loading */
+.aspect-ratio-container {
+  position: relative;
+  width: 100%;
+}
+
+.aspect-ratio-container::before {
+  content: '';
+  display: block;
+  padding-top: 100%; /* 1:1 Aspect Ratio */
+}
+
+.aspect-ratio-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Optimize blur effects */
+.optimized-blur {
+  filter: blur(8px);
+  transform: translateZ(0);
+}
+
+/* Improve text rendering performance */
+.text-render-optimized {
+  text-rendering: optimizeSpeed;
+  font-display: swap;
+}
+
+/* Reduce paint complexity */
+.isolate-layer {
+  isolation: isolate;
+  contain: layout style paint;
+}
