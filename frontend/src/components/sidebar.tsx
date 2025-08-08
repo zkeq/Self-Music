@@ -10,7 +10,11 @@ import {
   Heart, 
   ChevronLeft, 
   ChevronRight,
-  Menu
+  Menu,
+  Play,
+  List,
+  Library,
+  Smile
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,18 +29,23 @@ export function Sidebar({ className }: SidebarProps) {
 
   const menuItems = [
     {
-      icon: Home,
-      label: '首页',
-      href: '/',
+      icon: Play,
+      label: '播放器',
+      href: '/play',
     },
     {
-      icon: Music,
-      label: '我的歌单',
-      href: '/playlists',
+      icon: Library,
+      label: '所有歌曲',
+      href: '/songs',
     },
     {
-      icon: Heart,
-      label: '我的心情',
+      icon: List,
+      label: '播放列表',
+      href: '/playlist',
+    },
+    {
+      icon: Smile,
+      label: '心情音乐',
       href: '/moods',
     },
   ];
@@ -154,7 +163,10 @@ export function Sidebar({ className }: SidebarProps) {
                     "hover:bg-accent hover:text-accent-foreground",
                     isCollapsed ? "px-2" : "px-3"
                   )}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={() => {
+                    window.location.href = item.href;
+                    setIsMobileOpen(false);
+                  }}
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", isCollapsed ? "" : "mr-3")} />
                   {!isCollapsed && (

@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { Song, PlayerState } from '@/types';
+import type { Song, PlayerState, Playlist } from '@/types';
 
 interface PlayerStore extends PlayerState {
+  // Additional state
+  currentPlaylist: Playlist | null;
+  playbackMode: 'song' | 'playlist' | 'mood';
+  currentMood: string | null;
+  
   // Actions
   setSong: (song: Song) => void;
   setPlaylist: (songs: Song[], currentIndex?: number) => void;
+  setPlaylistWithInfo: (playlist: Playlist, currentIndex?: number) => void;
+  setMoodPlaylist: (mood: string, songs: Song[], currentIndex?: number) => void;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -17,6 +24,8 @@ interface PlayerStore extends PlayerState {
   toggleRepeat: () => void;
   toggleShuffle: () => void;
   seekTo: (time: number) => void;
+  playFromPlaylist: (playlistId: string, songIndex?: number) => void;
+  playFromMood: (mood: string) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -32,10 +41,20 @@ export const usePlayerStore = create<PlayerStore>()(
       currentIndex: -1,
       repeatMode: 'none',
       shuffleMode: false,
+      currentPlaylist: null,
+      playbackMode: 'song',
+      currentMood: null,
 
       // Actions
       setSong: (song) => {
-        set({ currentSong: song, currentTime: 0, duration: 0 });
+        set({ 
+          currentSong: song, 
+          currentTime: 0, 
+          duration: 0,
+          playbackMode: 'song',
+          currentPlaylist: null,
+          currentMood: null
+        });
       },
 
       setPlaylist: (songs, currentIndex = 0) => {
@@ -46,6 +65,35 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong: songs[validIndex] || null,
           currentTime: 0,
           duration: 0,
+          playbackMode: 'playlist',
+        });
+      },
+
+      setPlaylistWithInfo: (playlist, currentIndex = 0) => {
+        const validIndex = Math.max(0, Math.min(currentIndex, playlist.songs.length - 1));
+        set({
+          playlist: playlist.songs,
+          currentIndex: validIndex,
+          currentSong: playlist.songs[validIndex] || null,
+          currentTime: 0,
+          duration: 0,
+          currentPlaylist: playlist,
+          playbackMode: 'playlist',
+          currentMood: null,
+        });
+      },
+
+      setMoodPlaylist: (mood, songs, currentIndex = 0) => {
+        const validIndex = Math.max(0, Math.min(currentIndex, songs.length - 1));
+        set({
+          playlist: songs,
+          currentIndex: validIndex,
+          currentSong: songs[validIndex] || null,
+          currentTime: 0,
+          duration: 0,
+          playbackMode: 'mood',
+          currentMood: mood,
+          currentPlaylist: null,
         });
       },
 
@@ -112,6 +160,18 @@ export const usePlayerStore = create<PlayerStore>()(
 
       seekTo: (time) => {
         set({ currentTime: time });
+      },
+
+      playFromPlaylist: async (playlistId, songIndex = 0) => {
+        // In real app, fetch playlist from API
+        // For now, mock implementation
+        console.log(`Playing from playlist: ${playlistId}, song index: ${songIndex}`);
+      },
+
+      playFromMood: async (mood) => {
+        // In real app, fetch mood-based songs from API
+        // For now, mock implementation
+        console.log(`Playing mood: ${mood}`);
       },
     }),
     {

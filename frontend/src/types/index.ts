@@ -4,21 +4,22 @@ export interface Song {
   artist: string;
   album?: string;
   duration: number;
-  file_path: string;
-  cover_url?: string;
-  lyrics_url?: string;
-  mood_tags?: string[];
-  created_at: string;
+  audioUrl?: string;
+  coverUrl?: string;
+  lyricsUrl?: string;
+  mood?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Playlist {
   id: string;
   name: string;
   description?: string;
-  cover_url?: string;
+  coverUrl?: string;
   songs: Song[];
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface LyricLine {
@@ -27,7 +28,7 @@ export interface LyricLine {
 }
 
 export interface Lyrics {
-  song_id: string;
+  songId: string;
   lines: LyricLine[];
 }
 
