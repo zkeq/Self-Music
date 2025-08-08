@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -23,10 +24,17 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false); // 设置为false避免hydration错误
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  const router = useRouter();
   const pathname = usePathname();
+
+  // 客户端挂载后设置初始化状态
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const menuItems = [
     {
@@ -50,14 +58,6 @@ export function Sidebar({ className }: SidebarProps) {
       href: '/moods',
     },
   ];
-
-  // 客户端挂载后设置初始化状态
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -95,10 +95,9 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ opacity: 0}}
+        initial={{ opacity: 0 }}
         animate={{ 
           opacity: isInitialized ? 1 : 0,
-          x: 0
         }}
         transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
@@ -157,36 +156,36 @@ export function Sidebar({ className }: SidebarProps) {
 
           {/* Navigation */}
           <nav className={cn(
-            "flex-1 space-y-1 p-4",
-            // 只在客户端初始化后应用transition，避免hydration错误
-            isInitialized && "transition-all",
-            isCollapsed && isInitialized && "p-2"
+            "flex-1 p-4 transition-all",
+            isCollapsed && "p-2"
           )}>
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
               const Icon = item.icon;
               return (
-                <Button
+                <Link
                   key={item.href}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start text-left font-normal transition-colors",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    // 只在客户端初始化后应用active状态，避免hydration错误
-                    isInitialized && pathname === item.href && "bg-accent text-accent-foreground",
-                    isCollapsed ? "px-0 justify-center" : "px-3"
-                  )}
-                  onClick={() => {
-                    router.push(item.href);
-                    setIsMobileOpen(false);
-                  }}
+                  href={item.href}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={cn("block", index > 0 && "mt-1")}
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", isCollapsed ? "" : "mr-3")} />
-                  {!isCollapsed && (
-                    <span className="truncate">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start text-left font-normal transition-all duration-300",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      pathname === item.href && "bg-accent text-accent-foreground",
+                      isCollapsed ? "px-0 justify-center" : "px-3"
+                    )}
+                  >
+                    <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isCollapsed ? "" : "mr-3")} />
+                    <span className={cn(
+                      "truncate transition-all duration-300 overflow-hidden",
+                      isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                    )}>
                       {item.label}
                     </span>
-                  )}
-                </Button>
+                  </Button>
+                </Link>
               );
             })}
           </nav>
