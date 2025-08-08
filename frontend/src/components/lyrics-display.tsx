@@ -35,9 +35,9 @@ export function LyricsDisplay({
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [manualScrollOffset, setManualScrollOffset] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
-  const [touchCurrentY, setTouchCurrentY] = useState(0);
   const [touchStartOffset, setTouchStartOffset] = useState(0);
   const [isTouchScrolling, setIsTouchScrolling] = useState(false);
+  const touchRafRef = useRef<number | null>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -49,6 +49,18 @@ export function LyricsDisplay({
     return () => clearTimeout(timer);
   }, []);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      if (touchRafRef.current !== null) {
+        cancelAnimationFrame(touchRafRef.current);
+      }
+    };
+  }, []);
+
   // Find current lyric line
   useEffect(() => {
     if (isInitialized) {
@@ -57,7 +69,7 @@ export function LyricsDisplay({
     }
   }, [currentTime, lyrics, isInitialized]);
 
-  // Handle scroll state management
+  // Handle scroll state management with cleanup
   const handleScrollStart = () => {
     setIsUserScrolling(true);
     
@@ -80,6 +92,29 @@ export function LyricsDisplay({
     setManualScrollOffset(delta);
   };
 
+  // Optimized touch scroll handler
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isTouchScrolling) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const touch = e.touches[0];
+    const touchDelta = touchStartY - touch.clientY;
+    const newOffset = touchStartOffset + touchDelta;
+    
+    // Cancel previous RAF if pending
+    if (touchRafRef.current !== null) {
+      cancelAnimationFrame(touchRafRef.current);
+    }
+    
+    // Schedule update for next frame
+    touchRafRef.current = requestAnimationFrame(() => {
+      updateScrollOffset(newOffset);
+      touchRafRef.current = null;
+    });
+  };
+
   // Auto-scroll with smooth animation - keep current line centered
   useEffect(() => {
     if (lyricsContainerRef.current && currentLineIndex >= 0 && lyrics.length > 0) {
@@ -88,8 +123,8 @@ export function LyricsDisplay({
       
       if (!parentContainer) return;
       
-      // Wait for DOM to update, then measure positions
-      setTimeout(() => {
+      // Use requestAnimationFrame for better performance
+      const updateTransform = () => {
         const currentLineElement = container.children[currentLineIndex] as HTMLElement;
         if (!currentLineElement) return;
         
@@ -108,15 +143,22 @@ export function LyricsDisplay({
           // Normal auto-scroll mode
           container.style.transform = `translateY(${baseTranslateY}px)`;
           container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
-        } else {
-          // User is scrolling - apply manual offset
+        } else if (isTouchScrolling) {
+          // Touch scrolling - no transition for immediate response
           const finalTranslateY = baseTranslateY - manualScrollOffset;
           container.style.transform = `translateY(${finalTranslateY}px)`;
-          container.style.transition = 'transform 0.2s ease-out';
+          container.style.transition = 'none';
+        } else {
+          // Mouse wheel scrolling - slight transition for smoothness
+          const finalTranslateY = baseTranslateY - manualScrollOffset;
+          container.style.transform = `translateY(${finalTranslateY}px)`;
+          container.style.transition = 'transform 0.1s ease-out';
         }
-      }, 0);
+      };
+
+      requestAnimationFrame(updateTransform);
     }
-  }, [currentLineIndex, lyrics, isUserScrolling, manualScrollOffset]);
+  }, [currentLineIndex, lyrics, isUserScrolling, manualScrollOffset, isTouchScrolling]);
 
   if (!isInitialized) {
     return (
@@ -164,28 +206,18 @@ export function LyricsDisplay({
       onTouchStart={(e) => {
         const touch = e.touches[0];
         setTouchStartY(touch.clientY);
-        setTouchCurrentY(touch.clientY);
         setTouchStartOffset(manualScrollOffset);
         setIsTouchScrolling(true);
         handleScrollStart();
       }}
-      onTouchMove={(e) => {
-        if (!isTouchScrolling) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const touch = e.touches[0];
-        setTouchCurrentY(touch.clientY);
-        
-        // Calculate the direct touch movement offset
-        const touchDelta = touchStartY - touch.clientY;
-        const newOffset = touchStartOffset + touchDelta;
-        
-        updateScrollOffset(newOffset);
-      }}
+      onTouchMove={handleTouchMove}
       onTouchEnd={() => {
         setIsTouchScrolling(false);
+        // Cancel any pending RAF
+        if (touchRafRef.current !== null) {
+          cancelAnimationFrame(touchRafRef.current);
+          touchRafRef.current = null;
+        }
         handleScrollEnd();
       }}
       style={{ 
