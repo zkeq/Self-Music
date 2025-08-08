@@ -1,6 +1,5 @@
 'use client';
 
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -131,18 +130,12 @@ export function LyricsDisplay({
         e.preventDefault();
         e.stopPropagation();
         
-        console.log('Wheel event detected via onWheel:', e.deltaY); // Debug log
-        
         // Set user scrolling state
         setIsUserScrolling(true);
         
         // Update manual scroll offset
         const scrollAmount = e.deltaY * 0.5; // Adjust scroll sensitivity
-        setManualScrollOffset(prev => {
-          const newOffset = prev + scrollAmount;
-          console.log('New scroll offset:', newOffset); // Debug log
-          return newOffset;
-        });
+        setManualScrollOffset(prev => prev + scrollAmount);
         
         // Clear existing timeout
         if (scrollTimeoutRef.current) {
@@ -151,7 +144,6 @@ export function LyricsDisplay({
         
         // Resume auto-scroll after 3 seconds of no scrolling
         scrollTimeoutRef.current = setTimeout(() => {
-          console.log('Resuming auto-scroll'); // Debug log
           setIsUserScrolling(false);
           setManualScrollOffset(0);
         }, 3000);

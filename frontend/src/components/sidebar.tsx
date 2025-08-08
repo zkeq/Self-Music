@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { 
-  Home, 
-  Music, 
-  Heart, 
   ChevronLeft, 
   ChevronRight,
   Menu,
@@ -26,7 +23,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(true); // 设置为true避免初始动画
+  const [isInitialized, setIsInitialized] = useState(false); // 设置为false避免hydration错误
   
   const router = useRouter();
   const pathname = usePathname();
@@ -53,6 +50,14 @@ export function Sidebar({ className }: SidebarProps) {
       href: '/moods',
     },
   ];
+
+  // 客户端挂载后设置初始化状态
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -151,8 +156,10 @@ export function Sidebar({ className }: SidebarProps) {
 
           {/* Navigation */}
           <nav className={cn(
-            "flex-1 space-y-1 p-4 transition-all",
-            isCollapsed && "p-2"
+            "flex-1 space-y-1 p-4",
+            // 只在客户端初始化后应用transition，避免hydration错误
+            isInitialized && "transition-all",
+            isCollapsed && isInitialized && "p-2"
           )}>
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -163,7 +170,8 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-full justify-start text-left font-normal transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
-                    pathname === item.href && "bg-accent text-accent-foreground",
+                    // 只在客户端初始化后应用active状态，避免hydration错误
+                    isInitialized && pathname === item.href && "bg-accent text-accent-foreground",
                     isCollapsed ? "px-0 justify-center" : "px-3"
                   )}
                   onClick={() => {
