@@ -28,14 +28,6 @@ export function Sidebar({ className }: SidebarProps) {
   
   const pathname = usePathname();
 
-  // 客户端挂载后设置初始化状态
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
   const menuItems = [
     {
       icon: Play,
@@ -58,6 +50,14 @@ export function Sidebar({ className }: SidebarProps) {
       href: '/moods',
     },
   ];
+
+  // 客户端挂载后设置初始化状态
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -95,6 +95,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.aside
+        suppressHydrationWarning
         initial={{ opacity: 0 }}
         animate={{ 
           opacity: isInitialized ? 1 : 0,
@@ -155,37 +156,40 @@ export function Sidebar({ className }: SidebarProps) {
           <Separator />
 
           {/* Navigation */}
-          <nav className={cn(
-            "flex-1 p-4 transition-all",
-            isCollapsed && "p-2"
-          )}>
+          <nav 
+            suppressHydrationWarning
+            className={cn(
+              "flex-1 space-y-1 p-4 transition-all",
+              isCollapsed && "p-2"
+            )}
+          >
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={cn("block", index > 0 && "mt-1")}
-                >
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start text-left font-normal transition-all duration-300",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      pathname === item.href && "bg-accent text-accent-foreground",
-                      isCollapsed ? "px-0 justify-center" : "px-3"
-                    )}
+                <div key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
                   >
-                    <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isCollapsed ? "" : "mr-3")} />
-                    <span className={cn(
-                      "truncate transition-all duration-300 overflow-hidden",
-                      isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-                    )}>
-                      {item.label}
-                    </span>
-                  </Button>
-                </Link>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start text-left font-normal transition-all duration-300",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        isInitialized && pathname === item.href && "bg-accent text-accent-foreground",
+                        isCollapsed ? "px-0 justify-center" : "px-3"
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isCollapsed ? "" : "mr-3")} />
+                      <span className={cn(
+                        "truncate transition-all duration-300 overflow-hidden",
+                        isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                      )}>
+                        {item.label}
+                      </span>
+                    </Button>
+                  </Link>
+                </div>
               );
             })}
           </nav>
