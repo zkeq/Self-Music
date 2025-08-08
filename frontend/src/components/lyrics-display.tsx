@@ -33,7 +33,10 @@ export function LyricsDisplay({
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [manualScrollOffset, setManualScrollOffset] = useState(0);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Initialize component after mount to prevent hydration mismatch
   useEffect(() => {
@@ -68,19 +71,26 @@ export function LyricsDisplay({
         const parentCenterY = parentHeight / 2;
         
         // Get current line's position relative to its container
-        const containerTop = container.offsetTop;
         const lineTop = currentLineElement.offsetTop;
         const lineHeight = currentLineElement.offsetHeight;
         const lineCenterY = lineTop + lineHeight / 2;
         
         // Calculate how much to translate to center the current line
-        const translateY = parentCenterY - lineCenterY;
+        const baseTranslateY = parentCenterY - lineCenterY;
         
-        container.style.transform = `translateY(${translateY}px)`;
-        container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
+        if (!isUserScrolling) {
+          // Normal auto-scroll mode
+          container.style.transform = `translateY(${baseTranslateY}px)`;
+          container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
+        } else {
+          // User is scrolling - apply manual offset
+          const finalTranslateY = baseTranslateY - manualScrollOffset;
+          container.style.transform = `translateY(${finalTranslateY}px)`;
+          container.style.transition = 'transform 0.2s ease-out';
+        }
       }, 0);
     }
-  }, [currentLineIndex, lyrics]);
+  }, [currentLineIndex, lyrics, isUserScrolling, manualScrollOffset]);
 
   if (!isInitialized) {
     return (
@@ -115,10 +125,56 @@ export function LyricsDisplay({
   }
 
   return (
-    <div className={cn("h-full relative overflow-hidden", className)}>
+    <div 
+      className={cn("h-full relative overflow-hidden", className)}
+      onWheel={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Wheel event detected via onWheel:', e.deltaY); // Debug log
+        
+        // Set user scrolling state
+        setIsUserScrolling(true);
+        
+        // Update manual scroll offset
+        const scrollAmount = e.deltaY * 0.5; // Adjust scroll sensitivity
+        setManualScrollOffset(prev => {
+          const newOffset = prev + scrollAmount;
+          console.log('New scroll offset:', newOffset); // Debug log
+          return newOffset;
+        });
+        
+        // Clear existing timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        
+        // Resume auto-scroll after 3 seconds of no scrolling
+        scrollTimeoutRef.current = setTimeout(() => {
+          console.log('Resuming auto-scroll'); // Debug log
+          setIsUserScrolling(false);
+          setManualScrollOffset(0);
+        }, 3000);
+      }}
+    >
+      {/* Manual scroll indicator */}
+      <AnimatePresence>
+        {isUserScrolling && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm"
+          >
+            手动滚动中...
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       <div 
         ref={lyricsContainerRef}
-        className="absolute inset-0 space-y-3 md:space-y-4 px-2 md:px-4"
+        className="absolute inset-0 space-y-3 md:space-y-4 px-2 md:px-4 min-h-full cursor-grab active:cursor-grabbing"
+        style={{ userSelect: 'none' }}
       >
         {lyrics.map((lyric, index) => {
           const isActive = index === currentLineIndex;
@@ -142,7 +198,42 @@ export function LyricsDisplay({
                 "text-center min-h-[60px] md:min-h-[72px] flex items-center justify-center w-full",
                 isHovered && "bg-accent/30"
               )}
-              onClick={() => onLyricClick(lyric.time)}
+              onClick={() => {
+                // 重置手动滚动状态
+                if (scrollTimeoutRef.current) {
+                  clearTimeout(scrollTimeoutRef.current);
+                }
+                setIsUserScrolling(false);
+                setManualScrollOffset(0);
+                
+                // 调用原来的点击处理
+                onLyricClick(lyric.time);
+                
+                // 强制重新计算位置
+                setTimeout(() => {
+                  if (lyricsContainerRef.current) {
+                    const container = lyricsContainerRef.current;
+                    const parentContainer = container.parentElement;
+                    
+                    if (parentContainer) {
+                      const clickedElement = container.children[index] as HTMLElement;
+                      if (clickedElement) {
+                        const parentHeight = parentContainer.clientHeight;
+                        const parentCenterY = parentHeight / 2;
+                        
+                        const lineTop = clickedElement.offsetTop;
+                        const lineHeight = clickedElement.offsetHeight;
+                        const lineCenterY = lineTop + lineHeight / 2;
+                        
+                        const translateY = parentCenterY - lineCenterY;
+                        
+                        container.style.transform = `translateY(${translateY}px)`;
+                        container.style.transition = 'transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1)';
+                      }
+                    }
+                  }
+                }, 100);
+              }}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(-1)}
             >
