@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const menuItems = [
     {
@@ -39,6 +40,14 @@ export function Sidebar({ className }: SidebarProps) {
       href: '/moods',
     },
   ];
+
+  // Initialize component after mount to prevent flash
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -75,7 +84,13 @@ export function Sidebar({ className }: SidebarProps) {
       </Button>
 
       {/* Sidebar */}
-      <aside
+      <motion.aside
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ 
+          opacity: isInitialized ? 1 : 0, 
+          x: isInitialized ? 0 : -20 
+        }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
           "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
           // Mobile: fixed overlay, Desktop: takes layout space
@@ -162,7 +177,7 @@ export function Sidebar({ className }: SidebarProps) {
             )}
           </div>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

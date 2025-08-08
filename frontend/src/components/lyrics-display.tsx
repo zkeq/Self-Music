@@ -3,6 +3,7 @@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LyricLine {
   time: number;
@@ -31,13 +32,24 @@ export function LyricsDisplay({
 }: LyricsDisplayProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
+  const [isInitialized, setIsInitialized] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Initialize component after mount to prevent hydration mismatch
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Find current lyric line
   useEffect(() => {
-    const lineIndex = lyrics.findLastIndex(lyric => currentTime >= lyric.time);
-    setCurrentLineIndex(lineIndex);
-  }, [currentTime, lyrics]);
+    if (isInitialized) {
+      const lineIndex = lyrics.findLastIndex(lyric => currentTime >= lyric.time);
+      setCurrentLineIndex(lineIndex);
+    }
+  }, [currentTime, lyrics, isInitialized]);
 
   // Auto-scroll with smooth animation - keep current line centered
   useEffect(() => {
@@ -70,6 +82,24 @@ export function LyricsDisplay({
     }
   }, [currentLineIndex, lyrics]);
 
+  if (!isInitialized) {
+    return (
+      <div className={cn(
+        "flex items-center justify-center h-64 text-muted-foreground",
+        className
+      )}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-2"
+        >
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm">加载歌词中...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!lyrics.length) {
     return (
       <div className={cn(
@@ -96,8 +126,16 @@ export function LyricsDisplay({
           const isHovered = index === hoveredIndex;
 
           return (
-            <div
+            <motion.div
               key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ 
+                duration: 0.6, 
+                delay: isInitialized ? index * 0.05 : 0,
+                ease: [0.4, 0, 0.2, 1] 
+              }}
               className={cn(
                 "cursor-pointer transition-all duration-300 ease-in-out relative group",
                 "hover:bg-accent/40 rounded-lg px-3 md:px-6 py-3 md:py-4",
@@ -109,25 +147,50 @@ export function LyricsDisplay({
               onMouseLeave={() => setHoveredIndex(-1)}
             >
               {/* 左侧装饰线 */}
-              {isHovered && (
-                <div className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="w-6 md:w-12 h-px bg-gradient-to-r from-primary/60 to-primary/20"></div>
-                </div>
-              )}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2"
+                  >
+                    <div className="w-6 md:w-12 h-px bg-gradient-to-r from-primary/60 to-primary/20"></div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* 右侧装饰线和时间 */}
-              {isHovered && (
-                <div className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center gap-2 md:gap-3">
-                  <div className="bg-popover/95 backdrop-blur-sm border rounded-md px-2 md:px-3 py-1 md:py-1.5 text-xs text-popover-foreground shadow-lg">
-                    {formatTime(lyric.time)}
-                  </div>
-                  <div className="w-6 md:w-12 h-px bg-gradient-to-l from-primary/60 to-primary/20"></div>
-                </div>
-              )}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 md:gap-3"
+                  >
+                    <div className="bg-popover/95 backdrop-blur-sm border rounded-md px-2 md:px-3 py-1 md:py-1.5 text-xs text-popover-foreground shadow-lg">
+                      {formatTime(lyric.time)}
+                    </div>
+                    <div className="w-6 md:w-12 h-px bg-gradient-to-l from-primary/60 to-primary/20"></div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               {/* 歌词文本容器 - 确保完全居中 */}
               <div className="flex-1 flex items-center justify-center">
-                <p
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ 
+                    opacity: 1,
+                    scale: isActive ? 1.05 : 1
+                  }}
+                  transition={{ 
+                    opacity: { duration: 0.4, delay: index * 0.03 },
+                    scale: { duration: 0.3 }
+                  }}
                   className={cn(
                     "text-base leading-relaxed transition-all duration-300",
                     "select-none relative z-10 text-center",
@@ -139,9 +202,9 @@ export function LyricsDisplay({
                   )}
                 >
                   {lyric.text}
-                </p>
+                </motion.p>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
@@ -167,14 +230,29 @@ export function LyricsCard({
   onFullscreen,
 }: LyricsCardProps) {
   return (
-    <div className={cn("w-full h-full max-w-lg flex flex-col", className)}>
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+      className={cn("w-full h-full max-w-lg flex flex-col", className)}
+    >
       {/* Header with fullscreen button */}
-      <div className="mb-4 text-center flex-shrink-0 flex items-center justify-between">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="mb-4 text-center flex-shrink-0 flex items-center justify-between"
+      >
         <div className="flex-1">
           <h3 className="text-lg font-medium text-foreground">{title}</h3>
         </div>
         {onFullscreen && (
-          <button
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onFullscreen}
             className="ml-4 p-2 hover:bg-accent/20 rounded-lg transition-colors duration-200 group"
             aria-label="全屏显示歌词"
@@ -192,19 +270,24 @@ export function LyricsCard({
                 d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" 
               />
             </svg>
-          </button>
+          </motion.button>
         )}
-      </div>
+      </motion.div>
 
       {/* Lyrics content - fill remaining height */}
-      <div className="flex-1 min-h-0">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+        className="flex-1 min-h-0"
+      >
         <LyricsDisplay
           lyrics={lyrics}
           currentTime={currentTime}
           onLyricClick={onLyricClick}
         />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
