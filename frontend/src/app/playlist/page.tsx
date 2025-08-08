@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -69,13 +70,20 @@ const formatSongDuration = (seconds: number) => {
 
 export default function PlaylistPage() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id) {
+      setSelectedPlaylist(id);
+    }
+  }, [searchParams]);
 
   const currentPlaylist = selectedPlaylist 
     ? mockPlaylists.find(p => p.id === selectedPlaylist)
     : null;
 
   const handlePlaySong = (songId: string) => {
-    // Navigate to specific song
     window.location.href = `/play/${songId}`;
   };
 
