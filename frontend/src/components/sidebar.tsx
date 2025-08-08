@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,10 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(true); // 设置为true避免初始动画
+  
+  const router = useRouter();
+  const pathname = usePathname();
 
   const menuItems = [
     {
@@ -49,14 +53,6 @@ export function Sidebar({ className }: SidebarProps) {
       href: '/moods',
     },
   ];
-
-  // Initialize component after mount to prevent flash
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -94,7 +90,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ opacity: 0, x: 0 }}
+        initial={{ opacity: 1, x: 0 }}
         animate={{ 
           opacity: isInitialized ? 1 : 0, 
         }}
@@ -138,7 +134,10 @@ export function Sidebar({ className }: SidebarProps) {
               variant="ghost"
               size="icon"
               onClick={toggleCollapse}
-              className="hidden lg:flex shrink-0 h-8 w-8"
+              className={cn(
+                "hidden lg:flex shrink-0 h-8 w-8 transition-all",
+                isCollapsed ? "mx-auto" : ""
+              )}
             >
               {isCollapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -151,7 +150,10 @@ export function Sidebar({ className }: SidebarProps) {
           <Separator />
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className={cn(
+            "flex-1 space-y-1 p-4 transition-all",
+            isCollapsed && "p-2"
+          )}>
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -161,10 +163,11 @@ export function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "w-full justify-start text-left font-normal transition-colors",
                     "hover:bg-accent hover:text-accent-foreground",
-                    isCollapsed ? "px-2" : "px-3"
+                    pathname === item.href && "bg-accent text-accent-foreground",
+                    isCollapsed ? "px-0 justify-center" : "px-3"
                   )}
                   onClick={() => {
-                    window.location.href = item.href;
+                    router.push(item.href);
                     setIsMobileOpen(false);
                   }}
                 >
