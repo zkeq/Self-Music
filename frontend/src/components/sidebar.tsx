@@ -85,10 +85,9 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ opacity: 0, x: -20 }}
+        initial={{ opacity: 0, x: 0 }}
         animate={{ 
           opacity: isInitialized ? 1 : 0, 
-          x: isInitialized ? 0 : -20 
         }}
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
