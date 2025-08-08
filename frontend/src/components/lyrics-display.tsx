@@ -35,6 +35,8 @@ export function LyricsDisplay({
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [manualScrollOffset, setManualScrollOffset] = useState(0);
   const [touchStartY, setTouchStartY] = useState(0);
+  const [touchCurrentY, setTouchCurrentY] = useState(0);
+  const [touchStartOffset, setTouchStartOffset] = useState(0);
   const [isTouchScrolling, setIsTouchScrolling] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -75,8 +77,7 @@ export function LyricsDisplay({
   };
 
   const updateScrollOffset = (delta: number) => {
-    const scrollAmount = delta * 1.5; // Increase scroll sensitivity for better mobile experience
-    setManualScrollOffset(prev => prev + scrollAmount);
+    setManualScrollOffset(delta);
   };
 
   // Auto-scroll with smooth animation - keep current line centered
@@ -157,12 +158,14 @@ export function LyricsDisplay({
         e.stopPropagation();
         
         handleScrollStart();
-        updateScrollOffset(e.deltaY);
+        updateScrollOffset(manualScrollOffset + e.deltaY * 1.5);
         handleScrollEnd();
       }}
       onTouchStart={(e) => {
         const touch = e.touches[0];
         setTouchStartY(touch.clientY);
+        setTouchCurrentY(touch.clientY);
+        setTouchStartOffset(manualScrollOffset);
         setIsTouchScrolling(true);
         handleScrollStart();
       }}
@@ -173,11 +176,13 @@ export function LyricsDisplay({
         e.stopPropagation();
         
         const touch = e.touches[0];
-        const deltaY = touchStartY - touch.clientY; // 反向计算，向上滑动为正值
+        setTouchCurrentY(touch.clientY);
         
-        // Improved touch calculation - use actual movement distance
-        updateScrollOffset(deltaY * 2); // Amplify touch movement for better responsiveness
-        setTouchStartY(touch.clientY); // 更新起始位置用于连续滚动
+        // Calculate the direct touch movement offset
+        const touchDelta = touchStartY - touch.clientY;
+        const newOffset = touchStartOffset + touchDelta;
+        
+        updateScrollOffset(newOffset);
       }}
       onTouchEnd={() => {
         setIsTouchScrolling(false);
