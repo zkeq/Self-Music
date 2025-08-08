@@ -163,7 +163,7 @@ export function Sidebar({ className }: SidebarProps) {
               isCollapsed && "p-2"
             )}
           >
-            {menuItems.map((item, index) => {
+            {menuItems.map((item) => {
               const Icon = item.icon;
               return (
                 <div key={item.href}>

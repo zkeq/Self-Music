@@ -96,7 +96,7 @@ function extractDominantColors(imageData: Uint8ClampedArray): ColorPalette {
   // Select colors based on characteristics
   const dominant = filteredColors[0] || { r: 120, g: 120, b: 120 };
   const accent = findAccentColor(filteredColors, dominant) || { r: 80, g: 120, b: 160 };
-  const muted = findMutedColor(filteredColors, dominant) || { r: 100, g: 100, b: 120 };
+  const muted = findMutedColor(filteredColors) || { r: 100, g: 100, b: 120 };
   
   return {
     dominant: createExtractedColor(dominant),
@@ -117,7 +117,7 @@ function findAccentColor(colors: {r: number, g: number, b: number}[], dominant: 
   });
 }
 
-function findMutedColor(colors: {r: number, g: number, b: number}[], dominant: {r: number, g: number, b: number}) {
+function findMutedColor(colors: {r: number, g: number, b: number}[]) {
   // Find a more muted (less saturated) version
   return colors.find(color => {
     const saturation = Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);

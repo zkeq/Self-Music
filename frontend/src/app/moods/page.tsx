@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Heart, Smile, Coffee, Zap, Sun, Moon, CloudRain, Wind, Music2 } from 'lucide-react';
+import { Play, Heart, Smile, Coffee, Zap, Sun, CloudRain, Music2 } from 'lucide-react';
 
 // Mock mood data
 const moodData = [
@@ -178,7 +177,7 @@ export default function MoodsPage() {
                   <h3 className="text-xl font-semibold mb-4">推荐歌曲</h3>
                   <ScrollArea className="h-96">
                     <div className="grid gap-4">
-                      {currentMood.songs.map((song, index) => (
+                      {currentMood.songs.map((song) => (
                         <Card 
                           key={song.id}
                           className="cursor-pointer hover:bg-muted/50 transition-colors"

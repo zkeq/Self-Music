@@ -17,6 +17,7 @@ interface AlbumCoverProps {
 }
 
 export function AlbumCover({ song, className, size = 'lg' }: AlbumCoverProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [colorPalette, setColorPalette] = useState<ColorPalette>(getDefaultColorPalette());
   const [cssVars, setCssVars] = useState<Record<string, string>>({});
 

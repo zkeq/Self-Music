@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Heart, MoreHorizontal, Music2, Search, Grid, List, Clock, Upload } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Play, Heart, Music2, Search, Grid, List, Clock, Upload } from 'lucide-react';
 
 // Mock songs data
 const mockSongs = [
@@ -118,13 +118,13 @@ export default function SongsPage() {
       return mockSongs;
     }
 
-    let filtered = mockSongs.filter(song =>
+    const filtered = mockSongs.filter(song =>
       song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
       song.album.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    filtered.sort((a, b) => {
+    return filtered.sort((a, b) => {
       switch (sortBy) {
         case 'title':
           return a.title.localeCompare(b.title);
@@ -138,8 +138,6 @@ export default function SongsPage() {
           return 0;
       }
     });
-
-    return filtered;
   }, [searchQuery, sortBy, isClient]);
 
   const handlePlaySong = (songId: string) => {
@@ -189,7 +187,7 @@ export default function SongsPage() {
               />
             </div>
             
-            <Tabs value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <Tabs value={sortBy} onValueChange={(value) => setSortBy(value as 'title' | 'artist' | 'playCount' | 'createdAt')}>
               <TabsList className="grid w-fit grid-cols-4">
                 <TabsTrigger value="title">标题</TabsTrigger>
                 <TabsTrigger value="artist">艺术家</TabsTrigger>
@@ -282,7 +280,7 @@ export default function SongsPage() {
                 <div className="w-16"></div>
               </div>
               <ScrollArea className="h-[calc(100vh-300px)]">
-                {filteredAndSortedSongs.map((song, index) => (
+                {filteredAndSortedSongs.map((song) => (
                   <div
                     key={song.id}
                     className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"
