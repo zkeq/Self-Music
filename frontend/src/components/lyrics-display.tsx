@@ -284,9 +284,8 @@ export function LyricsDisplay({
               }}
               className={cn(
                 "cursor-pointer transition-all duration-300 ease-in-out relative group",
-                "hover:bg-accent/40 rounded-lg px-3 md:px-6 py-3 md:py-4",
-                "text-center min-h-[60px] md:min-h-[72px] flex items-center justify-center w-full",
-                isHovered && "bg-accent/30"
+                "hover:bg-transparent rounded-lg px-3 md:px-6 py-3 md:py-4", // 移除灰色背景
+                "text-center min-h-[60px] md:min-h-[72px] flex items-center justify-center w-full"
               )}
               onClick={() => {
                 // 重置手动滚动状态
