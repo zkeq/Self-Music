@@ -53,13 +53,13 @@ export function extractColorsFromImage(imageUrl: string): Promise<ColorPalette> 
 }
 
 /**
- * Extract dominant colors from image data using optimized color quantization
+ * Extract dominant colors from image data using balanced color quantization
  */
 function extractDominantColors(imageData: Uint8ClampedArray): ColorPalette {
   const colorMap = new Map<string, number>();
-  const step = 8; // Increased step size for better performance (was 4)
+  const step = 6; // Balanced step size - not too aggressive (was 8), not too slow (was 4)
   
-  // Sample pixels and count colors - reduced iterations
+  // Sample pixels and count colors
   for (let i = 0; i < imageData.length; i += step * 4) {
     const r = imageData[i];
     const g = imageData[i + 1];
@@ -69,34 +69,34 @@ function extractDominantColors(imageData: Uint8ClampedArray): ColorPalette {
     // Skip transparent pixels
     if (alpha < 128) continue;
     
-    // More aggressive quantization to reduce palette size
-    const qR = Math.round(r / 48) * 48; // Increased from 32
-    const qG = Math.round(g / 48) * 48;
-    const qB = Math.round(b / 48) * 48;
+    // Balanced quantization for better color quality
+    const qR = Math.round(r / 32) * 32; // Back to 32 for better color accuracy
+    const qG = Math.round(g / 32) * 32;
+    const qB = Math.round(b / 32) * 32;
     
     const colorKey = `${qR},${qG},${qB}`;
     colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
   }
   
-  // Get top 5 colors instead of 10 for faster processing
+  // Get top 8 colors for better variety (compromise between 5 and 10)
   const sortedColors = Array.from(colorMap.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 8)
     .map(([color]) => {
       const [r, g, b] = color.split(',').map(Number);
       return { r, g, b };
     });
   
-  // Simplified color filtering
+  // More flexible color filtering for better results
   const filteredColors = sortedColors.filter(color => {
     const brightness = (color.r + color.g + color.b) / 3;
-    return brightness > 50 && brightness < 200; // Tighter range
+    return brightness > 40 && brightness < 210; // Slightly more permissive range
   });
   
-  // Use fallbacks if filtering removes all colors
-  const dominant = filteredColors[0] || { r: 120, g: 120, b: 120 };
-  const accent = filteredColors[1] || findAccentColor(sortedColors, dominant) || { r: 80, g: 120, b: 160 };
-  const muted = filteredColors[2] || findMutedColor(sortedColors) || { r: 100, g: 100, b: 120 };
+  // Enhanced color selection with better fallbacks
+  const dominant = filteredColors[0] || { r: 120, g: 120, b: 180 }; // Better default
+  const accent = findAccentColor(filteredColors, dominant) || findContrastColor(sortedColors, dominant) || { r: 180, g: 120, b: 160 };
+  const muted = findMutedColor(filteredColors) || findSoftColor(sortedColors) || { r: 100, g: 110, b: 130 };
   
   return {
     dominant: createExtractedColor(dominant),
@@ -117,11 +117,32 @@ function findAccentColor(colors: {r: number, g: number, b: number}[], dominant: 
   });
 }
 
+// Enhanced contrast color finder
+function findContrastColor(colors: {r: number, g: number, b: number}[], dominant: {r: number, g: number, b: number}) {
+  return colors.find(color => {
+    const distance = Math.sqrt(
+      Math.pow(color.r - dominant.r, 2) +
+      Math.pow(color.g - dominant.g, 2) +
+      Math.pow(color.b - dominant.b, 2)
+    );
+    return distance > 60; // Slightly lower threshold for more options
+  });
+}
+
 function findMutedColor(colors: {r: number, g: number, b: number}[]) {
   // Find a more muted (less saturated) version
   return colors.find(color => {
     const saturation = Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
     return saturation < 80; // Look for less saturated colors
+  });
+}
+
+// Enhanced soft color finder
+function findSoftColor(colors: {r: number, g: number, b: number}[]) {
+  return colors.find(color => {
+    const saturation = Math.max(color.r, color.g, color.b) - Math.min(color.r, color.g, color.b);
+    const brightness = (color.r + color.g + color.b) / 3;
+    return saturation < 100 && brightness > 60 && brightness < 180; // Soft, mid-tone colors
   });
 }
 
@@ -174,13 +195,13 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
 }
 
 /**
- * Generate default color palette when image is not available
+ * Generate enhanced default color palette when image is not available
  */
 export function getDefaultColorPalette(): ColorPalette {
   return {
-    dominant: createExtractedColor({ r: 99, g: 102, b: 241 }), // Primary blue
-    accent: createExtractedColor({ r: 168, g: 85, b: 247 }), // Purple
-    muted: createExtractedColor({ r: 71, g: 85, b: 105 }) // Slate
+    dominant: createExtractedColor({ r: 139, g: 92, b: 246 }), // More vibrant purple-blue
+    accent: createExtractedColor({ r: 236, g: 72, b: 153 }), // Pink accent
+    muted: createExtractedColor({ r: 71, g: 85, b: 105 }) // Slate gray
   };
 }
 

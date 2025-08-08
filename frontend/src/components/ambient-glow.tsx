@@ -60,9 +60,9 @@ export function AmbientGlow({
   }
 
   const intensityConfig = {
-    low: { blur: 'blur-2xl', opacity: 'opacity-10', scale: 'scale-125' },
-    medium: { blur: 'blur-3xl', opacity: 'opacity-20', scale: 'scale-150' }, // Reduced from blur-[80px]
-    high: { blur: 'blur-[60px]', opacity: 'opacity-30', scale: 'scale-[175%]' } // Reduced from blur-[120px]
+    low: { blur: 'blur-2xl', opacity: 'opacity-15', scale: 'scale-125' },
+    medium: { blur: 'blur-[60px]', opacity: 'opacity-25', scale: 'scale-[175%]' }, // Enhanced for better visual impact
+    high: { blur: 'blur-[80px]', opacity: 'opacity-35', scale: 'scale-[200%]' } // Restored some intensity
   };
 
   const config = intensityConfig[intensity];
@@ -99,28 +99,54 @@ export function AmbientGlow({
         }}
       />
 
-      {/* Simplified accent glow - reduced complexity */}
+      {/* Simplified accent glow - enhanced visual */}
       {animated && (
         <motion.div
           className={cn(
-            "absolute top-1/3 right-1/4 w-64 h-64 rounded-full", // Reduced size
+            "absolute top-1/3 right-1/4 w-80 h-80 rounded-full", // Restored size
             config.blur,
-            "opacity-15" // Reduced opacity
+            "opacity-20" // Increased opacity for better visual impact
           )}
           style={{
-            background: `radial-gradient(circle, rgb(var(--glow-accent-rgb, 168, 85, 247)) 0%, rgba(var(--glow-accent-rgb, 168, 85, 247), 0.3) 40%, transparent 80%)`,
+            background: `radial-gradient(circle, rgb(var(--glow-accent-rgb, 236, 72, 153)) 0%, rgba(var(--glow-accent-rgb, 236, 72, 153), 0.4) 40%, transparent 80%)`,
             ...safariAnimationStyles
           }}
           animate={{
-            x: [0, 8, -4, 0], // Reduced movement range
-            y: [0, -8, 4, 0],
-            scale: [1, 0.9, 1.1, 1], // Reduced scale range
+            x: [0, 12, -6, 0], // Slightly increased movement
+            y: [0, -12, 6, 0],
+            scale: [1, 0.85, 1.15, 1], // Enhanced scale animation
           }}
           transition={{
-            duration: 16, // Slower animation
+            duration: 14, // Balanced speed
             repeat: Infinity,
             ease: "easeInOut",
             delay: 2
+          }}
+        />
+      )}
+
+      {/* Add back a subtle third glow for depth - performance optimized */}
+      {animated && (
+        <motion.div
+          className={cn(
+            "absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full",
+            "blur-[40px]", // Moderate blur
+            "opacity-10" // Very subtle
+          )}
+          style={{
+            background: `radial-gradient(circle, rgb(var(--glow-muted-rgb, 71, 85, 105)) 0%, rgba(var(--glow-muted-rgb, 71, 85, 105), 0.3) 50%, transparent 90%)`,
+            ...safariAnimationStyles
+          }}
+          animate={{
+            x: [0, -6, 8, 0],
+            y: [0, 6, -8, 0],
+            scale: [1, 1.2, 0.8, 1],
+          }}
+          transition={{
+            duration: 20, // Very slow for subtle effect
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 6
           }}
         />
       )}
@@ -139,7 +165,7 @@ export function PremiumGlowEffect({ imageUrl, className, children }: PremiumGlow
   
   return (
     <div className={cn("relative", className)}>
-      <AmbientGlow imageUrl={imageUrl} intensity="medium" enableColorExtraction={false} />
+      <AmbientGlow imageUrl={imageUrl} intensity="medium" enableColorExtraction={true} />
       
       {/* Glass morphism backdrop - optimized for Safari */}
       <div 

@@ -18,7 +18,7 @@ const mockSong = {
   album: '欢迎使用',
   duration: 204, // 3:24 in seconds
   mood: ['放松', '专注', '快乐'],
-  coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=face', // Sample cover
+  coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg', // Sample cover
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

@@ -21,7 +21,7 @@ const mockSongs = [
     album: '叶惠美',
     duration: 269,
     mood: ['快乐', '放松'],
-    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
+    coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg',
     liked: true,
     playCount: 1240,
     createdAt: '2023-01-15'
