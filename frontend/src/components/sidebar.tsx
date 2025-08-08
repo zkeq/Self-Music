@@ -94,13 +94,8 @@ export function Sidebar({ className }: SidebarProps) {
       </Button>
 
       {/* Sidebar */}
-      <motion.aside
+      <aside
         suppressHydrationWarning
-        initial={{ opacity: 0 }}
-        animate={{ 
-          opacity: isInitialized ? 1 : 0,
-        }}
-        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
           "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
           // Mobile: fixed overlay, Desktop: takes layout space
@@ -203,7 +198,7 @@ export function Sidebar({ className }: SidebarProps) {
             )}
           </div>
         </div>
-      </motion.aside>
+      </aside>
     </>
   );
 }

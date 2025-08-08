@@ -75,7 +75,7 @@ export function LyricsDisplay({
   };
 
   const updateScrollOffset = (delta: number) => {
-    const scrollAmount = delta * 0.5; // Adjust scroll sensitivity
+    const scrollAmount = delta * 1.5; // Increase scroll sensitivity for better mobile experience
     setManualScrollOffset(prev => prev + scrollAmount);
   };
 
@@ -175,7 +175,8 @@ export function LyricsDisplay({
         const touch = e.touches[0];
         const deltaY = touchStartY - touch.clientY; // 反向计算，向上滑动为正值
         
-        updateScrollOffset(deltaY);
+        // Improved touch calculation - use actual movement distance
+        updateScrollOffset(deltaY * 2); // Amplify touch movement for better responsiveness
         setTouchStartY(touch.clientY); // 更新起始位置用于连续滚动
       }}
       onTouchEnd={() => {

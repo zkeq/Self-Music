@@ -128,36 +128,6 @@ export function AmbientGlow({
         }}
       />
 
-      {/* Additional floating orbs for extra ambiance */}
-      {Array.from({ length: 3 }, (_, i) => (
-        <motion.div
-          key={i}
-          className={cn(
-            "absolute w-24 h-24 rounded-full",
-            "blur-2xl opacity-10"
-          )}
-          style={{
-            background: i === 0 
-              ? `rgb(var(--glow-dominant-rgb, 99, 102, 241))` 
-              : i === 1 
-              ? `rgb(var(--glow-accent-rgb, 168, 85, 247))` 
-              : `rgb(var(--glow-muted-rgb, 71, 85, 105))`,
-            left: `${20 + i * 30}%`,
-            top: `${30 + i * 20}%`
-          }}
-          animate={animated ? {
-            x: [0, 20, -10, 0],
-            y: [0, -15, 25, 0],
-            opacity: [0.1, 0.2, 0.05, 0.1]
-          } : {}}
-          transition={{
-            duration: 20 + i * 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 3
-          }}
-        />
-      ))}
     </div>
   );
 }
