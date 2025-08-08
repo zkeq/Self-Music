@@ -200,7 +200,8 @@ export function LyricsDisplay({
         e.stopPropagation();
         
         handleScrollStart();
-        updateScrollOffset(manualScrollOffset + e.deltaY * 1.5);
+        // Reduce scroll sensitivity for better control - from 1.5 to 0.8
+        updateScrollOffset(manualScrollOffset + e.deltaY * 0.8);
         handleScrollEnd();
       }}
       onTouchStart={(e) => {
