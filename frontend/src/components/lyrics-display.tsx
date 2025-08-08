@@ -34,8 +34,10 @@ export function LyricsDisplay({
   const [isInitialized, setIsInitialized] = useState(false);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [manualScrollOffset, setManualScrollOffset] = useState(0);
+  const [touchStartY, setTouchStartY] = useState(0);
+  const [isTouchScrolling, setIsTouchScrolling] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Initialize component after mount to prevent hydration mismatch
   useEffect(() => {
@@ -52,6 +54,30 @@ export function LyricsDisplay({
       setCurrentLineIndex(lineIndex);
     }
   }, [currentTime, lyrics, isInitialized]);
+
+  // Handle scroll state management
+  const handleScrollStart = () => {
+    setIsUserScrolling(true);
+    
+    // Clear existing timeout
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+  };
+
+  const handleScrollEnd = () => {
+    // Resume auto-scroll after 3 seconds of no scrolling
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsUserScrolling(false);
+      setManualScrollOffset(0);
+      setIsTouchScrolling(false);
+    }, 3000);
+  };
+
+  const updateScrollOffset = (delta: number) => {
+    const scrollAmount = delta * 0.5; // Adjust scroll sensitivity
+    setManualScrollOffset(prev => prev + scrollAmount);
+  };
 
   // Auto-scroll with smooth animation - keep current line centered
   useEffect(() => {
@@ -130,23 +156,37 @@ export function LyricsDisplay({
         e.preventDefault();
         e.stopPropagation();
         
-        // Set user scrolling state
-        setIsUserScrolling(true);
+        handleScrollStart();
+        updateScrollOffset(e.deltaY);
+        handleScrollEnd();
+      }}
+      onTouchStart={(e) => {
+        const touch = e.touches[0];
+        setTouchStartY(touch.clientY);
+        setIsTouchScrolling(true);
+        handleScrollStart();
+      }}
+      onTouchMove={(e) => {
+        if (!isTouchScrolling) return;
         
-        // Update manual scroll offset
-        const scrollAmount = e.deltaY * 0.5; // Adjust scroll sensitivity
-        setManualScrollOffset(prev => prev + scrollAmount);
+        e.preventDefault();
+        e.stopPropagation();
         
-        // Clear existing timeout
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
+        const touch = e.touches[0];
+        const deltaY = touchStartY - touch.clientY; // 反向计算，向上滑动为正值
         
-        // Resume auto-scroll after 3 seconds of no scrolling
-        scrollTimeoutRef.current = setTimeout(() => {
-          setIsUserScrolling(false);
-          setManualScrollOffset(0);
-        }, 3000);
+        updateScrollOffset(deltaY);
+        setTouchStartY(touch.clientY); // 更新起始位置用于连续滚动
+      }}
+      onTouchEnd={() => {
+        setIsTouchScrolling(false);
+        handleScrollEnd();
+      }}
+      style={{ 
+        touchAction: 'none', // 阻止默认的触摸滚动行为
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none'
       }}
     >
       {/* Manual scroll indicator */}
@@ -158,15 +198,19 @@ export function LyricsDisplay({
             exit={{ opacity: 0, y: -10 }}
             className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm"
           >
-            手动滚动中...
+            {isTouchScrolling ? '触摸滚动中...' : '手动滚动中...'}
           </motion.div>
         )}
       </AnimatePresence>
       
       <div 
         ref={lyricsContainerRef}
-        className="absolute inset-0 space-y-3 md:space-y-4 px-2 md:px-4 min-h-full cursor-grab active:cursor-grabbing"
-        style={{ userSelect: 'none' }}
+        className={cn(
+          "absolute inset-0 space-y-3 md:space-y-4 px-2 md:px-4 min-h-full",
+          "transition-transform duration-200",
+          isTouchScrolling ? "cursor-grabbing" : "cursor-grab",
+          "select-none"
+        )}
       >
         {lyrics.map((lyric, index) => {
           const isActive = index === currentLineIndex;
@@ -197,6 +241,7 @@ export function LyricsDisplay({
                 }
                 setIsUserScrolling(false);
                 setManualScrollOffset(0);
+                setIsTouchScrolling(false); // 同时重置触摸滚动状态
                 
                 // 调用原来的点击处理
                 onLyricClick(lyric.time);

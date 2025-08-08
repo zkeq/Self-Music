@@ -19,6 +19,8 @@ const mockSong = {
   duration: 204, // 3:24 in seconds
   mood: ['放松', '专注', '快乐'],
   coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=face', // Sample cover
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
 };
 
 const mockLyrics = [

@@ -8,15 +8,7 @@ import { Music } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables, ColorPalette } from '@/lib/color-utils';
 
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  coverUrl?: string;
-  duration: number;
-  mood?: string[];
-}
+import { Song } from '@/types/index';
 
 interface AlbumCoverProps {
   song: Song;
@@ -234,7 +226,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        专辑：{song.album}
+        专辑：{song.album || '未知专辑'}
       </motion.p>
       
       {/* Duration */}
@@ -306,7 +298,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ 
-                  delay: 0.6 + song.mood.indexOf(mood) * 0.08,
+                  delay: 0.6 + (song.mood?.indexOf(mood) ?? 0) * 0.08,
                   duration: 0.4,
                   ease: [0.4, 0, 0.2, 1]
                 }}

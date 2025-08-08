@@ -95,11 +95,12 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0}}
         animate={{ 
-          opacity: isInitialized ? 1 : 0, 
+          opacity: isInitialized ? 1 : 0,
+          x: 0
         }}
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         className={cn(
           "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
           // Mobile: fixed overlay, Desktop: takes layout space
@@ -123,7 +124,7 @@ export function Sidebar({ className }: SidebarProps) {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
                 className="flex flex-col min-w-0 flex-1"
               >
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
