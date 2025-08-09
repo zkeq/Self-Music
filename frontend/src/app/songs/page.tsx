@@ -4,16 +4,19 @@ import { useState, useMemo } from 'react';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Heart, Music2, Search, TrendingUp, Star, Users, ChevronRight, Shuffle, PlayCircle, ChevronLeft, Clock } from 'lucide-react';
+import { Search, Shuffle, PlayCircle, ChevronRight } from 'lucide-react';
+import { Song } from '@/components/song-card';
+import { Playlist } from '@/components/playlist-card';
+import { Artist } from '@/components/artist-card';
+import { SearchResults } from '@/components/search-results';
+import { FeaturedSection } from '@/components/featured-section';
+import { PlaylistCard } from '@/components/playlist-card';
+import { ArtistCard } from '@/components/artist-card';
 
 // Mock playlists data
-const mockPlaylists = [
+const mockPlaylists: Playlist[] = [
   {
     id: '1',
     name: '流行热歌榜',
@@ -53,7 +56,7 @@ const mockPlaylists = [
 ];
 
 // Mock artists data
-const mockArtists = [
+const mockArtists: Artist[] = [
   {
     id: '1',
     name: '周杰伦',
@@ -89,7 +92,7 @@ const mockArtists = [
 ];
 
 // Mock songs data - Featured songs for homepage
-const mockSongs = [
+const mockSongs: Song[] = [
   {
     id: '1',
     title: '晴天',
@@ -251,11 +254,7 @@ const formatPlayCount = (count: number) => {
 
 export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<'featured' | 'trending' | 'new' | 'all'>('featured');
-  const [currentPage, setCurrentPage] = useState(1);
   
-  const ITEMS_PER_PAGE = 12; // For "所有歌曲" pagination
-
   const filteredSongs = useMemo(() => {
     if (!searchQuery) return mockSongs;
     return mockSongs.filter(song =>
@@ -264,50 +263,6 @@ export default function DiscoverPage() {
       song.album.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery]);
-
-  const getFeaturedSongs = () => {
-    let songs;
-    switch (activeSection) {
-      case 'trending':
-        songs = [...mockSongs].sort((a, b) => b.playCount - a.playCount);
-        break;
-      case 'new':
-        songs = [...mockSongs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-      case 'all':
-        songs = mockSongs;
-        break;
-      default:
-        songs = mockSongs;
-    }
-    
-    if (activeSection === 'all') {
-      // For "所有歌曲", apply pagination
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      return songs.slice(startIndex, endIndex);
-    } else {
-      // For other sections, show only first 6
-      return songs.slice(0, 6);
-    }
-  };
-
-  const getTotalPages = () => {
-    if (activeSection === 'all') {
-      return Math.ceil(mockSongs.length / ITEMS_PER_PAGE);
-    }
-    return 1;
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  // Reset page when section changes
-  const handleSectionChange = (value: string) => {
-    setActiveSection(value as 'featured' | 'trending' | 'new' | 'all');
-    setCurrentPage(1);
-  };
 
   const handlePlaySong = (songId: string) => {
     window.location.href = `/play/${songId}`;
@@ -384,165 +339,23 @@ export default function DiscoverPage() {
           <ScrollArea className="h-full">
             <div className="p-4 pt-0 lg:p-6">
           {searchQuery ? (
-            /* Search Results - List View */
-            <div className="space-y-2">
-              <div className="flex items-center px-4 py-2 text-sm text-muted-foreground border-b">
-                <div className="w-12"></div>
-                <div className="flex-1">标题</div>
-                <div className="w-32">艺术家</div>
-                <div className="w-32">专辑</div>
-                <div className="w-20">播放次数</div>
-                <div className="w-16 text-right">
-                  <Clock className="w-4 h-4 ml-auto" />
-                </div>
-                <div className="w-16"></div>
-              </div>
-              <ScrollArea className="h-[calc(100vh-300px)]">
-                {filteredSongs.map((song) => (
-                  <div
-                    key={song.id}
-                    className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"
-                    onClick={() => handlePlaySong(song.id)}
-                  >
-                    <div className="w-12 flex items-center justify-center">
-                      <Avatar className="w-10 h-10 rounded-md">
-                        <AvatarImage src={song.coverUrl} alt={song.title} />
-                        <AvatarFallback>
-                          <Music2 className="w-5 h-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium truncate">{song.title}</div>
-                      <div className="flex space-x-1">
-                        {song.mood.slice(0, 2).map((mood) => (
-                          <Badge key={mood} variant="secondary" className="text-xs">
-                            {mood}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="w-32 text-sm text-muted-foreground truncate">
-                      {song.artist}
-                    </div>
-                    <div className="w-32 text-sm text-muted-foreground truncate">
-                      {song.album}
-                    </div>
-                    <div className="w-20 text-sm text-muted-foreground">
-                      {formatPlayCount(song.playCount)}
-                    </div>
-                    <div className="w-16 text-right text-sm text-muted-foreground">
-                      {formatDuration(song.duration)}
-                    </div>
-                    <div className="w-16 flex items-center justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => handleLikeSong(song.id, e)}
-                      >
-                        <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </ScrollArea>
-            </div>
+            <SearchResults 
+              songs={filteredSongs}
+              onPlaySong={handlePlaySong}
+              onLikeSong={handleLikeSong}
+              formatPlayCount={formatPlayCount}
+              formatDuration={formatDuration}
+            />
           ) : (
             /* Home Sections */
             <div className="space-y-8">
               {/* Featured Songs */}
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">精选推荐</h2>
-                  <Tabs value={activeSection} onValueChange={handleSectionChange} className="w-auto lg:flex-1 lg:max-w-md">
-                    <TabsList className="grid grid-cols-4 w-auto lg:w-full">
-                      <TabsTrigger value="featured" className="text-xs lg:text-sm">推荐</TabsTrigger>
-                      <TabsTrigger value="trending" className="text-xs lg:text-sm">热门</TabsTrigger>
-                      <TabsTrigger value="new" className="text-xs lg:text-sm">最新</TabsTrigger>
-                      <TabsTrigger value="all" className="text-xs lg:text-sm">所有歌曲</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-                
-                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-                  {getFeaturedSongs().map((song) => (
-                    <Card 
-                      key={song.id}
-                      className="cursor-pointer hover:shadow-lg transition-all duration-300 group"
-                      onClick={() => handlePlaySong(song.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="relative">
-                            <Avatar className="w-14 h-14 rounded-md">
-                              <AvatarImage src={song.coverUrl} alt={song.title} className="object-cover" />
-                              <AvatarFallback className="rounded-md">
-                                <Music2 className="w-7 h-7" />
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
-                              <Play className="w-5 h-5 text-white" />
-                            </div>
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium truncate mb-1">{song.title}</h3>
-                            <p className="text-sm text-muted-foreground truncate mb-2">{song.artist}</p>
-                            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                              <TrendingUp className="w-3 h-3" />
-                              <span>{formatPlayCount(song.playCount)} 播放</span>
-                            </div>
-                          </div>
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleLikeSong(song.id, e)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Pagination for "所有歌曲" */}
-                {activeSection === 'all' && getTotalPages() > 1 && (
-                  <div className="flex items-center justify-center space-x-2 mt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    
-                    {Array.from({ length: getTotalPages() }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={page === currentPage ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="w-8 h-8"
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === getTotalPages()}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-              </section>
+              <FeaturedSection 
+                songs={mockSongs}
+                onPlaySong={handlePlaySong}
+                onLikeSong={handleLikeSong}
+                formatPlayCount={formatPlayCount}
+              />
 
               {/* Hot Playlists */}
               <section>
@@ -556,31 +369,12 @@ export default function DiscoverPage() {
                 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {mockPlaylists.map((playlist) => (
-                    <Card 
+                    <PlaylistCard
                       key={playlist.id}
-                      className="cursor-pointer hover:shadow-lg transition-all duration-300 group"
-                      onClick={() => handlePlayPlaylist(playlist.id)}
-                    >
-                      <div className="relative">
-                        <Avatar className="w-full h-36 rounded-lg">
-                          <AvatarImage src={playlist.coverUrl} alt={playlist.name} className="object-cover" />
-                          <AvatarFallback className="rounded-lg">
-                            <Music2 className="w-12 h-12" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                          <Play className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                      <CardContent className="p-3">
-                        <h3 className="font-medium truncate mb-1">{playlist.name}</h3>
-                        <p className="text-xs text-muted-foreground truncate mb-2">{playlist.description}</p>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{playlist.songCount} 首歌曲</span>
-                          <span>{formatPlayCount(playlist.playCount)} 播放</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      playlist={playlist}
+                      onPlay={handlePlayPlaylist}
+                      formatPlayCount={formatPlayCount}
+                    />
                   ))}
                 </div>
               </section>
@@ -597,33 +391,12 @@ export default function DiscoverPage() {
                 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {mockArtists.map((artist) => (
-                    <Card 
+                    <ArtistCard
                       key={artist.id}
-                      className="cursor-pointer hover:shadow-lg transition-all duration-300 group text-center"
-                      onClick={() => handleViewArtist(artist.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="relative mb-3">
-                          <Avatar className="w-16 h-16 mx-auto">
-                            <AvatarImage src={artist.avatar} alt={artist.name} className="object-cover" />
-                            <AvatarFallback>
-                              <Users className="w-8 h-8" />
-                            </AvatarFallback>
-                          </Avatar>
-                          {artist.verified && (
-                            <div className="absolute -top-1 -right-1">
-                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                            </div>
-                          )}
-                        </div>
-                        <h3 className="font-medium truncate mb-1">{artist.name}</h3>
-                        <p className="text-xs text-muted-foreground mb-2">{artist.songCount} 首歌曲</p>
-                        <div className="flex items-center justify-center text-xs text-muted-foreground">
-                          <Users className="w-3 h-3 mr-1" />
-                          <span>{formatFollowers(artist.followers)} 关注者</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      artist={artist}
+                      onView={handleViewArtist}
+                      formatFollowers={formatFollowers}
+                    />
                   ))}
                 </div>
               </section>
