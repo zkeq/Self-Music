@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -292,19 +293,34 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="h-screen bg-background lg:flex">{/* Set fixed height to viewport */}
+    <motion.div 
+      className="h-screen bg-background lg:flex"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >{/* Set fixed height to viewport */}
       {/* Sidebar */}
       <Sidebar />
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">{/* Add overflow-hidden to prevent scrolling */}
+      <motion.div 
+        className="flex-1 flex flex-col relative overflow-hidden"
+        initial={{ x: 50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >{/* Add overflow-hidden to prevent scrolling */}
         {/* Theme Toggle - positioned to avoid overlap */}
         <div className="absolute top-4 right-4 z-30 lg:right-6">
           <ThemeToggle />
         </div>
 
         {/* Header */}
-        <div className="flex-shrink-0 p-4 pt-16 lg:p-6 lg:pt-6 lg:pr-20">{/* Make header fixed size */}
+        <motion.div 
+          className="flex-shrink-0 p-4 pt-16 lg:p-6 lg:pt-6 lg:pr-20"
+          initial={{ y: -30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >{/* Make header fixed size */}
           <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0 mb-6">
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold">发现音乐</h1>
@@ -332,10 +348,15 @@ export default function DiscoverPage() {
               className="pl-9"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Content */}
-        <div className="flex-1 min-h-0">{/* min-h-0 is crucial for flex child to shrink */}
+        <motion.div 
+          className="flex-1 min-h-0"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >{/* min-h-0 is crucial for flex child to shrink */}
           <ScrollArea className="h-full">
             <div className="p-4 pt-0 lg:p-6">
           {searchQuery ? (
@@ -348,17 +369,32 @@ export default function DiscoverPage() {
             />
           ) : (
             /* Home Sections */
-            <div className="space-y-8">
+            <motion.div 
+              className="space-y-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
               {/* Featured Songs */}
-              <FeaturedSection 
-                songs={mockSongs}
-                onPlaySong={handlePlaySong}
-                onLikeSong={handleLikeSong}
-                formatPlayCount={formatPlayCount}
-              />
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.55 }}
+              >
+                <FeaturedSection 
+                  songs={mockSongs}
+                  onPlaySong={handlePlaySong}
+                  onLikeSong={handleLikeSong}
+                  formatPlayCount={formatPlayCount}
+                />
+              </motion.div>
 
               {/* Hot Playlists */}
-              <section>
+              <motion.section
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">热门歌单</h2>
                   <Button variant="ghost" size="sm">
@@ -377,10 +413,14 @@ export default function DiscoverPage() {
                     />
                   ))}
                 </div>
-              </section>
+              </motion.section>
 
               {/* Popular Artists */}
-              <section>
+              <motion.section
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+              >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">热门艺术家</h2>
                   <Button variant="ghost" size="sm">
@@ -399,13 +439,13 @@ export default function DiscoverPage() {
                     />
                   ))}
                 </div>
-              </section>
-            </div>
+              </motion.section>
+            </motion.div>
           )}
             </div>
           </ScrollArea>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
