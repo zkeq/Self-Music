@@ -254,7 +254,7 @@ export default function DiscoverPage() {
   const [activeSection, setActiveSection] = useState<'featured' | 'trending' | 'new' | 'all'>('featured');
   const [currentPage, setCurrentPage] = useState(1);
   
-  const ITEMS_PER_PAGE = 9; // For "所有歌曲" pagination
+  const ITEMS_PER_PAGE = 12; // For "所有歌曲" pagination
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery) return mockSongs;
