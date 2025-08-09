@@ -454,8 +454,8 @@ export default function DiscoverPage() {
               <section>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">精选推荐</h2>
-                  <Tabs value={activeSection} onValueChange={handleSectionChange} className="flex-1 max-w-md">
-                    <TabsList className="grid w-full grid-cols-4">
+                  <Tabs value={activeSection} onValueChange={handleSectionChange} className="w-auto lg:flex-1 lg:max-w-md">
+                    <TabsList className="grid grid-cols-4 w-auto lg:w-full">
                       <TabsTrigger value="featured" className="text-xs lg:text-sm">推荐</TabsTrigger>
                       <TabsTrigger value="trending" className="text-xs lg:text-sm">热门</TabsTrigger>
                       <TabsTrigger value="new" className="text-xs lg:text-sm">最新</TabsTrigger>
