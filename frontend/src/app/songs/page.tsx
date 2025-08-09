@@ -254,7 +254,7 @@ export default function DiscoverPage() {
   const [activeSection, setActiveSection] = useState<'featured' | 'trending' | 'new' | 'all'>('featured');
   const [currentPage, setCurrentPage] = useState(1);
   
-  const ITEMS_PER_PAGE = 8; // For "所有歌曲" pagination
+  const ITEMS_PER_PAGE = 9; // For "所有歌曲" pagination
 
   const filteredSongs = useMemo(() => {
     if (!searchQuery) return mockSongs;
@@ -464,7 +464,7 @@ export default function DiscoverPage() {
                   </Tabs>
                 </div>
                 
-                <div className={`grid gap-4 ${activeSection === 'all' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3'}`}>
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                   {getFeaturedSongs().map((song) => (
                     <Card 
                       key={song.id}
