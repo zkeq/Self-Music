@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -68,7 +68,7 @@ const formatSongDuration = (seconds: number) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 
-export default function PlaylistPage() {
+function PlaylistContent() {
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -235,5 +235,13 @@ export default function PlaylistPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PlaylistPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlaylistContent />
+    </Suspense>
   );
 }
