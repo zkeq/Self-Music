@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Heart, Music2, Search, TrendingUp, Star, Users, ChevronRight, Shuffle, PlayCircle, ChevronLeft } from 'lucide-react';
+import { Play, Heart, Music2, Search, TrendingUp, Star, Users, ChevronRight, Shuffle, PlayCircle, ChevronLeft, Clock } from 'lucide-react';
 
 // Mock playlists data
 const mockPlaylists = [
@@ -384,61 +384,68 @@ export default function DiscoverPage() {
           <ScrollArea className="h-full">
             <div className="p-4 pt-0 lg:p-6">
           {searchQuery ? (
-            /* Search Results */
-            <div>
-              <h2 className="text-xl font-semibold mb-4">搜索结果</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            /* Search Results - List View */
+            <div className="space-y-2">
+              <div className="flex items-center px-4 py-2 text-sm text-muted-foreground border-b">
+                <div className="w-12"></div>
+                <div className="flex-1">标题</div>
+                <div className="w-32">艺术家</div>
+                <div className="w-32">专辑</div>
+                <div className="w-20">播放次数</div>
+                <div className="w-16 text-right">
+                  <Clock className="w-4 h-4 ml-auto" />
+                </div>
+                <div className="w-16"></div>
+              </div>
+              <ScrollArea className="h-[calc(100vh-300px)]">
                 {filteredSongs.map((song) => (
-                  <Card 
+                  <div
                     key={song.id}
-                    className="cursor-pointer hover:shadow-lg transition-all duration-300 group"
+                    className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"
                     onClick={() => handlePlaySong(song.id)}
                   >
-                    <CardContent className="p-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Avatar className="w-12 h-12 lg:w-14 lg:h-14 rounded-md">
-                            <AvatarImage src={song.coverUrl} alt={song.title} className="object-cover" />
-                            <AvatarFallback className="rounded-md">
-                              <Music2 className="w-6 h-6 lg:w-7 lg:h-7" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
-                            <Play className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
-                          </div>
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium truncate text-sm mb-0.5">{song.title}</h3>
-                          <p className="text-xs lg:text-sm text-muted-foreground truncate mb-1">{song.artist}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {song.mood.slice(0, 2).map((mood) => (
-                              <Badge key={mood} variant="secondary" className="text-xs px-1.5 py-0">
-                                {mood}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right text-xs text-muted-foreground hidden lg:block">
-                            <div>{formatPlayCount(song.playCount)} 播放</div>
-                            <div>{formatDuration(song.duration)}</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleLikeSong(song.id, e)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
-                          </Button>
-                        </div>
+                    <div className="w-12 flex items-center justify-center">
+                      <Avatar className="w-10 h-10 rounded-md">
+                        <AvatarImage src={song.coverUrl} alt={song.title} />
+                        <AvatarFallback>
+                          <Music2 className="w-5 h-5" />
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium truncate">{song.title}</div>
+                      <div className="flex space-x-1">
+                        {song.mood.slice(0, 2).map((mood) => (
+                          <Badge key={mood} variant="secondary" className="text-xs">
+                            {mood}
+                          </Badge>
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <div className="w-32 text-sm text-muted-foreground truncate">
+                      {song.artist}
+                    </div>
+                    <div className="w-32 text-sm text-muted-foreground truncate">
+                      {song.album}
+                    </div>
+                    <div className="w-20 text-sm text-muted-foreground">
+                      {formatPlayCount(song.playCount)}
+                    </div>
+                    <div className="w-16 text-right text-sm text-muted-foreground">
+                      {formatDuration(song.duration)}
+                    </div>
+                    <div className="w-16 flex items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleLikeSong(song.id, e)}
+                      >
+                        <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-              </div>
+              </ScrollArea>
             </div>
           ) : (
             /* Home Sections */
@@ -555,13 +562,13 @@ export default function DiscoverPage() {
                       onClick={() => handlePlayPlaylist(playlist.id)}
                     >
                       <div className="relative">
-                        <Avatar className="w-full aspect-square rounded-t-lg">
+                        <Avatar className="w-full h-36 rounded-lg">
                           <AvatarImage src={playlist.coverUrl} alt={playlist.name} className="object-cover" />
-                          <AvatarFallback className="rounded-t-lg">
+                          <AvatarFallback className="rounded-lg">
                             <Music2 className="w-12 h-12" />
                           </AvatarFallback>
                         </Avatar>
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-t-lg">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                           <Play className="w-8 h-8 text-white" />
                         </div>
                       </div>
