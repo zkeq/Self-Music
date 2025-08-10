@@ -126,13 +126,15 @@ const formatFollowers = (count: number) => {
 
 function ArtistDetailContent() {
   const params = useParams();
-  const [artist, setArtist] = useState<any | null>(null);
+  const [artist, setArtist] = useState<any | null>(undefined);
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     const id = params.id as string;
     if (id && mockArtistDetails[id]) {
       setArtist(mockArtistDetails[id]);
+    } else {
+      setArtist(null);
     }
   }, [params.id]);
 
@@ -155,8 +157,43 @@ function ArtistDetailContent() {
     window.history.back();
   };
 
-  if (!artist) {
-    return <div>艺术家未找到</div>;
+  if (artist === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-medium mb-2">正在加载艺术家...</h3>
+            <p className="text-muted-foreground">请稍候片刻</p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (artist === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium mb-2">艺术家不存在</h3>
+            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的艺术家</p>
+            <Button onClick={() => window.history.back()}>
+              返回上一页
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    );
   }
 
   return (
