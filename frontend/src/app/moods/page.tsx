@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Heart, Smile, Coffee, Zap, Sun, CloudRain, Music2 } from 'lucide-react';
+import { Play, Heart, Smile, Coffee, Zap, Sun, CloudRain, Music2, ArrowLeft } from 'lucide-react';
 
 // Mock mood data
 const moodData = [
@@ -118,144 +117,203 @@ export default function MoodsPage() {
     }
   };
 
+  const goBack = () => {
+    setSelectedMood(null);
+  };
+
+  if (selectedMood && currentMood) {
+    return (
+      <motion.div 
+        className="min-h-screen bg-background lg:flex"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+      >
+        <Sidebar />
+        
+        <motion.div 
+          className="flex-1 flex flex-col relative"
+          initial={{ x: 50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <div className="absolute top-4 right-4 z-30 lg:right-6">
+            <ThemeToggle />
+          </div>
+
+          <motion.div 
+            className="p-6 pt-16 lg:pt-6"
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={goBack}
+              className="mb-6"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回心情选择
+            </Button>
+            
+            <motion.div 
+              className="flex flex-col lg:flex-row items-start space-y-6 lg:space-y-0 lg:space-x-8 mb-8"
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+              >
+                <div className={`w-64 h-64 rounded-2xl shadow-2xl bg-gradient-to-br ${currentMood.color} flex items-center justify-center`}>
+                  <currentMood.icon className="w-32 h-32 text-white" />
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                className="flex-1 space-y-4"
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
+                <Badge variant="secondary" className="text-sm">心情音乐</Badge>
+                <h1 className="text-3xl lg:text-5xl font-bold">{currentMood.name}</h1>
+                <p className="text-muted-foreground text-lg max-w-2xl">{currentMood.description}</p>
+                
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <span>{currentMood.songCount} 首歌曲</span>
+                </div>
+                
+                <div className="flex items-center space-x-4 pt-4">
+                  <Button size="lg" onClick={() => handlePlayMood(currentMood.id)}>
+                    <Play className="w-5 h-5 mr-2" />
+                    播放
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+            >
+              <h2 className="text-2xl font-bold mb-6">推荐歌曲</h2>
+              <div className="bg-card rounded-lg shadow-sm">
+                <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b border-border">
+                  <div className="w-8">#</div>
+                  <div className="flex-1">标题</div>
+                  <div className="w-20 text-right">时长</div>
+                </div>
+                
+                <div>
+                  {currentMood.songs.map((song, index) => (
+                    <motion.div 
+                      key={song.id}
+                      className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors"
+                      onClick={() => handlePlaySong(song.id)}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.4, delay: 0.1 * index }}
+                      whileHover={{ x: 4 }}
+                    >
+                      <div className="w-8 text-sm text-muted-foreground">
+                        <span className="group-hover:hidden">{index + 1}</span>
+                        <Play className="w-4 h-4 hidden group-hover:block text-primary" />
+                      </div>
+                      
+                      <Avatar className="w-12 h-12 rounded-md mr-4">
+                        <AvatarImage src={song.coverUrl} alt={song.title} />
+                        <AvatarFallback>
+                          <Music2 className="w-6 h-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1">
+                        <div className="font-medium">{song.title}</div>
+                        <div className="text-sm text-muted-foreground">{song.artist}</div>
+                      </div>
+                      
+                      <div className="w-20 text-right text-sm text-muted-foreground">
+                        {formatDuration(song.duration)}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background lg:flex">
-      {/* Sidebar */}
+    <motion.div 
+      className="min-h-screen bg-background lg:flex"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >
       <Sidebar />
       
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col relative">
-        {/* Theme Toggle */}
-        <div className="absolute top-4 right-4 z-30">
+      <motion.div 
+        className="flex-1 flex flex-col relative"
+        initial={{ x: 50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        <div className="absolute top-4 right-4 z-30 lg:right-6">
           <ThemeToggle />
         </div>
 
-        {/* Header */}
-        <div className="p-6 pt-16 lg:pt-6">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold">心情音乐</h1>
-            <p className="text-muted-foreground">根据你的心情选择适合的音乐</p>
+        <motion.div 
+          className="p-6 pt-16 lg:pt-6"
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <div className="mb-8">
+            <h1 className="text-3xl lg:text-4xl font-bold mb-2">心情音乐</h1>
+            <p className="text-muted-foreground text-lg">根据你的心情选择适合的音乐</p>
           </div>
-        </div>
-
-        {selectedMood ? (
-          // Mood Detail View
-          <div className="flex-1 p-6">
-            <Button 
-              variant="ghost" 
-              className="mb-6"
-              onClick={() => setSelectedMood(null)}
-            >
-              ← 返回心情选择
-            </Button>
-            
-            {currentMood && (
-              <>
-                {/* Mood Header */}
-                <div className="flex items-center space-x-6 mb-8">
-                  <div className={`w-48 h-48 rounded-lg bg-gradient-to-br ${currentMood.color} flex items-center justify-center`}>
-                    <currentMood.icon className="w-24 h-24 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <Badge variant="secondary" className="mb-2">心情</Badge>
-                    <h2 className="text-4xl font-bold mb-2">{currentMood.name}</h2>
-                    <p className="text-muted-foreground mb-4">{currentMood.description}</p>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-6">
-                      <span>{currentMood.songCount} 首歌曲</span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <Button size="lg" onClick={() => handlePlayMood(currentMood.id)}>
-                        <Play className="w-5 h-5 mr-2" />
-                        播放
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Songs List */}
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">推荐歌曲</h3>
-                  <ScrollArea className="h-96">
-                    <div className="grid gap-4">
-                      {currentMood.songs.map((song) => (
-                        <Card 
-                          key={song.id}
-                          className="cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => handlePlaySong(song.id)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="w-12 h-12 rounded-md">
-                                <AvatarImage src={song.coverUrl} alt={song.title} />
-                                <AvatarFallback>
-                                  <Music2 className="w-6 h-6" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <h4 className="font-medium">{song.title}</h4>
-                                <p className="text-sm text-muted-foreground">{song.artist}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {formatDuration(song.duration)}
-                                </span>
-                                <Button variant="ghost" size="sm">
-                                  <Play className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          // Mood Selection Grid
-          <div className="flex-1 p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {moodData.map((mood) => (
-                <Card 
-                  key={mood.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300 group overflow-hidden"
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {moodData.map((mood, index) => (
+              <motion.div
+                key={mood.id}
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.1 * index }}
+                whileHover={{ y: -2 }}
+                className="group"
+              >
+                <div 
+                  className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
                   onClick={() => setSelectedMood(mood.id)}
                 >
-                  <div className={`h-48 bg-gradient-to-br ${mood.color} relative flex items-center justify-center`}>
-                    <mood.icon className="w-16 h-16 text-white group-hover:scale-110 transition-transform" />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  <div className={`aspect-[16/9] bg-gradient-to-br ${mood.color} relative flex items-center justify-center`}>
+                    <mood.icon className="w-12 h-12 text-white transition-transform duration-300 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                   </div>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center justify-between">
-                      {mood.name}
-                      <Badge variant="secondary">{mood.songCount}</Badge>
-                    </CardTitle>
-                    <CardDescription>
-                      {mood.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayMood(mood.id);
-                      }}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      立即播放
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-1">
+                      <h3 className="text-base font-semibold truncate">{mood.name}</h3>
+                      <Badge variant="secondary" className="text-xs ml-2">{mood.songCount}</Badge>
+                    </div>
+                    
+                    <p className="text-muted-foreground text-xs truncate">{mood.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        )}
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }

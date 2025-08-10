@@ -98,7 +98,7 @@ const formatPlayCount = (count: number) => {
 
 function PlaylistDetailContent() {
   const params = useParams();
-  const [playlist, setPlaylist] = useState<PlaylistDetail | null>(undefined);
+  const [playlist, setPlaylist] = useState<PlaylistDetail | null | undefined>(undefined);
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
@@ -153,9 +153,6 @@ function PlaylistDetailContent() {
     window.location.href = `/play/${songId}`;
   };
 
-  const handleLikeSong = (songId: string) => {
-    console.log('Toggle like for song:', songId);
-  };
 
   const handlePlayAll = () => {
     if (playlist && playlist.songs.length > 0) {

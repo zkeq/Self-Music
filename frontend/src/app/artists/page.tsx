@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, ChevronRight, TrendingUp } from 'lucide-react';
+import { Search, TrendingUp } from 'lucide-react';
 import { ArtistCard } from '@/components/artist-card';
 
 interface Artist {

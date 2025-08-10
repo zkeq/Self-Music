@@ -15,11 +15,9 @@ import {
   MoreHorizontal, 
   Music, 
   Clock, 
-  Shuffle, 
   ArrowLeft, 
   Check, 
-  Share2,
-  Bookmark
+  Share2
 } from 'lucide-react';
 
 interface Song {
@@ -126,7 +124,7 @@ const formatFollowers = (count: number) => {
 
 function ArtistDetailContent() {
   const params = useParams();
-  const [artist, setArtist] = useState<any | null>(undefined);
+  const [artist, setArtist] = useState<ArtistDetail | null>(undefined);
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
@@ -264,7 +262,7 @@ function ArtistDetailContent() {
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <span className="font-medium">{formatFollowers(artist.followers)} 粉丝</span>
                   <span>•</span>
-                  <span>{artist.popularSongs.length + (artist.albums?.flatMap(a => a.songs).length || 0)} 首歌曲</span>
+                  <span>{artist.popularSongs.length + (artist.albums?.flatMap((a: ArtistAlbum) => a.songs).length || 0)} 首歌曲</span>
                 </div>
 
                 <div className="flex items-center space-x-2 text-sm">
@@ -323,7 +321,7 @@ function ArtistDetailContent() {
                 </div>
                 
                 <div className="space-y-1">
-                  {artist.popularSongs.map((song: any, index: number) => (
+                  {artist.popularSongs.map((song: Song, index: number) => (
                     <motion.div
                       key={song.id}
                       className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors"
@@ -377,7 +375,7 @@ function ArtistDetailContent() {
             >
               <h2 className="text-2xl font-bold mb-6">专辑</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(artist.albums || []).map((album: any, albumIndex: number) => (
+                {(artist.albums || []).map((album: ArtistAlbum, albumIndex: number) => (
                   <motion.div
                     key={album.name}
                     initial={{ scale: 0.9, opacity: 0 }}
@@ -396,7 +394,7 @@ function ArtistDetailContent() {
                     </div>
                     
                     <div className="space-y-2">
-                      {album.songs.slice(0, 3).map((song: any, songIndex: number) => (
+                      {album.songs.slice(0, 3).map((song: Song, songIndex: number) => (
                         <motion.div
                           key={song.id}
                           className="flex items-center space-x-3 text-sm"
