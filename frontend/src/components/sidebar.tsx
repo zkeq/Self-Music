@@ -13,7 +13,8 @@ import {
   Play,
   List,
   Library,
-  Smile
+  Smile,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -41,8 +42,13 @@ export function Sidebar({ className }: SidebarProps) {
     },
     {
       icon: List,
-      label: '播放列表',
-      href: '/playlist',
+      label: '热门歌单',
+      href: '/playlists',
+    },
+    {
+      icon: Users,
+      label: '热门艺术家',
+      href: '/artists',
     },
     {
       icon: Smile,
