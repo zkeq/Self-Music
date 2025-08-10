@@ -137,9 +137,15 @@ function PlaylistDetailContent() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-medium mb-2">播放列表未找到</h3>
-          <p className="text-muted-foreground">请检查链接是否正确</p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-medium mb-2">正在加载歌单...</h3>
+            <p className="text-muted-foreground">请稍候片刻</p>
+          </motion.div>
         </div>
       </div>
     );
