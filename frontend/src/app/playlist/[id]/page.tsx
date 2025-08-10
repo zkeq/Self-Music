@@ -98,7 +98,7 @@ const formatPlayCount = (count: number) => {
 
 function PlaylistDetailContent() {
   const params = useParams();
-  const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
+  const [playlist, setPlaylist] = useState<PlaylistDetail | null>(undefined);
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
@@ -109,6 +109,45 @@ function PlaylistDetailContent() {
       setPlaylist(null);
     }
   }, [params.id]);
+
+  if (playlist === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
+            <h3 className="text-xl font-medium mb-2">正在加载歌单...</h3>
+            <p className="text-muted-foreground">请稍候片刻</p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  if (playlist === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium mb-2">歌单不存在</h3>
+            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的歌单</p>
+            <Button onClick={() => window.history.back()}>
+              返回上一页
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePlaySong = (songId: string) => {
     window.location.href = `/play/${songId}`;
@@ -134,27 +173,6 @@ function PlaylistDetailContent() {
   const goBack = () => {
     window.history.back();
   };
-
-  if (playlist === null) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-medium mb-2">歌单不存在</h3>
-            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的歌单</p>
-            <Button onClick={() => window.history.back()}>
-              返回上一页
-            </Button>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <motion.div 
