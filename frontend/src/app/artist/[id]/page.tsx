@@ -124,7 +124,7 @@ const formatFollowers = (count: number) => {
 
 function ArtistDetailContent() {
   const params = useParams();
-  const [artist, setArtist] = useState<ArtistDetail | null>(undefined);
+  const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
