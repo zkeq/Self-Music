@@ -105,6 +105,8 @@ function PlaylistDetailContent() {
     const id = params.id as string;
     if (id && mockPlaylistDetails[id]) {
       setPlaylist(mockPlaylistDetails[id]);
+    } else {
+      setPlaylist(null);
     }
   }, [params.id]);
 
@@ -133,7 +135,7 @@ function PlaylistDetailContent() {
     window.history.back();
   };
 
-  if (!playlist) {
+  if (playlist === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -142,9 +144,12 @@ function PlaylistDetailContent() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4 animate-pulse" />
-            <h3 className="text-xl font-medium mb-2">正在加载歌单...</h3>
-            <p className="text-muted-foreground">请稍候片刻</p>
+            <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-medium mb-2">歌单不存在</h3>
+            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的歌单</p>
+            <Button onClick={() => window.history.back()}>
+              返回上一页
+            </Button>
           </motion.div>
         </div>
       </div>
