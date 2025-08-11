@@ -102,7 +102,7 @@ const mockSongs: Song[] = [
     album: 'Live演出',
     duration: 240,
     mood: ['民谣', '治愈'],
-    coverUrl: 'http://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
+    coverUrl: 'http://p1.music.126.net/-Tija1G1k4UnrSo6t0UXww==/109951168964989770.jpg',
     liked: true,
     playCount: 1240,
     createdAt: '2023-01-15'
