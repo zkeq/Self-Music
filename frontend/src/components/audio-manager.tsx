@@ -166,7 +166,6 @@ export function AudioManager() {
     
     // 使用提供的audioUrl或fileUrl，或构建默认URL
     const audioUrl = currentSong.audioUrl || 
-                    currentSong.fileUrl ||
                     `http://localhost:8000/api/songs/${currentSong.id}/stream`;
     
     console.log('Loading new song:', currentSong.title, 'URL:', audioUrl);
