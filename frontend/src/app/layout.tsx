@@ -5,6 +5,7 @@ import "@/styles/performance.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AudioManager } from "@/components/audio-manager";
 import { BottomPlayer } from "@/components/bottom-player";
+import { PageWrapper } from "@/components/page-wrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,10 +41,10 @@ export default function RootLayout({
           {/* 全局音频管理器 */}
           <AudioManager />
           
-          {/* 页面内容 */}
-          <div className="relative pb-20 lg:pb-24">
+          {/* 页面内容 - 智能底部内边距管理 */}
+          <PageWrapper>
             {children}
-          </div>
+          </PageWrapper>
           
           {/* 底部播放器 */}
           <BottomPlayer />

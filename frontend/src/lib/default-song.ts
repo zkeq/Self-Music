@@ -13,7 +13,9 @@ export const DEFAULT_SONG = {
   updatedAt: new Date().toISOString(),
 };
 
-// 默认歌词数据（LRC格式）
+// ⚠️ 警告：以下歌词受版权保护
+// 歌词明确标注"未经许可,不得翻唱或使用"
+// 仅用于技术演示，商用请获得版权方授权
 export const DEFAULT_LYRICS = `[00:00.48]作曲：刘西蒙
 [00:00.98]作词：刘西蒙
 [00:01.48]编曲：回春丹

@@ -5,6 +5,7 @@ export interface Song {
   album?: string;
   duration: number;
   audioUrl?: string;
+  fileUrl?: string; // 备用音频URL字段
   coverUrl?: string;
   lyricsUrl?: string;
   mood?: string[];
