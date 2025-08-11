@@ -133,7 +133,7 @@ export default function PlayPage() {
   const displayLyrics = currentSong ? currentLyrics : defaultLyrics;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden lg:flex">
+    <div className="h-full bg-background relative overflow-hidden lg:flex">
       {/* Dynamic Ambient Glow Background */}
       <AmbientGlow 
         imageUrl={displaySong.coverUrl} 
