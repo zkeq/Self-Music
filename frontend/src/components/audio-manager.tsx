@@ -10,13 +10,11 @@ export function AudioManager() {
     isPlaying,
     volume,
     currentTime,
-    duration,
     repeatMode,
     setCurrentTime,
     setDuration,
     pause,
     nextSong,
-    play,
   } = usePlayerStore();
 
   // 初始化音频对象

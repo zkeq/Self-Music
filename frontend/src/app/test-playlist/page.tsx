@@ -113,7 +113,7 @@ export default function TestPlaylistPage() {
             </div>
             <div className="space-y-2">
               {playlist.length === 0 ? (
-                <p className="text-muted-foreground">播放列表为空，点击上方歌曲的 "+" 按钮添加歌曲</p>
+                <p className="text-muted-foreground">播放列表为空，点击上方歌曲的 &quot;+&quot; 按钮添加歌曲</p>
               ) : (
                 playlist.map((song, index) => (
                   <div 

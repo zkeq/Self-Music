@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { ColorPalette, extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables } from '@/lib/color-utils';
-import { getSafariOptimizedAnimation, getSafeTransform } from '@/lib/safari-fixes';
+import { getSafariOptimizedAnimation } from '@/lib/safari-fixes';
 
 interface AmbientGlowProps {
   imageUrl?: string;

@@ -102,7 +102,7 @@ const mockSongs: Song[] = [
     album: 'Live演出',
     duration: 240,
     mood: ['民谣', '治愈'],
-    coverUrl: 'http://p1.music.126.net/-Tija1G1k4UnrSo6t0UXww==/109951168964989770.jpg',
+    coverUrl: 'http://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
     liked: true,
     playCount: 1240,
     createdAt: '2023-01-15'
@@ -272,7 +272,7 @@ export default function DiscoverPage() {
     if (song) {
       // 转换歌曲格式并设置为当前播放歌曲
       const audioUrl = songId === '1' 
-        ? 'https://media.onmicrosoft.cn/%E5%9B%9E%E6%98%A5%E4%B8%B9%20-%20%E9%B2%9C%E8%8A%B1%20(Live).flac'
+        ? 'https://media.onmicrosoft.cn/%E5%9B%9E%E6%98%A5%E4%B8%B9%20-%20%E9%B2%9C%E8%8A%B1.flac'
         : `http://localhost:8000/api/songs/${song.id}/stream`;
         
       const playerSong = {
