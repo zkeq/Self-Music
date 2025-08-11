@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Song, PlayerState, Playlist } from '@/types';
+import { DEFAULT_SONG } from './default-song';
 
 interface PlayerStore extends PlayerState {
   // Additional state
@@ -41,6 +42,7 @@ interface PlayerStore extends PlayerState {
   // New audio-related actions
   canPlayNext: () => boolean;
   canPlayPrevious: () => boolean;
+  loadDefaultSong: () => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -176,7 +178,8 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       seekTo: (time) => {
-        set({ currentTime: time });
+        const clampedTime = Math.max(0, Math.min(time, get().duration));
+        set({ currentTime: clampedTime });
       },
 
       setLoading: (loading) => set({ isLoading: loading }),
@@ -283,6 +286,18 @@ export const usePlayerStore = create<PlayerStore>()(
           playlist: newPlaylist,
           currentIndex: newCurrentIndex,
           currentSong: newPlaylist[newCurrentIndex]
+        });
+      },
+
+      loadDefaultSong: () => {
+        set({
+          currentSong: DEFAULT_SONG,
+          currentTime: 0,
+          duration: DEFAULT_SONG.duration,
+          isPlaying: false,
+          playbackMode: 'song',
+          currentPlaylist: null,
+          currentMood: null,
         });
       }
     }),

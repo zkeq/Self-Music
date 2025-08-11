@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { usePlayerStore } from '@/lib/store';
+import { useDefaultSongLoader } from '@/lib/use-default-song-loader';
+import { parseLRC } from '@/lib/lyrics-parser';
+import { DEFAULT_LYRICS } from '@/lib/default-song';
 import { Sidebar } from '@/components/sidebar';
 import { PlayerLayout, PlayerLeftSection, PlayerRightSection } from '@/components/player-layout';
 import { AlbumCover, SongInfo } from '@/components/song-info';
@@ -13,6 +16,9 @@ import { AmbientGlow } from '@/components/ambient-glow';
 import { PlaylistPanel } from '@/components/playlist-panel';
 
 export default function PlayPage() {
+  // 自动加载默认歌曲
+  useDefaultSongLoader();
+  
   const {
     currentSong,
     isPlaying,
@@ -40,11 +46,17 @@ export default function PlayPage() {
 
   const [isFullscreenLyrics, setIsFullscreenLyrics] = useState(false);
   
-  // 动态歌词数据 - 可以从API获取或基于当前歌曲生成
+  // 动态歌词数据 - 使用真实的歌词解析
   const currentLyrics = useMemo(() => {
     if (!currentSong) return [];
     
-    // 这里可以调用API获取歌词，暂时使用基于歌曲的模拟数据
+    // 如果是默认歌曲，使用解析后的歌词
+    if (currentSong.id === 'demo-song-1') {
+      return parseLRC(DEFAULT_LYRICS);
+    }
+    
+    // 这里可以调用API获取其他歌曲的歌词
+    // 暂时使用基于当前歌曲的模拟数据作为后备
     const baseLyrics = [
       { time: 0, text: `♪ ${currentSong.title} ♪` },
       { time: 10, text: `演唱：${currentSong.artist}` },
