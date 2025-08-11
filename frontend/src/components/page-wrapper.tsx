@@ -19,14 +19,14 @@ export function PageWrapper({ children }: PageWrapperProps) {
   const needBottomSpace = currentSong && !isPlayPage;
   
   return (
-    <div className="h-screen flex flex-col">
-      <div className={cn(
-        "flex-1",
-        needBottomSpace 
-          ? "h-[calc(100vh-5.25rem)] lg:h-[calc(100vh-6.25rem)]" // 精确计算：进度条1px + 内容区域高度
-          : "h-screen"
-      )}>
-        {children}
+    <div className="h-[100dvh] flex flex-col relative">
+      <div className="flex-1 overflow-hidden">
+        <div className={cn(
+          "h-full overflow-auto",
+          needBottomSpace && "pb-[76px] lg:pb-[92px]"
+        )}>
+          {children}
+        </div>
       </div>
     </div>
   );

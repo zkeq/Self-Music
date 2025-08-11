@@ -155,7 +155,7 @@ export default function PlaylistsPage() {
 
   return (
     <motion.div 
-      className="h-screen bg-background lg:flex"
+      className="h-full bg-background lg:flex"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}

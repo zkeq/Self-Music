@@ -15,7 +15,8 @@
       "Bash(npm run:*)",
       "Bash(yarn build)",
       "Bash(cat:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

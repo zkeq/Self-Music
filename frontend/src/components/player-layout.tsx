@@ -10,7 +10,7 @@ interface PlayerLayoutProps {
 
 export function PlayerLayout({ children, className }: PlayerLayoutProps) {
   return (
-    <div className={cn("flex-1 flex items-center justify-center min-h-screen p-4 lg:p-6 xl:p-8 2xl:p-12 3xl:p-16", className)}>
+    <div className={cn("flex-1 flex items-center justify-center h-full p-4 lg:p-6 xl:p-8 2xl:p-12 3xl:p-16", className)}>
       <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-8xl flex flex-col lg:flex-row gap-4 lg:gap-6 xl:gap-12">
         {children}
       </div>

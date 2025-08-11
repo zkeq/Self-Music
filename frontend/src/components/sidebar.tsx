@@ -103,7 +103,7 @@ export function Sidebar({ className }: SidebarProps) {
       <aside
         suppressHydrationWarning
         className={cn(
-          "h-screen bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
+          "h-[100dvh] bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
           // Mobile: fixed overlay, Desktop: takes layout space
           "fixed left-0 top-0 z-[50] w-[280px] lg:relative lg:z-auto",
           isCollapsed && "lg:w-16",

@@ -124,7 +124,7 @@ export default function MoodsPage() {
   if (selectedMood && currentMood) {
     return (
       <motion.div 
-        className="min-h-screen bg-background lg:flex"
+        className="h-full bg-background lg:flex"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -253,7 +253,7 @@ export default function MoodsPage() {
 
   return (
     <motion.div 
-      className="min-h-screen bg-background lg:flex"
+      className="h-full bg-background lg:flex"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}

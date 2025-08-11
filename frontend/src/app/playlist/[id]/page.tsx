@@ -112,7 +112,7 @@ function PlaylistDetailContent() {
 
   if (playlist === undefined) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -130,7 +130,7 @@ function PlaylistDetailContent() {
 
   if (playlist === null) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -173,7 +173,7 @@ function PlaylistDetailContent() {
 
   return (
     <motion.div 
-      className="min-h-screen bg-background lg:flex"
+      className="h-full bg-background lg:flex"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
@@ -197,7 +197,7 @@ function PlaylistDetailContent() {
           </Button>
         </div>
 
-        <ScrollArea className="h-screen">
+        <ScrollArea className="h-full">
           <motion.div 
             className="p-6 pt-20 lg:pt-16 lg:pr-20 lg:pl-20"
             initial={{ y: 30, opacity: 0 }}
@@ -318,7 +318,7 @@ function PlaylistDetailContent() {
 export default function PlaylistDetailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="h-full bg-background flex items-center justify-center">
         <div>Loading...</div>
       </div>
     }>
