@@ -15,6 +15,7 @@ import { SearchResults } from '@/components/search-results';
 import { FeaturedSection } from '@/components/featured-section';
 import { PlaylistCard } from '@/components/playlist-card';
 import { ArtistCard } from '@/components/artist-card';
+import { usePlayerStore } from '@/lib/store';
 
 // Mock playlists data
 const mockPlaylists: Playlist[] = [
@@ -96,12 +97,12 @@ const mockArtists: Artist[] = [
 const mockSongs: Song[] = [
   {
     id: '1',
-    title: '晴天',
-    artist: '周杰伦',
-    album: '叶惠美',
-    duration: 269,
-    mood: ['快乐', '放松'],
-    coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg',
+    title: '鲜花',
+    artist: '回春丹',
+    album: 'Live演出',
+    duration: 240,
+    mood: ['民谣', '治愈'],
+    coverUrl: 'http://p1.music.126.net/-Tija1G1k4UnrSo6t0UXww==/109951168964989770.jpg',
     liked: true,
     playCount: 1240,
     createdAt: '2023-01-15'
@@ -255,6 +256,7 @@ const formatPlayCount = (count: number) => {
 
 export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const { setSong, play } = usePlayerStore();
   
   const filteredSongs = useMemo(() => {
     if (!searchQuery) return mockSongs;
@@ -266,7 +268,33 @@ export default function DiscoverPage() {
   }, [searchQuery]);
 
   const handlePlaySong = (songId: string) => {
-    window.location.href = `/play/${songId}`;
+    const song = mockSongs.find(s => s.id === songId);
+    if (song) {
+      // 转换歌曲格式并设置为当前播放歌曲
+      const audioUrl = songId === '1' 
+        ? 'https://media.onmicrosoft.cn/%E5%9B%9E%E6%98%A5%E4%B8%B9%20-%20%E9%B2%9C%E8%8A%B1%20(Live).flac'
+        : `http://localhost:8000/api/songs/${song.id}/stream`;
+        
+      const playerSong = {
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        duration: song.duration,
+        mood: song.mood,
+        coverUrl: song.coverUrl,
+        audioUrl: audioUrl,
+        createdAt: song.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      console.log('Setting song:', playerSong);
+      setSong(playerSong);
+      setTimeout(() => {
+        console.log('Starting playback...');
+        play();
+      }, 100);
+    }
   };
 
   const handleLikeSong = (songId: string, e: React.MouseEvent) => {

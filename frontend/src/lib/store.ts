@@ -7,6 +7,8 @@ interface PlayerStore extends PlayerState {
   currentPlaylist: Playlist | null;
   playbackMode: 'song' | 'playlist' | 'mood';
   currentMood: string | null;
+  isLoading: boolean;
+  error: string | null;
   
   // Actions
   setSong: (song: Song) => void;
@@ -26,6 +28,8 @@ interface PlayerStore extends PlayerState {
   seekTo: (time: number) => void;
   playFromPlaylist: (playlistId: string, songIndex?: number) => void;
   playFromMood: (mood: string) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
   
   // Enhanced playlist management
   addToPlaylist: (song: Song) => void;
@@ -33,6 +37,11 @@ interface PlayerStore extends PlayerState {
   clearPlaylist: () => void;
   shufflePlaylist: () => void;
   moveSongInPlaylist: (fromIndex: number, toIndex: number) => void;
+  
+  // New audio-related actions
+  seekTo: (time: number) => void;
+  canPlayNext: () => boolean;
+  canPlayPrevious: () => boolean;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -51,6 +60,8 @@ export const usePlayerStore = create<PlayerStore>()(
       currentPlaylist: null,
       playbackMode: 'song',
       currentMood: null,
+      isLoading: false,
+      error: null,
 
       // Actions
       setSong: (song) => {
@@ -167,6 +178,21 @@ export const usePlayerStore = create<PlayerStore>()(
 
       seekTo: (time) => {
         set({ currentTime: time });
+      },
+
+      setLoading: (loading) => set({ isLoading: loading }),
+      
+      setError: (error) => set({ error }),
+
+      canPlayNext: () => {
+        const { playlist, currentIndex, repeatMode } = get();
+        if (playlist.length === 0) return false;
+        return currentIndex < playlist.length - 1 || repeatMode === 'all';
+      },
+
+      canPlayPrevious: () => {
+        const { playlist, currentIndex } = get();
+        return playlist.length > 0 && (currentIndex > 0 || currentIndex === -1);
       },
 
       playFromPlaylist: async (playlistId, songIndex = 0) => {
