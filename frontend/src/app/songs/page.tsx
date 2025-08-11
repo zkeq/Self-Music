@@ -385,6 +385,7 @@ export default function DiscoverPage() {
                   songs={mockSongs}
                   onPlaySong={handlePlaySong}
                   onLikeSong={handleLikeSong}
+                  onAddToPlaylist={() => {}}
                   formatPlayCount={formatPlayCount}
                 />
               </motion.div>

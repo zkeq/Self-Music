@@ -10,6 +10,7 @@ interface FeaturedSectionProps {
   songs: Song[];
   onPlaySong: (songId: string) => void;
   onLikeSong: (songId: string, e: React.MouseEvent) => void;
+  onAddToPlaylist: (song: Song, e: React.MouseEvent) => void;
   formatPlayCount: (count: number) => string;
 }
 
@@ -17,6 +18,7 @@ export function FeaturedSection({
   songs, 
   onPlaySong, 
   onLikeSong, 
+  onAddToPlaylist,
   formatPlayCount 
 }: FeaturedSectionProps) {
   const [activeSection, setActiveSection] = useState<'featured' | 'trending' | 'new' | 'all'>('featured');
@@ -86,6 +88,7 @@ export function FeaturedSection({
             song={song}
             onPlay={onPlaySong}
             onLike={onLikeSong}
+            onAddToPlaylist={onAddToPlaylist}
             formatPlayCount={formatPlayCount}
           />
         ))}

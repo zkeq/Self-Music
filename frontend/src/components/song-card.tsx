@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Play, Heart, Music2, TrendingUp } from 'lucide-react';
+import { Play, Heart, Music2, TrendingUp, Plus, ListPlus } from 'lucide-react';
 
 export interface Song {
   id: string;
@@ -23,10 +23,11 @@ interface SongCardProps {
   song: Song;
   onPlay: (songId: string) => void;
   onLike: (songId: string, e: React.MouseEvent) => void;
+  onAddToPlaylist: (song: Song, e: React.MouseEvent) => void;
   formatPlayCount: (count: number) => string;
 }
 
-export function SongCard({ song, onPlay, onLike, formatPlayCount }: SongCardProps) {
+export function SongCard({ song, onPlay, onLike, onAddToPlaylist, formatPlayCount }: SongCardProps) {
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-all duration-300 group"
@@ -55,14 +56,25 @@ export function SongCard({ song, onPlay, onLike, formatPlayCount }: SongCardProp
             </div>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => onLike(song.id, e)}
-            className="h-8 w-8 p-0"
-          >
-            <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
-          </Button>
+          <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => onAddToPlaylist(song, e)}
+              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="添加到播放列表"
+            >
+              <ListPlus className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => onLike(song.id, e)}
+              className="h-8 w-8 p-0"
+            >
+              <Heart className={`w-4 h-4 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

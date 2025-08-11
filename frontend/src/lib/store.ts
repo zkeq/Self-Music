@@ -26,6 +26,13 @@ interface PlayerStore extends PlayerState {
   seekTo: (time: number) => void;
   playFromPlaylist: (playlistId: string, songIndex?: number) => void;
   playFromMood: (mood: string) => void;
+  
+  // Enhanced playlist management
+  addToPlaylist: (song: Song) => void;
+  removeFromPlaylist: (songId: string) => void;
+  clearPlaylist: () => void;
+  shufflePlaylist: () => void;
+  moveSongInPlaylist: (fromIndex: number, toIndex: number) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -173,6 +180,86 @@ export const usePlayerStore = create<PlayerStore>()(
         // For now, mock implementation
         console.log(`Playing mood: ${mood}`);
       },
+
+      // Enhanced playlist management
+      addToPlaylist: (song) => {
+        const { playlist } = get();
+        if (!playlist.find(s => s.id === song.id)) {
+          set({ playlist: [...playlist, song] });
+        }
+      },
+
+      removeFromPlaylist: (songId) => {
+        const { playlist, currentIndex } = get();
+        const newPlaylist = playlist.filter(s => s.id !== songId);
+        
+        // Adjust currentIndex if necessary
+        let newCurrentIndex = currentIndex;
+        if (currentIndex >= newPlaylist.length) {
+          newCurrentIndex = Math.max(0, newPlaylist.length - 1);
+        }
+        
+        set({ 
+          playlist: newPlaylist,
+          currentIndex: newCurrentIndex,
+          currentSong: newPlaylist[newCurrentIndex] || null 
+        });
+      },
+
+      clearPlaylist: () => {
+        set({ 
+          playlist: [], 
+          currentIndex: -1, 
+          currentSong: null,
+          isPlaying: false 
+        });
+      },
+
+      shufflePlaylist: () => {
+        const { playlist, currentSong } = get();
+        if (playlist.length <= 1) return;
+        
+        const shuffled = [...playlist];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        // Find current song's new position
+        const newIndex = shuffled.findIndex(s => s.id === currentSong?.id);
+        
+        set({ 
+          playlist: shuffled,
+          currentIndex: newIndex,
+          shuffleMode: true
+        });
+      },
+
+      moveSongInPlaylist: (fromIndex, toIndex) => {
+        const { playlist, currentIndex } = get();
+        if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || 
+            fromIndex >= playlist.length || toIndex >= playlist.length) return;
+        
+        const newPlaylist = [...playlist];
+        const [movedSong] = newPlaylist.splice(fromIndex, 1);
+        newPlaylist.splice(toIndex, 0, movedSong);
+        
+        // Adjust currentIndex
+        let newCurrentIndex = currentIndex;
+        if (fromIndex === currentIndex) {
+          newCurrentIndex = toIndex;
+        } else if (fromIndex < currentIndex && toIndex >= currentIndex) {
+          newCurrentIndex = currentIndex - 1;
+        } else if (fromIndex > currentIndex && toIndex <= currentIndex) {
+          newCurrentIndex = currentIndex + 1;
+        }
+        
+        set({ 
+          playlist: newPlaylist,
+          currentIndex: newCurrentIndex,
+          currentSong: newPlaylist[newCurrentIndex]
+        });
+      }
     }),
     {
       name: 'player-store',
