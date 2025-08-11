@@ -8,6 +8,7 @@ import { MiniPlayerControls } from '@/components/player-controls';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, Heart, MoreHorizontal } from 'lucide-react';
+import Image from 'next/image';
 
 export function BottomPlayer() {
   const pathname = usePathname();
@@ -18,7 +19,6 @@ export function BottomPlayer() {
     isPlaying,
     currentTime,
     duration,
-    volume,
     play,
     pause,
     nextSong,
@@ -101,9 +101,11 @@ export function BottomPlayer() {
               {/* 封面 */}
               <div className="relative w-12 h-12 lg:w-14 lg:h-14 rounded-lg overflow-hidden bg-muted shrink-0">
                 {currentSong.coverUrl ? (
-                  <img
+                  <Image
                     src={currentSong.coverUrl}
                     alt={currentSong.title}
+                    width={56}
+                    height={56}
                     className="w-full h-full object-cover"
                   />
                 ) : (

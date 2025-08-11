@@ -39,7 +39,6 @@ interface PlayerStore extends PlayerState {
   moveSongInPlaylist: (fromIndex: number, toIndex: number) => void;
   
   // New audio-related actions
-  seekTo: (time: number) => void;
   canPlayNext: () => boolean;
   canPlayPrevious: () => boolean;
 }

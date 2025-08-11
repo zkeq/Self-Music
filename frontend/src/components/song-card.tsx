@@ -1,10 +1,9 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Play, Heart, Music2, TrendingUp, Plus, ListPlus } from 'lucide-react';
+import { Play, Heart, Music2, TrendingUp, ListPlus } from 'lucide-react';
 
 export interface Song {
   id: string;

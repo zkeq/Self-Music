@@ -12,7 +12,6 @@ import {
   Play, 
   Pause, 
   X, 
-  Clock,
   MoreVertical,
   Shuffle,
   ChevronUp,
@@ -35,14 +34,12 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const {
     playlist,
-    currentSong,
     currentIndex,
     isPlaying,
     setSong,
     setPlaylist,
     play,
     pause,
-    setCurrentTime,
     removeFromPlaylist,
     clearPlaylist,
     moveSongInPlaylist,
