@@ -138,10 +138,18 @@ export const usePlayerStore = create<PlayerStore>()(
         const nextSong = PlaylistManager.getNextSong(shuffleMode, repeatMode);
         
         if (nextSong) {
+          // 获取更新后的播放列表状态
+          const updatedPlaylist = PlaylistManager.getCurrentPlaylist();
+          
           set({
             currentSong: nextSong,
             currentTime: 0,
             duration: 0,
+            // 同步播放列表状态
+            ...(updatedPlaylist && {
+              playlist: updatedPlaylist.songs,
+              currentIndex: updatedPlaylist.currentIndex
+            })
           });
         }
       },
@@ -150,10 +158,18 @@ export const usePlayerStore = create<PlayerStore>()(
         const prevSong = PlaylistManager.getPreviousSong();
         
         if (prevSong) {
+          // 获取更新后的播放列表状态
+          const updatedPlaylist = PlaylistManager.getCurrentPlaylist();
+          
           set({
             currentSong: prevSong,
             currentTime: 0,
             duration: 0,
+            // 同步播放列表状态
+            ...(updatedPlaylist && {
+              playlist: updatedPlaylist.songs,
+              currentIndex: updatedPlaylist.currentIndex
+            })
           });
         }
       },
@@ -291,7 +307,7 @@ export const usePlayerStore = create<PlayerStore>()(
         set({
           currentSong: DEFAULT_SONG,
           currentTime: 0,
-          duration: DEFAULT_SONG.duration,
+          duration: 0, // 让音频文件加载后自动设置真实时长
           isPlaying: false,
           playbackMode: 'song',
           currentPlaylist: null,

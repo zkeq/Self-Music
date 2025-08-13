@@ -227,7 +227,7 @@ export class PlaylistManager {
     try {
       // 首先尝试获取热门歌曲
       const hotSongsResult = await api.getHotSongs(50);
-      if (hotSongsResult.success && hotSongsResult.data.length > 0) {
+      if (hotSongsResult.success && hotSongsResult.data && hotSongsResult.data.length > 0) {
         // 按播放数排序
         const sortedSongs = hotSongsResult.data.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
         return sortedSongs.slice(0, 30); // 取前30首
@@ -235,7 +235,7 @@ export class PlaylistManager {
       
       // 如果获取热门歌曲失败，尝试获取所有歌曲并按播放数排序
       const allSongsResult = await api.getSongs(1, 100);
-      if (allSongsResult.success && allSongsResult.data.items) {
+      if (allSongsResult.success && allSongsResult.data && allSongsResult.data.items) {
         const sortedSongs = allSongsResult.data.items.sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
         return sortedSongs.slice(0, 30);
       }

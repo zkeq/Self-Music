@@ -14,6 +14,7 @@ import {
   X, 
   MoreVertical,
   Shuffle,
+  Repeat,
   ChevronUp,
   ChevronDown
 } from 'lucide-react';
@@ -35,6 +36,8 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
     playlist,
     currentIndex,
     isPlaying,
+    shuffleMode,
+    repeatMode,
     setSong,
     setPlaylist,
     play,
@@ -43,6 +46,8 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
     clearPlaylist,
     moveSongInPlaylist,
     shufflePlaylist,
+    toggleShuffle,
+    toggleRepeat,
   } = usePlayerStore();
 
   const formatDuration = (seconds: number) => {
@@ -128,16 +133,54 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                   </p>
                 </div>
                 <div className="flex items-center space-x-1">
+                  {/* 随机播放模式切换 */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleShuffle}
+                    className={cn(
+                      "h-8",
+                      shuffleMode && "bg-primary/10 text-primary"
+                    )}
+                    title={shuffleMode ? "关闭随机播放" : "开启随机播放"}
+                  >
+                    <Shuffle className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* 循环播放模式切换 */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleRepeat}
+                    className={cn(
+                      "h-8",
+                      repeatMode !== 'none' && "bg-primary/10 text-primary"
+                    )}
+                    title={
+                      repeatMode === 'none' ? "开启循环播放" :
+                      repeatMode === 'all' ? "列表循环" :
+                      "单曲循环"
+                    }
+                  >
+                    <Repeat className="h-4 w-4" />
+                    {repeatMode === 'one' && (
+                      <span className="ml-1 text-xs">1</span>
+                    )}
+                  </Button>
+
+                  {/* 重排播放列表 */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={shufflePlaylist}
                     className="h-8"
                     disabled={playlist.length <= 1}
-                    title="随机播放"
+                    title="重新排列播放列表"
                   >
                     <Shuffle className="h-4 w-4" />
+                    <span className="ml-1 text-xs">排</span>
                   </Button>
+                  
                   <Button
                     variant="ghost"
                     size="sm"
