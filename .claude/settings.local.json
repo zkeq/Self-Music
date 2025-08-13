@@ -16,7 +16,8 @@
       "Bash(yarn build)",
       "Bash(cat:*)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }
