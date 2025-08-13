@@ -19,82 +19,9 @@ import {
   Check, 
   Share2
 } from 'lucide-react';
-
-interface Song {
-  id: string;
-  title: string;
-  album: string;
-  duration: number;
-  playCount?: number;
-  liked: boolean;
-}
-
-interface ArtistAlbum {
-  name: string;
-  year: number;
-  songs: Song[];
-}
-
-interface ArtistDetail {
-  id: string;
-  name: string;
-  avatar: string;
-  bio: string;
-  followers: number;
-  popularSongs: Song[];
-  albums: ArtistAlbum[];
-  genres: string[];
-  verified: boolean;
-}
-
-// Mock data for artist details
-const mockArtistDetails: { [key: string]: ArtistDetail } = {
-  '1': {
-    id: '1',
-    name: '周杰伦',
-    avatar: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
-    bio: '华语乐坛创作天王，以独特的音乐风格革新了华语流行音乐。融合中西方音乐元素，创造了一个全新时代。',
-    followers: 2800000,
-    popularSongs: [
-      { id: '1', title: '晴天', album: '叶惠美', duration: 269, playCount: 89000000, liked: true },
-      { id: '2', title: '告白气球', album: '周杰伦的床边故事', duration: 201, playCount: 234000000, liked: false },
-      { id: '3', title: '夜曲', album: '十一月的萧邦', duration: 234, playCount: 145000000, liked: true },
-      { id: '4', title: '稻香', album: '魔杰座', duration: 225, playCount: 189000000, liked: true },
-      { id: '5', title: '安静', album: '范特西', duration: 275, playCount: 156000000, liked: false }
-    ],
-    albums: [
-      {
-        name: '叶惠美',
-        year: 2003,
-        songs: [
-          { id: '1', title: '晴天', album: '叶惠美', duration: 269, liked: true },
-          { id: '6', title: '以父之名', album: '叶惠美', duration: 325, liked: false },
-          { id: '7', title: '三年二班', album: '叶惠美', duration: 284, liked: true }
-        ]
-      },
-      {
-        name: '范特西',
-        year: 2001,
-        songs: [
-          { id: '5', title: '安静', album: '范特西', duration: 275, liked: false },
-          { id: '8', title: '简单爱', album: '范特西', duration: 256, liked: true },
-          { id: '9', title: '开不了口', album: '范特西', duration: 298, liked: true }
-        ]
-      },
-      {
-        name: '八度空间',
-        year: 2002,
-        songs: [
-          { id: '10', title: '半兽人', album: '八度空间', duration: 289, liked: false },
-          { id: '11', title: '半岛铁盒', album: '八度空间', duration: 301, liked: true },
-          { id: '12', title: '回到过去', album: '八度空间', duration: 246, liked: true }
-        ]
-      }
-    ],
-    genres: ['华语流行', 'R&B', '嘻哈', '古典流行'],
-    verified: true
-  }
-};
+import { usePlayerStore } from '@/lib/store';
+import { api } from '@/lib/api';
+import type { Artist, Song, Album } from '@/types';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -125,38 +52,94 @@ const formatFollowers = (count: number) => {
 function ArtistDetailContent() {
   const params = useParams();
   const router = useRouter();
-  const [artist, setArtist] = useState<ArtistDetail | null>(null);
+  const [artist, setArtist] = useState<Artist | null>(null);
+  const [artistSongs, setArtistSongs] = useState<Song[]>([]);
+  const [artistAlbums, setArtistAlbums] = useState<Album[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const { replacePlaylistAndPlay } = usePlayerStore();
 
   useEffect(() => {
-    const id = params.id as string;
-    if (id && mockArtistDetails[id]) {
-      setArtist(mockArtistDetails[id]);
-    } else {
-      setArtist(null);
-    }
+    const fetchArtistData = async () => {
+      const id = params.id as string;
+      if (!id) {
+        setError('Invalid artist ID');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+
+        // 并行获取艺术家信息、歌曲和专辑
+        const [artistResult, songsResult, albumsResult] = await Promise.all([
+          api.getArtist(id),
+          api.getArtistSongs(id),
+          api.getArtistAlbums(id)
+        ]);
+        
+        if (artistResult.success && artistResult.data) {
+          setArtist(artistResult.data);
+        } else {
+          setError(artistResult.error || 'Failed to load artist');
+          setIsLoading(false);
+          return;
+        }
+
+        if (songsResult.success && songsResult.data) {
+          setArtistSongs(songsResult.data);
+        }
+
+        if (albumsResult.success && albumsResult.data) {
+          setArtistAlbums(albumsResult.data);
+        }
+
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching artist data:', err);
+        setError('Failed to load artist');
+        setArtist(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchArtistData();
   }, [params.id]);
 
-  const handlePlaySong = (songId: string) => {
-    router.push(`/play/${songId}`);
+  const handlePlaySong = (songIndex: number) => {
+    if (artistSongs.length > 0) {
+      replacePlaylistAndPlay(artistSongs, songIndex);
+    }
+  };
+
+  const handlePlayPopular = () => {
+    if (artistSongs.length > 0) {
+      // 按播放数排序，播放最受欢迎的歌曲
+      const sortedSongs = [...artistSongs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
+      replacePlaylistAndPlay(sortedSongs, 0);
+    }
+  };
+
+  const handlePlayAlbum = (album: Album) => {
+    // 这里需要获取专辑的歌曲列表
+    // 由于示例中没有专辑歌曲的详细API，暂时使用艺术家的歌曲作为示例
+    const albumSongs = artistSongs.filter(song => song.album?.id === album.id);
+    if (albumSongs.length > 0) {
+      replacePlaylistAndPlay(albumSongs, 0);
+    }
   };
 
   const handleLikeSong = (songId: string) => {
     console.log('Toggle like for song:', songId);
   };
 
-  const handleShuffle = () => {
-    if (artist && artist.popularSongs.length > 0) {
-      const randomIndex = Math.floor(Math.random() * artist.popularSongs.length);
-      handlePlaySong(artist.popularSongs[randomIndex].id);
-    }
-  };
-
   const goBack = () => {
     window.history.back();
   };
 
-  if (artist === undefined) {
+  if (isLoading) {
     return (
       <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
@@ -174,7 +157,7 @@ function ArtistDetailContent() {
     );
   }
 
-  if (artist === null) {
+  if (error || !artist) {
     return (
       <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
@@ -184,8 +167,8 @@ function ArtistDetailContent() {
             transition={{ duration: 0.5 }}
           >
             <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-medium mb-2">艺术家不存在</h3>
-            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的艺术家</p>
+            <h3 className="text-xl font-medium mb-2">加载失败</h3>
+            <p className="text-muted-foreground mb-6">{error || '抱歉，找不到您要查看的艺术家'}</p>
             <Button onClick={() => window.history.back()}>
               返回上一页
             </Button>
@@ -258,12 +241,11 @@ function ArtistDetailContent() {
                   )}
                 </div>
                 <h1 className="text-3xl lg:text-5xl font-bold">{artist.name}</h1>
-                <p className="text-muted-foreground text-lg max-w-2xl">{artist.bio}</p>
                 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <span className="font-medium">{formatFollowers(artist.followers)} 粉丝</span>
                   <span>•</span>
-                  <span>{artist.popularSongs.length + (artist.albums?.flatMap((a: ArtistAlbum) => a.songs).length || 0)} 首歌曲</span>
+                  <span>{artist.songCount} 首歌曲</span>
                 </div>
 
                 <div className="flex items-center space-x-2 text-sm">
@@ -289,7 +271,7 @@ function ArtistDetailContent() {
                       '关注艺术家'
                     )}
                   </Button>
-                  <Button variant="outline" onClick={() => handlePlaySong(artist.popularSongs[0]?.id)}>
+                  <Button variant="outline" onClick={handlePlayPopular}>
                     <Play className="w-4 h-4 mr-2" />
                     播放热门
                   </Button>
@@ -304,128 +286,122 @@ function ArtistDetailContent() {
             </div>
 
             {/* Popular Songs */}
-            <motion.div
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="mb-12"
-            >
-              <h2 className="text-2xl font-bold mb-6">热门歌曲</h2>
-              <div className="bg-card rounded-lg p-6 shadow-sm">
-                <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
-                  <div className="w-8">#</div>
-                  <div className="flex-1">标题</div>
-                  <div className="w-20 text-center hidden sm:block">播放量</div>
-                  <div className="w-20 text-center">
-                    <Clock className="w-4 h-4 mx-auto" />
+            {artistSongs.length > 0 && (
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                className="mb-12"
+              >
+                <h2 className="text-2xl font-bold mb-6">热门歌曲</h2>
+                <div className="bg-card rounded-lg p-6 shadow-sm">
+                  <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
+                    <div className="w-8">#</div>
+                    <div className="flex-1">标题</div>
+                    <div className="w-20 text-center hidden sm:block">播放量</div>
+                    <div className="w-20 text-center">
+                      <Clock className="w-4 h-4 mx-auto" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    {artistSongs.slice(0, 10).map((song: Song, index: number) => (
+                      <motion.div
+                        key={song.id}
+                        className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors"
+                        onClick={() => handlePlaySong(index)}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.4, delay: 0.1 * index }}
+                        whileHover={{ x: 4 }}
+                      >
+                        <div className="w-8 text-sm text-muted-foreground">
+                          <span className="group-hover:hidden">{index + 1}</span>
+                          <Play className="w-4 h-4 hidden group-hover:block text-primary" />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="font-medium">{song.title}</div>
+                          <div className="text-sm text-muted-foreground">{song.album?.title || '单曲'}</div>
+                        </div>
+                        
+                        <div className="w-20 text-center text-sm text-muted-foreground hidden sm:block">
+                          {song.playCount && formatPlayCount(song.playCount)}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 w-20">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLikeSong(song.id);
+                            }}
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Heart className={`w-3 h-3 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
+                          </Button>
+                          <span className="text-sm text-muted-foreground text-center w-12">
+                            {formatDuration(song.duration)}
+                          </span>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
-                
-                <div className="space-y-1">
-                  {artist.popularSongs.map((song: Song, index: number) => (
+              </motion.div>
+            )}
+
+            {/* Albums */}
+            {artistAlbums.length > 0 && (
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+              >
+                <h2 className="text-2xl font-bold mb-6">专辑</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {artistAlbums.map((album: Album, albumIndex: number) => (
                     <motion.div
-                      key={song.id}
-                      className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors"
-                      onClick={() => handlePlaySong(song.id)}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.1 * index }}
-                      whileHover={{ x: 4 }}
+                      key={album.id}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.4, delay: 0.1 * albumIndex }}
+                      className="bg-card rounded-lg p-6 shadow-sm"
                     >
-                      <div className="w-8 text-sm text-muted-foreground">
-                        <span className="group-hover:hidden">{index + 1}</span>
-                        <Play className="w-4 h-4 hidden group-hover:block text-primary" />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="font-medium">{song.title}</div>
-                        <div className="text-sm text-muted-foreground">{song.album}</div>
-                      </div>
-                      
-                      <div className="w-20 text-center text-sm text-muted-foreground hidden sm:block">
-                        {song.playCount && formatPlayCount(song.playCount)}
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 w-20">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLikeSong(song.id);
-                          }}
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Heart className={`w-3 h-3 ${song.liked ? 'text-red-500 fill-current' : ''}`} />
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold">{album.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {album.releaseDate && new Date(album.releaseDate).getFullYear()} • {album.songCount} 首歌曲
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="w-4 h-4" />
                         </Button>
-                        <span className="text-sm text-muted-foreground text-center w-12">
-                          {formatDuration(song.duration)}
-                        </span>
                       </div>
+                      
+                      {album.coverUrl && (
+                        <Avatar className="w-full h-32 rounded-lg mb-4">
+                          <AvatarImage src={album.coverUrl} alt={album.title} />
+                          <AvatarFallback>
+                            <Music className="w-8 h-8" />
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      
+                      <Button 
+                        variant="ghost" 
+                        className="w-full"
+                        onClick={() => handlePlayAlbum(album)}
+                      >
+                        播放专辑
+                      </Button>
                     </motion.div>
                   ))}
                 </div>
-              </div>
-            </motion.div>
-
-            {/* Albums */}
-            <motion.div
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-            >
-              <h2 className="text-2xl font-bold mb-6">专辑</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(artist.albums || []).map((album: ArtistAlbum, albumIndex: number) => (
-                  <motion.div
-                    key={album.name}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.1 * albumIndex }}
-                    className="bg-card rounded-lg p-6 shadow-sm"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold">{album.name}</h3>
-                        <p className="text-sm text-muted-foreground">{album.year} • {album.songs.length} 首歌曲</p>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {album.songs.slice(0, 3).map((song: Song, songIndex: number) => (
-                        <motion.div
-                          key={song.id}
-                          className="flex items-center space-x-3 text-sm"
-                          initial={{ x: -10, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ duration: 0.3, delay: 0.1 * songIndex }}
-                        >
-                          <span className="text-muted-foreground">{songIndex + 1}</span>
-                          <span className="flex-1 truncate">{song.title}</span>
-                          <span className="text-muted-foreground">{formatDuration(song.duration)}</span>
-                        </motion.div>
-                      ))}
-                      {album.songs.length > 3 && (
-                        <div className="text-sm text-muted-foreground text-center pt-2">
-                          还有 {album.songs.length - 3} 首歌曲...
-                        </div>
-                      )}
-                    </div>
-                    
-                    <Button 
-                      variant="ghost" 
-                      className="w-full mt-4"
-                      onClick={() => handlePlaySong(album.songs[0]?.id)}
-                    >
-                      播放专辑
-                    </Button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </motion.div>
         </ScrollArea>
       </motion.div>

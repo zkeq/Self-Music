@@ -24,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
 
 interface PlaylistPanelProps {
   className?: string;
@@ -189,11 +188,10 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         {/* Cover */}
                         <div className="relative h-12 w-12 flex-shrink-0">
                           {song.coverUrl ? (
-                            <Image
+                            <img
                               src={song.coverUrl}
                               alt={song.title}
-                              fill
-                              className="object-cover rounded-md"
+                              className="h-full w-full object-cover rounded-md"
                             />
                           ) : (
                             <div className="h-full w-full bg-muted rounded-md flex items-center justify-center">

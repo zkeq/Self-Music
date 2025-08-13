@@ -28,12 +28,31 @@ export function AudioManager() {
     
     const timeDiff = Math.abs(audio.currentTime - time);
     
-    // 只有当时间差大于1秒时才进行跳转，避免在正常播放时频繁调整
-    if (timeDiff > 1 && !isSeekingRef.current) {
+    // 如果音频还在加载中或者尚未准备就绪，暂时存储seek时间
+    if (audio.readyState < 2) {
+      console.log('Audio not ready, storing seek time:', time);
+      lastSeekTime.current = time;
+      return;
+    }
+    
+    // 只有当时间差大于0.5秒时才进行跳转，避免在正常播放时频繁调整
+    if (timeDiff > 0.5 && !isSeekingRef.current) {
       console.log('Seeking to:', time, 'from:', audio.currentTime);
       isSeekingRef.current = true;
-      audio.currentTime = time;
-      lastSeekTime.current = time;
+      
+      // 确保时间在有效范围内
+      const clampedTime = Math.max(0, Math.min(time, audio.duration || time));
+      audio.currentTime = clampedTime;
+      lastSeekTime.current = clampedTime;
+      
+      // 如果音频缓冲不足，等待数据加载
+      if (audio.buffered.length > 0) {
+        const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+        if (clampedTime > bufferedEnd) {
+          // 请求加载更多数据
+          audio.load();
+        }
+      }
     }
   }, []);
 
@@ -116,6 +135,11 @@ export function AudioManager() {
 
     const handleCanPlay = () => {
       console.log('Audio can play, duration:', audio.duration);
+      // 如果之前有等待的seek操作，现在执行
+      if (lastSeekTime.current > 0 && Math.abs(audio.currentTime - lastSeekTime.current) > 1) {
+        console.log('Executing pending seek to:', lastSeekTime.current);
+        audio.currentTime = lastSeekTime.current;
+      }
     };
 
     const handleLoadStart = () => {

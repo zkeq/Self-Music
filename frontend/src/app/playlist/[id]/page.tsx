@@ -10,65 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, TrendingUp } from 'lucide-react';
-
-interface Song {
-  id: string;
-  title: string;
-  artist: string;
-  album?: string;
-  duration: number;
-  liked: boolean;
-  playCount?: number;
-}
-
-interface PlaylistDetail {
-  id: string;
-  name: string;
-  description: string;
-  coverUrl: string;
-  songCount: number;
-  duration: number;
-  playCount: number;
-  creator: string;
-  songs: Song[];
-}
-
-// Mock data for playlist details
-const mockPlaylistDetails: { [key: string]: PlaylistDetail } = {
-  '1': {
-    id: '1',
-    name: '流行热歌榜',
-    description: '最新最热的流行音乐，汇集全球最受欢迎的流行歌曲',
-    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
-    songCount: 25,
-    duration: 5400,
-    playCount: 125000,
-    creator: 'Self Music',
-    songs: [
-      { id: '1', title: '晴天', artist: '周杰伦', album: '叶惠美', duration: 269, liked: true, playCount: 89000 },
-      { id: '2', title: 'Shape of You', artist: 'Ed Sheeran', album: '÷ (Divide)', duration: 233, liked: false, playCount: 156000 },
-      { id: '3', title: '告白气球', artist: '周杰伦', album: '周杰伦的床边故事', duration: 201, liked: true, playCount: 234000 },
-      { id: '4', title: 'Perfect', artist: 'Ed Sheeran', album: '÷ (Divide)', duration: 263, liked: false, playCount: 178000 },
-      { id: '5', title: '夜曲', artist: '周杰伦', album: '十一月的萧邦', duration: 234, liked: true, playCount: 145000 },
-      { id: '6', title: 'Thinking Out Loud', artist: 'Ed Sheeran', album: 'x', duration: 281, liked: true, playCount: 198000 }
-    ]
-  },
-  '2': {
-    id: '2',
-    name: '轻松咖啡时光',
-    description: '适合咖啡时光的轻松音乐，营造温馨舒适的氛围',
-    coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop',
-    songCount: 18,
-    duration: 3240,
-    playCount: 87000,
-    creator: 'Self Music',
-    songs: [
-      { id: '7', title: 'River Flows in You', artist: 'Yiruma', album: 'First Love', duration: 210, liked: true, playCount: 67000 },
-      { id: '8', title: 'Kiss The Rain', artist: 'Yiruma', album: 'Love Scene', duration: 195, liked: false, playCount: 45000 },
-      { id: '9', title: 'Nuvole Bianche', artist: 'Ludovico Einaudi', album: 'Una Mattina', duration: 360, liked: true, playCount: 78000 }
-    ]
-  }
-};
+import { usePlayerStore } from '@/lib/store';
+import { api } from '@/lib/api';
+import type { Song, Playlist } from '@/types';
 
 const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -99,19 +43,68 @@ const formatPlayCount = (count: number) => {
 function PlaylistDetailContent() {
   const params = useParams();
   const router = useRouter();
-  const [playlist, setPlaylist] = useState<PlaylistDetail | null | undefined>(undefined);
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const { replacePlaylistAndPlay } = usePlayerStore();
 
   useEffect(() => {
-    const id = params.id as string;
-    if (id && mockPlaylistDetails[id]) {
-      setPlaylist(mockPlaylistDetails[id]);
-    } else {
-      setPlaylist(null);
-    }
+    const fetchPlaylist = async () => {
+      const id = params.id as string;
+      if (!id) {
+        setError('Invalid playlist ID');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const result = await api.getPlaylist(id);
+        
+        if (result.success && result.data) {
+          setPlaylist(result.data);
+          setError(null);
+        } else {
+          setError(result.error || 'Failed to load playlist');
+          setPlaylist(null);
+        }
+      } catch (err) {
+        console.error('Error fetching playlist:', err);
+        setError('Failed to load playlist');
+        setPlaylist(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPlaylist();
   }, [params.id]);
 
-  if (playlist === undefined) {
+  const handlePlaySong = (songIndex: number) => {
+    if (playlist && playlist.songs) {
+      replacePlaylistAndPlay(playlist.songs, songIndex);
+    }
+  };
+
+  const handlePlayAll = () => {
+    if (playlist && playlist.songs && playlist.songs.length > 0) {
+      replacePlaylistAndPlay(playlist.songs, 0);
+    }
+  };
+
+  const handleShuffle = () => {
+    if (playlist && playlist.songs && playlist.songs.length > 0) {
+      const randomIndex = Math.floor(Math.random() * playlist.songs.length);
+      replacePlaylistAndPlay(playlist.songs, randomIndex);
+    }
+  };
+
+  const goBack = () => {
+    window.history.back();
+  };
+
+  if (isLoading) {
     return (
       <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
@@ -129,7 +122,7 @@ function PlaylistDetailContent() {
     );
   }
 
-  if (playlist === null) {
+  if (error || !playlist) {
     return (
       <div className="h-full bg-background flex items-center justify-center">
         <div className="text-center">
@@ -139,8 +132,8 @@ function PlaylistDetailContent() {
             transition={{ duration: 0.5 }}
           >
             <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-medium mb-2">歌单不存在</h3>
-            <p className="text-muted-foreground mb-6">抱歉，找不到您要查看的歌单</p>
+            <h3 className="text-xl font-medium mb-2">加载失败</h3>
+            <p className="text-muted-foreground mb-6">{error || '抱歉，找不到您要查看的歌单'}</p>
             <Button onClick={() => window.history.back()}>
               返回上一页
             </Button>
@@ -149,28 +142,6 @@ function PlaylistDetailContent() {
       </div>
     );
   }
-
-  const handlePlaySong = (songId: string) => {
-    router.push(`/play/${songId}`);
-  };
-
-
-  const handlePlayAll = () => {
-    if (playlist && playlist.songs.length > 0) {
-      handlePlaySong(playlist.songs[0].id);
-    }
-  };
-
-  const handleShuffle = () => {
-    if (playlist && playlist.songs.length > 0) {
-      const randomIndex = Math.floor(Math.random() * playlist.songs.length);
-      handlePlaySong(playlist.songs[randomIndex].id);
-    }
-  };
-
-  const goBack = () => {
-    window.history.back();
-  };
 
   return (
     <motion.div 
@@ -228,7 +199,9 @@ function PlaylistDetailContent() {
               >
                 <Badge variant="secondary" className="text-sm">播放列表</Badge>
                 <h1 className="text-3xl lg:text-5xl font-bold">{playlist.name}</h1>
-                <p className="text-muted-foreground text-lg max-w-2xl">{playlist.description}</p>
+                {playlist.description && (
+                  <p className="text-muted-foreground text-lg max-w-2xl">{playlist.description}</p>
+                )}
                 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <span className="font-medium">{playlist.creator}</span>
@@ -286,7 +259,7 @@ function PlaylistDetailContent() {
                     <div 
                       key={song.id}
                       className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"
-                      onClick={() => handlePlaySong(song.id)}
+                      onClick={() => handlePlaySong(index)}
                     >
                       <div className="w-8 text-sm text-muted-foreground">
                         <span className="group-hover:hidden">{index + 1}</span>
@@ -294,7 +267,7 @@ function PlaylistDetailContent() {
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">{song.title}</div>
-                        <div className="text-sm text-muted-foreground">{song.artist}</div>
+                        <div className="text-sm text-muted-foreground">{song.artist.name}</div>
                       </div>
                       <div className="flex items-center space-x-2">
                         {song.liked && (

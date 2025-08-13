@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Song, PlayerState, Playlist } from '@/types';
 import { DEFAULT_SONG } from './default-song';
+import { PlaylistManager, PlaylistState } from './playlist-manager';
 
 interface PlayerStore extends PlayerState {
   // Additional state
@@ -43,6 +44,12 @@ interface PlayerStore extends PlayerState {
   canPlayNext: () => boolean;
   canPlayPrevious: () => boolean;
   loadDefaultSong: () => void;
+  
+  // New playlist manager integration
+  initializePlaylist: () => Promise<void>;
+  loadPlaylistFromStorage: () => void;
+  jumpToSong: (songId: string) => void;
+  replacePlaylistAndPlay: (songs: Song[], songIndex?: number) => void;
 }
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -125,44 +132,28 @@ export const usePlayerStore = create<PlayerStore>()(
       setDuration: (duration) => set({ duration }),
 
       nextSong: () => {
-        const { playlist, currentIndex, repeatMode, shuffleMode } = get();
-        if (playlist.length === 0) return;
-
-        let nextIndex = currentIndex + 1;
-
-        if (shuffleMode) {
-          nextIndex = Math.floor(Math.random() * playlist.length);
-        } else if (nextIndex >= playlist.length) {
-          if (repeatMode === 'all') {
-            nextIndex = 0;
-          } else {
-            return; // End of playlist
-          }
+        const { repeatMode, shuffleMode } = get();
+        const nextSong = PlaylistManager.getNextSong(shuffleMode, repeatMode);
+        
+        if (nextSong) {
+          set({
+            currentSong: nextSong,
+            currentTime: 0,
+            duration: 0,
+          });
         }
-
-        set({
-          currentIndex: nextIndex,
-          currentSong: playlist[nextIndex],
-          currentTime: 0,
-          duration: 0,
-        });
       },
 
       previousSong: () => {
-        const { playlist, currentIndex } = get();
-        if (playlist.length === 0) return;
-
-        let prevIndex = currentIndex - 1;
-        if (prevIndex < 0) {
-          prevIndex = playlist.length - 1;
+        const prevSong = PlaylistManager.getPreviousSong();
+        
+        if (prevSong) {
+          set({
+            currentSong: prevSong,
+            currentTime: 0,
+            duration: 0,
+          });
         }
-
-        set({
-          currentIndex: prevIndex,
-          currentSong: playlist[prevIndex],
-          currentTime: 0,
-          duration: 0,
-        });
       },
 
       toggleRepeat: () => {
@@ -178,8 +169,12 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       seekTo: (time) => {
-        const clampedTime = Math.max(0, Math.min(time, get().duration));
+        const { duration } = get();
+        const clampedTime = Math.max(0, Math.min(time, duration || time));
         set({ currentTime: clampedTime });
+        
+        // 立即更新时间，无需等待音频事件
+        return clampedTime;
       },
 
       setLoading: (loading) => set({ isLoading: loading }),
@@ -187,14 +182,12 @@ export const usePlayerStore = create<PlayerStore>()(
       setError: (error) => set({ error }),
 
       canPlayNext: () => {
-        const { playlist, currentIndex, repeatMode } = get();
-        if (playlist.length === 0) return false;
-        return currentIndex < playlist.length - 1 || repeatMode === 'all';
+        const { repeatMode } = get();
+        return PlaylistManager.canPlayNext(repeatMode);
       },
 
       canPlayPrevious: () => {
-        const { playlist, currentIndex } = get();
-        return playlist.length > 0 && (currentIndex > 0 || currentIndex === -1);
+        return PlaylistManager.canPlayPrevious();
       },
 
       playFromPlaylist: async (playlistId, songIndex = 0) => {
@@ -213,7 +206,14 @@ export const usePlayerStore = create<PlayerStore>()(
       addToPlaylist: (song) => {
         const { playlist } = get();
         if (!playlist.find(s => s.id === song.id)) {
-          set({ playlist: [...playlist, song] });
+          const newPlaylist = [...playlist, song];
+          set({ playlist: newPlaylist });
+          
+          // 同步到 PlaylistManager
+          const currentPlaylist = PlaylistManager.getCurrentPlaylist();
+          if (currentPlaylist) {
+            PlaylistManager.updatePlaylist(newPlaylist, currentPlaylist.currentIndex);
+          }
         }
       },
 
@@ -232,6 +232,9 @@ export const usePlayerStore = create<PlayerStore>()(
           currentIndex: newCurrentIndex,
           currentSong: newPlaylist[newCurrentIndex] || null 
         });
+        
+        // 同步到 PlaylistManager
+        PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
       },
 
       clearPlaylist: () => {
@@ -241,26 +244,19 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong: null,
           isPlaying: false 
         });
+        PlaylistManager.clearCurrentPlaylist();
       },
 
       shufflePlaylist: () => {
-        const { playlist, currentSong } = get();
-        if (playlist.length <= 1) return;
-        
-        const shuffled = [...playlist];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        const shuffledPlaylistState = PlaylistManager.shufflePlaylist();
+        if (shuffledPlaylistState) {
+          set({
+            playlist: shuffledPlaylistState.songs,
+            currentIndex: shuffledPlaylistState.currentIndex,
+            currentSong: shuffledPlaylistState.songs[shuffledPlaylistState.currentIndex],
+            shuffleMode: true
+          });
         }
-        
-        // Find current song's new position
-        const newIndex = shuffled.findIndex(s => s.id === currentSong?.id);
-        
-        set({ 
-          playlist: shuffled,
-          currentIndex: newIndex,
-          shuffleMode: true
-        });
       },
 
       moveSongInPlaylist: (fromIndex, toIndex) => {
@@ -287,6 +283,9 @@ export const usePlayerStore = create<PlayerStore>()(
           currentIndex: newCurrentIndex,
           currentSong: newPlaylist[newCurrentIndex]
         });
+        
+        // 同步到 PlaylistManager
+        PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
       },
 
       loadDefaultSong: () => {
@@ -299,7 +298,107 @@ export const usePlayerStore = create<PlayerStore>()(
           currentPlaylist: null,
           currentMood: null,
         });
-      }
+      },
+
+      // New playlist manager integration methods
+      initializePlaylist: async () => {
+        set({ isLoading: true });
+        
+        try {
+          // First try to load from localStorage
+          const existingPlaylist = PlaylistManager.getCurrentPlaylist();
+          
+          if (existingPlaylist && existingPlaylist.songs.length > 0) {
+            // Load existing playlist
+            set({
+              playlist: existingPlaylist.songs,
+              currentIndex: existingPlaylist.currentIndex,
+              currentSong: existingPlaylist.songs[existingPlaylist.currentIndex] || null,
+              playbackMode: 'playlist',
+              isLoading: false,
+            });
+          } else {
+            // Initialize with recommended playlist for new users
+            const defaultPlaylist = await PlaylistManager.initializeDefaultPlaylist();
+            
+            if (defaultPlaylist) {
+              set({
+                playlist: defaultPlaylist.songs,
+                currentIndex: defaultPlaylist.currentIndex,
+                currentSong: defaultPlaylist.songs[defaultPlaylist.currentIndex] || null,
+                playbackMode: 'playlist',
+                isLoading: false,
+              });
+            } else {
+              // Fallback to default song if no recommendations available
+              set({
+                currentSong: DEFAULT_SONG,
+                currentTime: 0,
+                duration: DEFAULT_SONG.duration,
+                isPlaying: false,
+                playbackMode: 'song',
+                isLoading: false,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error initializing playlist:', error);
+          set({
+            currentSong: DEFAULT_SONG,
+            currentTime: 0,
+            duration: DEFAULT_SONG.duration,
+            isPlaying: false,
+            playbackMode: 'song',
+            isLoading: false,
+            error: 'Failed to load playlist',
+          });
+        }
+      },
+
+      loadPlaylistFromStorage: () => {
+        const storedPlaylist = PlaylistManager.getCurrentPlaylist();
+        
+        if (storedPlaylist) {
+          set({
+            playlist: storedPlaylist.songs,
+            currentIndex: storedPlaylist.currentIndex,
+            currentSong: storedPlaylist.songs[storedPlaylist.currentIndex] || null,
+            playbackMode: 'playlist',
+          });
+        }
+      },
+
+      jumpToSong: (songId) => {
+        const song = PlaylistManager.jumpToSong(songId);
+        
+        if (song) {
+          const storedPlaylist = PlaylistManager.getCurrentPlaylist();
+          if (storedPlaylist) {
+            set({
+              playlist: storedPlaylist.songs,
+              currentIndex: storedPlaylist.currentIndex,
+              currentSong: song,
+              currentTime: 0,
+              duration: 0,
+            });
+          }
+        }
+      },
+
+      replacePlaylistAndPlay: (songs, songIndex = 0) => {
+        const validIndex = Math.max(0, Math.min(songIndex, songs.length - 1));
+        const playlistState = PlaylistManager.updatePlaylist(songs, validIndex);
+        
+        set({
+          playlist: songs,
+          currentIndex: validIndex,
+          currentSong: songs[validIndex] || null,
+          currentTime: 0,
+          duration: 0,
+          playbackMode: 'playlist',
+          isPlaying: true, // Auto-play when replacing playlist
+        });
+      },
     }),
     {
       name: 'player-store',

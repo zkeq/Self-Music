@@ -42,9 +42,15 @@ export default function PlayPage() {
     seekTo,
     canPlayNext,
     canPlayPrevious,
+    initializePlaylist,
   } = usePlayerStore();
 
   const [isFullscreenLyrics, setIsFullscreenLyrics] = useState(false);
+  
+  // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
+  useEffect(() => {
+    initializePlaylist();
+  }, [initializePlaylist]);
   
   // 动态歌词数据 - 使用真实的歌词解析
   const currentLyrics = useMemo(() => {
