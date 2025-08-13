@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -48,6 +49,8 @@ const formatFollowers = (count: number) => {
 };
 
 export default function SongsPage() {
+  const router = useRouter();
+  
   // Store hooks
   const { 
     songs, 
@@ -101,11 +104,11 @@ export default function SongsPage() {
   };
 
   const handlePlayPlaylist = (playlistId: string) => {
-    window.location.href = `/playlist/${playlistId}`;
+    router.push(`/playlist/${playlistId}`);
   };
 
   const handleViewArtist = (artistId: string) => {
-    window.location.href = `/artist/${artistId}`;
+    router.push(`/artist/${artistId}`);
   };
 
   const handleSearch = (value: string) => {
@@ -217,7 +220,7 @@ export default function SongsPage() {
                   >
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-semibold">热门歌单</h2>
-                      <Button variant="ghost" size="sm" onClick={() => window.location.href = '/playlists'}>
+                      <Button variant="ghost" size="sm" onClick={() => router.push('/playlists')}>
                         查看全部
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
@@ -255,7 +258,7 @@ export default function SongsPage() {
                   >
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-semibold">热门艺术家</h2>
-                      <Button variant="ghost" size="sm" onClick={() => window.location.href = '/artists'}>
+                      <Button variant="ghost" size="sm" onClick={() => router.push('/artists')}>
                         查看全部
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>

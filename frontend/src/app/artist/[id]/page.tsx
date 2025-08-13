@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -124,6 +124,7 @@ const formatFollowers = (count: number) => {
 
 function ArtistDetailContent() {
   const params = useParams();
+  const router = useRouter();
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
 
@@ -137,7 +138,7 @@ function ArtistDetailContent() {
   }, [params.id]);
 
   const handlePlaySong = (songId: string) => {
-    window.location.href = `/play/${songId}`;
+    router.push(`/play/${songId}`);
   };
 
   const handleLikeSong = (songId: string) => {

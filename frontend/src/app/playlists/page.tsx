@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -22,6 +23,8 @@ const formatPlayCount = (count: number) => {
 };
 
 export default function PlaylistsPage() {
+  const router = useRouter();
+  
   const { 
     playlists, 
     fetchPlaylists,
@@ -41,7 +44,7 @@ export default function PlaylistsPage() {
   }, [fetchPlaylists]);
 
   const handlePlayPlaylist = (playlistId: string) => {
-    window.location.href = `/playlist/${playlistId}`;
+    router.push(`/playlist/${playlistId}`);
   };
 
   const handleCreatePlaylist = async () => {

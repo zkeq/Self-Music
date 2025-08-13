@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -22,6 +23,8 @@ const formatFollowers = (count: number) => {
 };
 
 export default function ArtistsPage() {
+  const router = useRouter();
+  
   const { 
     artists, 
     fetchArtists,
@@ -40,7 +43,7 @@ export default function ArtistsPage() {
   }, [fetchArtists]);
 
   const handleViewArtist = (artistId: string) => {
-    window.location.href = `/artist/${artistId}`;
+    router.push(`/artist/${artistId}`);
   };
 
   const handleSearch = (value: string) => {

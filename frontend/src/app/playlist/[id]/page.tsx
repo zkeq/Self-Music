@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -98,6 +98,7 @@ const formatPlayCount = (count: number) => {
 
 function PlaylistDetailContent() {
   const params = useParams();
+  const router = useRouter();
   const [playlist, setPlaylist] = useState<PlaylistDetail | null | undefined>(undefined);
   const [isLiked, setIsLiked] = useState(false);
 
@@ -150,7 +151,7 @@ function PlaylistDetailContent() {
   }
 
   const handlePlaySong = (songId: string) => {
-    window.location.href = `/play/${songId}`;
+    router.push(`/play/${songId}`);
   };
 
 
