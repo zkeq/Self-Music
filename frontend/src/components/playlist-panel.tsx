@@ -233,13 +233,13 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                             {song.title}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {song.artist}
+                            {song.artist.name}
                           </p>
-                          {song.mood && song.mood.length > 0 && (
+                          {song.moods && song.moods.length > 0 && (
                             <div className="flex gap-1 mt-1">
-                              {song.mood.slice(0, 2).map((mood) => (
-                                <Badge key={mood} variant="outline" className="h-4 text-xs px-1">
-                                  {mood}
+                              {song.moods.slice(0, 2).map((mood) => (
+                                <Badge key={mood.id} variant="outline" className="h-4 text-xs px-1">
+                                  {mood.name}
                                 </Badge>
                               ))}
                             </div>

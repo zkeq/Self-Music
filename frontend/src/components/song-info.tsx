@@ -116,7 +116,7 @@ export function AlbumCover({ song, className, size = 'lg' }: AlbumCoverProps) {
       )}>
         <AvatarImage 
           src={song.coverUrl} 
-          alt={`${song.title} - ${song.artist}`}
+          alt={`${song.title} - ${song.artist.name}`}
           className="object-cover"
         />
         <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20">
@@ -186,7 +186,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
             transition={{ delay: 0.15 }}
             className="text-muted-foreground truncate"
           >
-            {song.artist}
+            {song.artist.name}
           </motion.p>
         </div>
       </div>
@@ -217,7 +217,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.35 }}
       >
-        {song.artist}
+        {song.artist.name}
       </motion.p>
       
       {/* Album */}
@@ -227,7 +227,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        专辑：{song.album || '未知专辑'}
+        专辑：{song.album?.title || '未知专辑'}
       </motion.p>
       
       {/* Duration */}
@@ -241,14 +241,14 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
       </motion.p>
       
       {/* Mood Tags */}
-      {song.mood && song.mood.length > 0 && (
+      {song.moods && song.moods.length > 0 && (
         <motion.div 
           className="flex flex-wrap justify-center gap-2"
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
         >
-          {song.mood.map((mood) => {
+          {song.moods.map((mood) => {
             const getMoodVariant = (mood: string) => {
               const moodStyles: Record<string, { 
                 className: string; 
@@ -291,15 +291,15 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
               };
             };
 
-            const moodStyle = getMoodVariant(mood);
+            const moodStyle = getMoodVariant(mood.name);
             
             return (
               <motion.div
-                key={mood}
+                key={mood.id}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ 
-                  delay: 0.6 + (song.mood?.indexOf(mood) ?? 0) * 0.08,
+                  delay: 0.6 + (song.moods?.indexOf(mood) ?? 0) * 0.08,
                   duration: 0.4,
                   ease: [0.4, 0, 0.2, 1]
                 }}
@@ -316,7 +316,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
                   )}
                   style={moodStyle.style}
                 >
-                  {mood}
+                  {mood.name}
                 </Badge>
               </motion.div>
             );

@@ -5,11 +5,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Music2, Heart, Clock } from 'lucide-react';
-import { Song } from './song-card';
+import type { Song } from '@/types';
 
 interface SearchResultsProps {
   songs: Song[];
-  onPlaySong: (songId: string) => void;
+  onPlaySong: (song: Song) => void;
   onLikeSong: (songId: string, e: React.MouseEvent) => void;
   formatPlayCount: (count: number) => string;
   formatDuration: (seconds: number) => string;
@@ -40,7 +40,7 @@ export function SearchResults({
           <div
             key={song.id}
             className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"
-            onClick={() => onPlaySong(song.id)}
+            onClick={() => onPlaySong(song)}
           >
             <div className="w-12 flex items-center justify-center">
               <Avatar className="w-10 h-10 rounded-md">
@@ -53,18 +53,18 @@ export function SearchResults({
             <div className="flex-1">
               <div className="font-medium truncate">{song.title}</div>
               <div className="flex space-x-1">
-                {song.mood.slice(0, 2).map((mood) => (
-                  <Badge key={mood} variant="secondary" className="text-xs">
-                    {mood}
+                {song.moods.slice(0, 2).map((mood) => (
+                  <Badge key={mood.id} variant="secondary" className="text-xs">
+                    {mood.name}
                   </Badge>
                 ))}
               </div>
             </div>
             <div className="w-32 text-sm text-muted-foreground truncate">
-              {song.artist}
+              {song.artist.name}
             </div>
             <div className="w-32 text-sm text-muted-foreground truncate">
-              {song.album}
+              {song.album?.title}
             </div>
             <div className="w-20 text-sm text-muted-foreground">
               {formatPlayCount(song.playCount)}

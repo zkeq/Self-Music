@@ -118,7 +118,7 @@ export function BottomPlayer() {
                   {currentSong.title}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
-                  {currentSong.artist}
+                  {currentSong.artist.name}
                 </p>
                 {/* Mobile: 显示时间信息 */}
                 <p className="text-xs text-muted-foreground lg:hidden">

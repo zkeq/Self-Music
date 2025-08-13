@@ -3,16 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Play, Music2 } from 'lucide-react';
-
-export interface Playlist {
-  id: string;
-  name: string;
-  description: string;
-  coverUrl: string;
-  songCount: number;
-  playCount: number;
-  creator: string;
-}
+import type { Playlist } from '@/types';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -39,7 +30,7 @@ export function PlaylistCard({ playlist, onPlay, formatPlayCount }: PlaylistCard
       </div>
       <CardContent className="p-3">
         <h3 className="font-medium truncate mb-1">{playlist.name}</h3>
-        <p className="text-xs text-muted-foreground truncate mb-2">{playlist.description}</p>
+        <p className="text-xs text-muted-foreground truncate mb-2">{playlist.description || '暂无描述'}</p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{playlist.songCount} 首歌曲</span>
           <span>{formatPlayCount(playlist.playCount)} 播放</span>

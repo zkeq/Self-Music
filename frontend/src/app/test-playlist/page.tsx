@@ -8,40 +8,66 @@ import { Song } from '@/types';
 import { PlaylistPanel } from '@/components/playlist-panel';
 
 // 测试用的模拟歌曲数据
-const mockSongs: Song[] = [
-  {
+const mockSongs: Song[] = [{
+  id: '1',
+  title: '特定歌曲播放',
+  artist: {
+    id: 'artist-1',
+    name: '艺术家名称',
+    avatar: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop&crop=face',
+    followers: 100000,
+    songCount: 25,
+    genres: ['流行', '摇滚'],
+    verified: true,
+    createdAt: '2023-01-01T00:00:00.000Z',
+    updatedAt: '2023-01-01T00:00:00.000Z'
+  },
+  album: {
     id: '1',
-    title: '测试歌曲 1',
-    artist: '测试艺术家 1',
-    album: '测试专辑 1',
-    duration: 234,
-    mood: ['放松', '专注'],
-    coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    title: '十一月的萧邦',
+    artist: {
+      id: 'artist-1',
+      name: '周杰伦',
+      avatar: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop&crop=face',
+      followers: 100000,
+      songCount: 25,
+      genres: ['华语流行'],
+      verified: true,
+      createdAt: '2005-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z'
+    },
+    artistId: '1',
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
+    releaseDate: '2005-11-01',
+    songCount: 12,
+    duration: 3480,
+    genre: '华语流行',
+    description: '周杰伦第六张录音室专辑',
+    createdAt: '2005-11-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   },
-  {
-    id: '2',
-    title: '测试歌曲 2',
-    artist: '测试艺术家 2',
-    album: '测试专辑 2',
-    duration: 189,
-    mood: ['快乐', '活力'],
-    coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    title: '测试歌曲 3',
-    artist: '测试艺术家 3',
-    album: '测试专辑 3',
-    duration: 312,
-    mood: ['悲伤', '治愈'],
-    coverUrl: 'http://p1.music.126.net/CyqwMIOhD_DnBqPF1tGFhw==/109951164276956232.jpg',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
+  artistId: 'artist-1',
+  albumId: 'album-1',
+  duration: 204,
+  moods: [{
+    id: 'happy',
+    name: '快乐',
+    description: '充满活力和正能量的音乐',
+    icon: 'Smile',
+    color: 'from-yellow-400 to-orange-500',
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
+    songCount: 124,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  }],
+  moodIds: ['mood-1', 'mood-2'],
+  coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=face',
+  audioUrl: `/api/songs/1/stream`,
+  playCount: 1000,
+  liked: false,
+  createdAt: '2023-01-01T00:00:00.000Z',
+  updatedAt: '2023-01-01T00:00:00.000Z',
+},
 ];
 
 export default function TestPlaylistPage() {
@@ -84,7 +110,7 @@ export default function TestPlaylistPage() {
                 <div key={song.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <p className="font-medium">{song.title}</p>
-                    <p className="text-sm text-muted-foreground">{song.artist}</p>
+                    <p className="text-sm text-muted-foreground">{song.artist.name}</p>
                   </div>
                   <div className="flex space-x-2">
                     <Button size="sm" onClick={() => playSong(song)}>
@@ -124,7 +150,7 @@ export default function TestPlaylistPage() {
                   >
                     <div>
                       <p className="font-medium">{song.title}</p>
-                      <p className="text-sm text-muted-foreground">{song.artist}</p>
+                      <p className="text-sm text-muted-foreground">{song.artist.name}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       {index === currentIndex && (

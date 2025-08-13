@@ -18,7 +18,7 @@ const formatDuration = (seconds: number) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'Smile': Smile,
   'Coffee': Coffee,
   'Zap': Zap,

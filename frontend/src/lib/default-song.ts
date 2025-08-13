@@ -1,14 +1,82 @@
+import type { Song } from '@/types';
+
 // 默认示例歌曲数据和歌词
-export const DEFAULT_SONG = {
+export const DEFAULT_SONG: Song = {
   id: 'demo-song-1',
   title: '鲜花',
-  artist: '回春丹',
-  album: '鲜花',
+  artist: {
+    id: 'artist-huichundan',
+    name: '回春丹',
+    avatar: 'https://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
+    followers: 50000,
+    songCount: 15,
+    genres: ['流行', '民谣'],
+    verified: true,
+    createdAt: '2023-01-01T00:00:00.000Z',
+    updatedAt: '2023-01-01T00:00:00.000Z'
+  },
+  album: {
+    id: 'album-xianhua',
+    title: '鲜花',
+    artist: {
+      id: 'artist-huichundan',
+      name: '回春丹',
+      avatar: 'https://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
+      followers: 50000,
+      songCount: 15,
+      genres: ['流行', '民谣'],
+      verified: true,
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2023-01-01T00:00:00.000Z'
+    },
+    artistId: 'artist-huichundan',
+    coverUrl: 'https://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
+    releaseDate: '2023-01-01',
+    songCount: 10,
+    duration: 180,
+    createdAt: '2023-01-01T00:00:00.000Z',
+    updatedAt: '2023-01-01T00:00:00.000Z'
+  },
+  artistId: 'artist-huichundan',
+  albumId: 'album-xianhua',
   duration: 180, // 3分钟
   audioUrl: 'https://media.onmicrosoft.cn/%E5%9B%9E%E6%98%A5%E4%B8%B9%20-%20%E9%B2%9C%E8%8A%B1.flac',
   coverUrl: 'https://p1.music.126.net/fKJMTONzRMaeVthOmEvd9A==/109951168948248373.jpg',
-  fileUrl: '/demo-audio/sample-song.mp3', // 示例音频文件
-  mood: ['放松', '愉快', '专注'],
+  moods: [
+    {
+      id: 'mood-1',
+      name: '放松',
+      description: '轻松舒缓的音乐',
+      icon: 'Smile',
+      color: 'from-blue-400 to-cyan-500',
+      songCount: 50,
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2023-01-01T00:00:00.000Z'
+    },
+    {
+      id: 'mood-2',
+      name: '愉快',
+      description: '快乐积极的音乐',
+      icon: 'Heart',
+      color: 'from-yellow-400 to-orange-500',
+      songCount: 30,
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2023-01-01T00:00:00.000Z'
+    },
+    {
+      id: 'mood-3',
+      name: '专注',
+      description: '适合工作学习的音乐',
+      icon: 'Focus',
+      color: 'from-purple-400 to-pink-500',
+      songCount: 40,
+      createdAt: '2023-01-01T00:00:00.000Z',
+      updatedAt: '2023-01-01T00:00:00.000Z'
+    }
+  ],
+  moodIds: ['mood-1', 'mood-2', 'mood-3'],
+  playCount: 100000,
+  liked: false,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 };

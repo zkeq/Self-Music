@@ -14,8 +14,7 @@ import {
   mockAlbums, 
   mockSongs, 
   mockPlaylists, 
-  mockMoods, 
-  mockApiResponses 
+  mockMoods
 } from './mock-data';
 
 // Mock API delay for realistic experience

@@ -99,14 +99,19 @@ export interface PlayerState {
   shuffleMode: boolean;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   error?: string;
 }
 
-export interface UploadResponse extends ApiResponse<Song> {}
+export interface UploadResponse {
+  success: boolean;
+  data?: Song;
+  message?: string;
+  error?: string;
+}
 
 export interface PaginatedResponse<T> {
   data: T[];

@@ -33,12 +33,60 @@ export default function PlaySongPage() {
     const mockSong: Song = {
       id: songId,
       title: '特定歌曲播放',
-      artist: '艺术家名称',
-      album: '专辑名称',
+      artist: {
+        id: 'artist-1',
+        name: '艺术家名称',
+        avatar: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop&crop=face',
+        followers: 100000,
+        songCount: 25,
+        genres: ['流行', '摇滚'],
+        verified: true,
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
+      },
+      album: {
+        id: '1',
+        title: '十一月的萧邦',
+        artist: {
+          id: 'artist-1',
+          name: '周杰伦',
+          avatar: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop&crop=face',
+          followers: 100000,
+          songCount: 25,
+          genres: ['华语流行'],
+          verified: true,
+          createdAt: '2005-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z'
+        },
+        artistId: '1',
+        coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
+        releaseDate: '2005-11-01',
+        songCount: 12,
+        duration: 3480,
+        genre: '华语流行',
+        description: '周杰伦第六张录音室专辑',
+        createdAt: '2005-11-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+      artistId: 'artist-1',
+      albumId: 'album-1',
       duration: 204,
-      mood: ['放松', '专注'],
+      moods: [{
+        id: 'happy',
+        name: '快乐',
+        description: '充满活力和正能量的音乐',
+        icon: 'Smile',
+        color: 'from-yellow-400 to-orange-500',
+        coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
+        songCount: 124,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      }],
+      moodIds: ['mood-1', 'mood-2'],
       coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop&crop=face',
       audioUrl: `/api/songs/${songId}/stream`,
+      playCount: 1000,
+      liked: false,
       createdAt: '2023-01-01T00:00:00.000Z',
       updatedAt: '2023-01-01T00:00:00.000Z',
     };
@@ -150,7 +198,7 @@ export default function PlaySongPage() {
         isOpen={isFullscreenLyrics}
         onClose={handleCloseFullscreenLyrics}
         songTitle={song.title}
-        artistName={song.artist}
+        artistName={song.artist.name}
       />
     </div>
   );
