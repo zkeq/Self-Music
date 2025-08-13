@@ -1,77 +1,213 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import type { 
+  Artist, 
+  Album, 
+  Song, 
+  Playlist, 
+  Mood, 
+  ApiResponse, 
+  PaginatedResponse, 
+  SearchResult,
+  RecommendationParams 
+} from '@/types';
+import { mockApi } from './mock-api';
 
-export class APIError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = 'APIError';
-  }
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || !process.env.NEXT_PUBLIC_API_URL;
 
-async function apiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE}${endpoint}`;
+// Real API Client Configuration
+class RealApiClient {
+  private baseURL: string;
   
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
-
-  if (!response.ok) {
-    throw new APIError(response.status, `API request failed: ${response.statusText}`);
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
   }
 
-  return response.json();
+  private async request<T>(
+    endpoint: string, 
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error('API request failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  // Artists API
+  async getArtists(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Artist>>> {
+    return this.request(`/artists?page=${page}&limit=${limit}`);
+  }
+
+  async getArtist(id: string): Promise<ApiResponse<Artist>> {
+    return this.request(`/artists/${id}`);
+  }
+
+  async getArtistSongs(id: string): Promise<ApiResponse<Song[]>> {
+    return this.request(`/artists/${id}/songs`);
+  }
+
+  async getArtistAlbums(id: string): Promise<ApiResponse<Album[]>> {
+    return this.request(`/artists/${id}/albums`);
+  }
+
+  // Albums API
+  async getAlbums(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Album>>> {
+    return this.request(`/albums?page=${page}&limit=${limit}`);
+  }
+
+  async getAlbum(id: string): Promise<ApiResponse<Album>> {
+    return this.request(`/albums/${id}`);
+  }
+
+  async getAlbumSongs(id: string): Promise<ApiResponse<Song[]>> {
+    return this.request(`/albums/${id}/songs`);
+  }
+
+  // Songs API
+  async getSongs(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Song>>> {
+    return this.request(`/songs?page=${page}&limit=${limit}`);
+  }
+
+  async getSong(id: string): Promise<ApiResponse<Song>> {
+    return this.request(`/songs/${id}`);
+  }
+
+  // Playlists API
+  async getPlaylists(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Playlist>>> {
+    return this.request(`/playlists?page=${page}&limit=${limit}`);
+  }
+
+  async getPlaylist(id: string): Promise<ApiResponse<Playlist>> {
+    return this.request(`/playlists/${id}`);
+  }
+
+  async createPlaylist(playlist: Partial<Playlist>): Promise<ApiResponse<Playlist>> {
+    return this.request('/playlists', {
+      method: 'POST',
+      body: JSON.stringify(playlist),
+    });
+  }
+
+  async updatePlaylist(id: string, playlist: Partial<Playlist>): Promise<ApiResponse<Playlist>> {
+    return this.request(`/playlists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(playlist),
+    });
+  }
+
+  async deletePlaylist(id: string): Promise<ApiResponse<void>> {
+    return this.request(`/playlists/${id}`, { method: 'DELETE' });
+  }
+
+  async addSongToPlaylist(playlistId: string, songId: string): Promise<ApiResponse<void>> {
+    return this.request(`/playlists/${playlistId}/songs`, {
+      method: 'POST',
+      body: JSON.stringify({ songId }),
+    });
+  }
+
+  async removeSongFromPlaylist(playlistId: string, songId: string): Promise<ApiResponse<void>> {
+    return this.request(`/playlists/${playlistId}/songs/${songId}`, { method: 'DELETE' });
+  }
+
+  // Moods API
+  async getMoods(): Promise<ApiResponse<Mood[]>> {
+    return this.request('/moods');
+  }
+
+  async getMood(id: string): Promise<ApiResponse<Mood>> {
+    return this.request(`/moods/${id}`);
+  }
+
+  async getMoodSongs(id: string): Promise<ApiResponse<Song[]>> {
+    return this.request(`/moods/${id}/songs`);
+  }
+
+  // Search API
+  async search(query: string): Promise<ApiResponse<SearchResult>> {
+    return this.request(`/search?q=${encodeURIComponent(query)}`);
+  }
+
+  // Recommendations API
+  async getRecommendations(params: RecommendationParams = {}): Promise<ApiResponse<Song[]>> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) queryParams.append(key, value.toString());
+    });
+    
+    return this.request(`/recommendations?${queryParams.toString()}`);
+  }
+
+  async getSimilarSongs(songId: string, limit = 10): Promise<ApiResponse<Song[]>> {
+    return this.request(`/songs/${songId}/similar?limit=${limit}`);
+  }
+
+  async getTrendingSongs(limit = 20): Promise<ApiResponse<Song[]>> {
+    return this.request(`/trending/songs?limit=${limit}`);
+  }
+
+  async getHotSongs(limit = 20): Promise<ApiResponse<Song[]>> {
+    return this.request(`/hot/songs?limit=${limit}`);
+  }
+
+  async getNewSongs(limit = 20): Promise<ApiResponse<Song[]>> {
+    return this.request(`/new/songs?limit=${limit}`);
+  }
 }
 
-// Songs API
-export const songsApi = {
-  getAll: () => apiRequest<Song[]>('/api/songs'),
-  getById: (id: string) => apiRequest<Song>(`/api/songs/${id}`),
-  upload: (formData: FormData) => {
-    return apiRequest<UploadResponse>('/api/songs/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set multipart boundary
-    });
-  },
-  getStreamUrl: (id: string) => `${API_BASE}/api/songs/${id}/stream`,
-};
+// Create real API client instance
+const realApi = new RealApiClient(API_BASE_URL);
 
-// Playlists API
-export const playlistsApi = {
-  getAll: () => apiRequest<Playlist[]>('/api/playlists'),
-  getById: (id: string) => apiRequest<Playlist>(`/api/playlists/${id}`),
-  create: (data: Omit<Playlist, 'id' | 'created_at' | 'updated_at'>) =>
-    apiRequest<Playlist>('/api/playlists', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  update: (id: string, data: Partial<Playlist>) =>
-    apiRequest<Playlist>(`/api/playlists/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (id: string) =>
-    apiRequest<{ success: boolean }>(`/api/playlists/${id}`, {
-      method: 'DELETE',
-    }),
-};
+// Export the appropriate API based on environment
+export const api = USE_MOCK_API ? mockApi : realApi;
 
-// Moods API
-export const moodsApi = {
-  getAll: () => apiRequest<MoodTag[]>('/api/moods'),
-  getSongs: (mood: string) => apiRequest<Song[]>(`/api/moods/${mood}/songs`),
-};
-
-// Lyrics API
-export const lyricsApi = {
-  getBySongId: (songId: string) => apiRequest<Lyrics>(`/api/lyrics/${songId}`),
-};
-
-// Import types
-import type { Song, Playlist, MoodTag, Lyrics, UploadResponse } from '@/types';
+// Export individual API functions for convenience
+export const {
+  getArtists,
+  getArtist,
+  getArtistSongs,
+  getArtistAlbums,
+  getAlbums,
+  getAlbum,
+  getAlbumSongs,
+  getSongs,
+  getSong,
+  getPlaylists,
+  getPlaylist,
+  createPlaylist,
+  updatePlaylist,
+  deletePlaylist,
+  addSongToPlaylist,
+  removeSongFromPlaylist,
+  getMoods,
+  getMood,
+  getMoodSongs,
+  search,
+  getRecommendations,
+  getSimilarSongs,
+  getTrendingSongs,
+  getHotSongs,
+  getNewSongs,
+} = api;

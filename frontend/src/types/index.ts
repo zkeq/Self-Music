@@ -1,14 +1,49 @@
+export interface Artist {
+  id: string;
+  name: string;
+  bio?: string;
+  avatar?: string;
+  coverUrl?: string;
+  followers: number;
+  songCount: number;
+  albumCount?: number;
+  genres: string[];
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  artist: Artist;
+  artistId: string;
+  coverUrl?: string;
+  releaseDate: string;
+  songCount: number;
+  duration: number;
+  genre?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Song {
   id: string;
   title: string;
-  artist: string;
-  album?: string;
+  artist: Artist;
+  artistId: string;
+  album?: Album;
+  albumId?: string;
   duration: number;
   audioUrl?: string;
-  fileUrl?: string; // 备用音频URL字段
   coverUrl?: string;
-  lyricsUrl?: string;
-  mood?: string[];
+  lyrics?: string;
+  moods: Mood[];
+  moodIds: string[];
+  playCount: number;
+  liked: boolean;
+  genre?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +54,12 @@ export interface Playlist {
   description?: string;
   coverUrl?: string;
   songs: Song[];
+  songIds: string[];
+  songCount: number;
+  playCount: number;
+  duration: number;
+  creator: string;
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,11 +74,17 @@ export interface Lyrics {
   lines: LyricLine[];
 }
 
-export interface MoodTag {
+export interface Mood {
   id: string;
   name: string;
-  color: string;
   description?: string;
+  icon: string;
+  color: string;
+  coverUrl?: string;
+  songCount: number;
+  songs?: Song[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PlayerState {
@@ -52,8 +99,34 @@ export interface PlayerState {
   shuffleMode: boolean;
 }
 
-export interface UploadResponse {
+export interface ApiResponse<T = any> {
   success: boolean;
-  song?: Song;
+  data?: T;
   message?: string;
+  error?: string;
+}
+
+export interface UploadResponse extends ApiResponse<Song> {}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface SearchResult {
+  songs: Song[];
+  artists: Artist[];
+  albums: Album[];
+  playlists: Playlist[];
+}
+
+export interface RecommendationParams {
+  limit?: number;
+  type?: 'hot' | 'new' | 'trending' | 'similar';
+  moodId?: string;
+  artistId?: string;
+  genreId?: string;
 }

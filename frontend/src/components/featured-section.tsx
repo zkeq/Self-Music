@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { SongCard, Song } from './song-card';
+import { SongCard } from './song-card';
+import type { Song } from '@/types';
 
 interface FeaturedSectionProps {
   songs: Song[];
-  onPlaySong: (songId: string) => void;
+  onPlaySong: (song: Song) => void;
   onLikeSong: (songId: string, e: React.MouseEvent) => void;
   onAddToPlaylist: (song: Song, e: React.MouseEvent) => void;
   formatPlayCount: (count: number) => string;

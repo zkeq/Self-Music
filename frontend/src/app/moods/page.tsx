@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -8,89 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Play, Heart, Smile, Coffee, Zap, Sun, CloudRain, Music2, ArrowLeft } from 'lucide-react';
-
-// Mock mood data
-const moodData = [
-  {
-    id: 'happy',
-    name: '快乐',
-    description: '充满活力和正能量的音乐',
-    icon: Smile,
-    color: 'from-yellow-400 to-orange-500',
-    songCount: 124,
-    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
-    songs: [
-      { id: '1', title: '晴天', artist: '周杰伦', duration: 269, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop' },
-      { id: '2', title: '青花瓷', artist: '周杰伦', duration: 231, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop' },
-      { id: '3', title: '童话', artist: '光良', duration: 243, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop' },
-    ]
-  },
-  {
-    id: 'relaxed',
-    name: '放松',
-    description: '舒缓心情，释放压力',
-    icon: Coffee,
-    color: 'from-green-400 to-blue-500',
-    songCount: 87,
-    coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop',
-    songs: [
-      { id: '4', title: '安静', artist: '周杰伦', duration: 275, coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop' },
-      { id: '5', title: 'River Flows in You', artist: 'Yiruma', duration: 210, coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop' },
-    ]
-  },
-  {
-    id: 'energetic',
-    name: '充满活力',
-    description: '激发动力，提升能量',
-    icon: Zap,
-    color: 'from-red-400 to-pink-500',
-    songCount: 156,
-    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop',
-    songs: [
-      { id: '6', title: '稻香', artist: '周杰伦', duration: 223, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop' },
-      { id: '7', title: '听妈妈的话', artist: '周杰伦', duration: 255, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop' },
-    ]
-  },
-  {
-    id: 'focus',
-    name: '专注',
-    description: '适合工作和学习的背景音乐',
-    icon: Sun,
-    color: 'from-purple-400 to-indigo-500',
-    songCount: 93,
-    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400&fit=crop',
-    songs: [
-      { id: '8', title: 'Ludovico Einaudi - Nuvole Bianche', artist: 'Ludovico Einaudi', duration: 360, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop' },
-      { id: '9', title: 'Max Richter - On The Nature of Daylight', artist: 'Max Richter', duration: 380, coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop' },
-    ]
-  },
-  {
-    id: 'melancholy',
-    name: '忧郁',
-    description: '情感深沉，触动内心',
-    icon: CloudRain,
-    color: 'from-gray-400 to-blue-600',
-    songCount: 64,
-    coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop',
-    songs: [
-      { id: '10', title: '夜曲', artist: '周杰伦', duration: 234, coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop' },
-      { id: '11', title: '说好不哭', artist: '周杰伦', duration: 267, coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop' },
-    ]
-  },
-  {
-    id: 'romantic',
-    name: '浪漫',
-    description: '温馨浪漫，情意绵绵',
-    icon: Heart,
-    color: 'from-pink-400 to-red-500',
-    songCount: 78,
-    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&h=400&fit=crop',
-    songs: [
-      { id: '12', title: '告白气球', artist: '周杰伦', duration: 201, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop' },
-      { id: '13', title: '简单爱', artist: '周杰伦', duration: 269, coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=100&h=100&fit=crop' },
-    ]
-  }
-];
+import { useMoodsStore } from '@/lib/data-stores';
+import { usePlayerStore } from '@/lib/store';
+import type { Song } from '@/types';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -98,30 +18,60 @@ const formatDuration = (seconds: number) => {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 };
 
+const iconMap: Record<string, any> = {
+  'Smile': Smile,
+  'Coffee': Coffee,
+  'Zap': Zap,
+  'Sun': Sun,
+  'CloudRain': CloudRain,
+  'Heart': Heart,
+};
+
 export default function MoodsPage() {
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
+  
+  const { 
+    moods, 
+    currentMood, 
+    moodSongs, 
+    fetchMoods, 
+    fetchMood, 
+    fetchMoodSongs,
+    isLoading 
+  } = useMoodsStore();
+  
+  const { setSong, play } = usePlayerStore();
 
-  const currentMood = selectedMood 
-    ? moodData.find(m => m.id === selectedMood)
-    : null;
+  useEffect(() => {
+    fetchMoods();
+  }, [fetchMoods]);
 
-  const handlePlaySong = (songId: string) => {
-    window.location.href = `/play/${songId}`;
+  useEffect(() => {
+    if (selectedMoodId) {
+      fetchMood(selectedMoodId);
+      fetchMoodSongs(selectedMoodId);
+    }
+  }, [selectedMoodId, fetchMood, fetchMoodSongs]);
+
+  const handlePlaySong = (song: Song) => {
+    setSong(song);
+    setTimeout(() => play(), 100);
   };
 
   const handlePlayMood = (moodId: string) => {
-    // Play first song in mood
-    const mood = moodData.find(m => m.id === moodId);
-    if (mood && mood.songs.length > 0) {
-      handlePlaySong(mood.songs[0].id);
+    const mood = moods.find(m => m.id === moodId);
+    if (mood && moodSongs.length > 0) {
+      handlePlaySong(moodSongs[0]);
     }
   };
 
   const goBack = () => {
-    setSelectedMood(null);
+    setSelectedMoodId(null);
   };
 
-  if (selectedMood && currentMood) {
+  if (selectedMoodId && currentMood) {
+    const IconComponent = iconMap[currentMood.icon] || Music2;
+    
     return (
       <motion.div 
         className="h-full bg-background lg:flex"
@@ -169,7 +119,7 @@ export default function MoodsPage() {
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
                 <div className={`w-64 h-64 rounded-2xl shadow-2xl bg-gradient-to-br ${currentMood.color} flex items-center justify-center`}>
-                  <currentMood.icon className="w-32 h-32 text-white" />
+                  <IconComponent className="w-32 h-32 text-white" />
                 </div>
               </motion.div>
               
@@ -210,11 +160,11 @@ export default function MoodsPage() {
                 </div>
                 
                 <div>
-                  {currentMood.songs.map((song, index) => (
+                  {moodSongs.map((song, index) => (
                     <motion.div 
                       key={song.id}
                       className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors"
-                      onClick={() => handlePlaySong(song.id)}
+                      onClick={() => handlePlaySong(song)}
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ duration: 0.4, delay: 0.1 * index }}
@@ -234,7 +184,7 @@ export default function MoodsPage() {
                       
                       <div className="flex-1">
                         <div className="font-medium">{song.title}</div>
-                        <div className="text-sm text-muted-foreground">{song.artist}</div>
+                        <div className="text-sm text-muted-foreground">{song.artist.name}</div>
                       </div>
                       
                       <div className="w-20 text-right text-sm text-muted-foreground">
@@ -281,37 +231,53 @@ export default function MoodsPage() {
             <p className="text-muted-foreground text-lg">根据你的心情选择适合的音乐</p>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {moodData.map((mood, index) => (
-              <motion.div
-                key={mood.id}
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.1 * index }}
-                whileHover={{ y: -2 }}
-                className="group"
-              >
-                <div 
-                  className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
-                  onClick={() => setSelectedMood(mood.id)}
-                >
-                  <div className={`aspect-[16/9] bg-gradient-to-br ${mood.color} relative flex items-center justify-center`}>
-                    <mood.icon className="w-12 h-12 text-white transition-transform duration-300 group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-                  </div>
-                  
-                  <div className="p-4">
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="text-base font-semibold truncate">{mood.name}</h3>
-                      <Badge variant="secondary" className="text-xs ml-2">{mood.songCount}</Badge>
-                    </div>
-                    
-                    <p className="text-muted-foreground text-xs truncate">{mood.description}</p>
-                  </div>
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
+                  <div className="aspect-[16/9] bg-muted rounded-lg mb-3" />
+                  <div className="h-4 bg-muted rounded mb-2" />
+                  <div className="h-3 bg-muted rounded w-3/4" />
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {moods.map((mood, index) => {
+                const IconComponent = iconMap[mood.icon] || Music2;
+                
+                return (
+                  <motion.div
+                    key={mood.id}
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.1 * index }}
+                    whileHover={{ y: -2 }}
+                    className="group"
+                  >
+                    <div 
+                      className="bg-card rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
+                      onClick={() => setSelectedMoodId(mood.id)}
+                    >
+                      <div className={`aspect-[16/9] bg-gradient-to-br ${mood.color} relative flex items-center justify-center`}>
+                        <IconComponent className="w-12 h-12 text-white transition-transform duration-300 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+                      </div>
+                      
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="text-base font-semibold truncate">{mood.name}</h3>
+                          <Badge variant="secondary" className="text-xs ml-2">{mood.songCount}</Badge>
+                        </div>
+                        
+                        <p className="text-muted-foreground text-xs truncate">{mood.description}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </motion.div>
