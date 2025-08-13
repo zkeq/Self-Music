@@ -21,7 +21,7 @@ export default function PlaySongPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('none');
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [volume, setVolume] = useState(75);
@@ -111,7 +111,12 @@ export default function PlaySongPage() {
   const handlePrevious = () => console.log('Previous song');
   const handleNext = () => console.log('Next song');
   const handleShuffle = () => setIsShuffle(!isShuffle);
-  const handleRepeat = () => setIsRepeat(!isRepeat);
+  const handleRepeat = () => {
+    const modes: ('none' | 'all' | 'one')[] = ['none', 'all', 'one'];
+    const currentIndex = modes.indexOf(repeatMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    setRepeatMode(nextMode);
+  };
   const handleMute = () => setIsMuted(!isMuted);
   const handleLike = () => setIsLiked(!isLiked);
   const handleVolumeChange = (value: number[]) => setVolume(value[0]);
@@ -159,7 +164,7 @@ export default function PlaySongPage() {
             <PlayerControls
               isPlaying={isPlaying}
               isShuffle={isShuffle}
-              isRepeat={isRepeat}
+              repeatMode={repeatMode}
               isMuted={isMuted}
               isLiked={isLiked}
               volume={volume}

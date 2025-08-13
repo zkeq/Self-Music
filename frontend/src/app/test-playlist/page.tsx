@@ -78,6 +78,7 @@ export default function TestPlaylistPage() {
     currentIndex,
     addToPlaylist,
     setSong,
+    replacePlaylistAndPlay,
     clearPlaylist,
     shufflePlaylist,
   } = usePlayerStore();
@@ -87,12 +88,18 @@ export default function TestPlaylistPage() {
   };
 
   const playSong = (song: Song) => {
-    setSong(song);
+    // 将歌曲添加到播放列表并播放
+    const songIndex = mockSongs.findIndex(s => s.id === song.id);
+    if (songIndex !== -1) {
+      replacePlaylistAndPlay(mockSongs, songIndex);
+    } else {
+      setSong(song);
+    }
   };
 
   const playFromPlaylist = (index: number) => {
     if (playlist[index]) {
-      setSong(playlist[index]);
+      replacePlaylistAndPlay(playlist, index);
     }
   };
 

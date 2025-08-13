@@ -153,7 +153,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                     size="sm"
                     onClick={toggleRepeat}
                     className={cn(
-                      "h-8",
+                      "h-8 min-w-8",
                       repeatMode !== 'none' && "bg-primary/10 text-primary"
                     )}
                     title={
@@ -162,10 +162,12 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                       "单曲循环"
                     }
                   >
-                    <Repeat className="h-4 w-4" />
-                    {repeatMode === 'one' && (
-                      <span className="ml-1 text-xs">1</span>
-                    )}
+                    <div className="flex items-center">
+                      <Repeat className="h-4 w-4" />
+                      {repeatMode === 'one' && (
+                        <span className="ml-1 text-xs font-medium">1</span>
+                      )}
+                    </div>
                   </Button>
 
                   {/* 重排播放列表 */}

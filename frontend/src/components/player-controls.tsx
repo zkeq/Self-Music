@@ -19,7 +19,7 @@ import {
 interface PlayerControlsProps {
   isPlaying: boolean;
   isShuffle: boolean;
-  isRepeat: boolean;
+  repeatMode: 'none' | 'all' | 'one';
   isMuted: boolean;
   isLiked: boolean;
   volume: number;
@@ -40,7 +40,7 @@ interface PlayerControlsProps {
 export function PlayerControls({
   isPlaying,
   isShuffle,
-  isRepeat,
+  repeatMode,
   isMuted,
   isLiked,
   volume,
@@ -143,15 +143,26 @@ export function PlayerControls({
 
         {/* Repeat */}
         <Button
-          variant={isRepeat ? "default" : "ghost"}
+          variant={repeatMode !== 'none' ? "default" : "ghost"}
           size="icon"
           onClick={onRepeat}
           className={cn(
             "transition-all duration-200 hover:scale-110",
-            isRepeat && "bg-primary text-primary-foreground"
+            "min-w-10", // 设置最小宽度确保显示"1"时不会太挤
+            repeatMode !== 'none' && "bg-primary text-primary-foreground"
           )}
+          title={
+            repeatMode === 'none' ? "开启循环播放" :
+            repeatMode === 'all' ? "列表循环" :
+            "单曲循环"
+          }
         >
-          <Repeat className="h-4 w-4" />
+          <div className="flex items-center">
+            <Repeat className="h-4 w-4" />
+            {repeatMode === 'one' && (
+              <span className="ml-1 text-xs font-medium">1</span>
+            )}
+          </div>
         </Button>
       </div>
 

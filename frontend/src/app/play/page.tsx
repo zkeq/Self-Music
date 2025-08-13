@@ -213,7 +213,7 @@ export default function PlayPage() {
             <PlayerControls
               isPlaying={isPlaying}
               isShuffle={shuffleMode}
-              isRepeat={repeatMode !== 'none'}
+              repeatMode={repeatMode}
               isMuted={volume === 0}
               isLiked={false}
               volume={volume * 100}

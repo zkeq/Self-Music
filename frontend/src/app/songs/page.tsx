@@ -82,7 +82,7 @@ export default function SongsPage() {
     isLoading: searchLoading 
   } = useSearchStore();
   
-  const { setSong, play } = usePlayerStore();
+  const { setSong, play, replacePlaylistAndPlay } = usePlayerStore();
 
   // Load initial data
   useEffect(() => {
@@ -94,8 +94,27 @@ export default function SongsPage() {
   }, [fetchSongs, fetchPlaylists, fetchArtists, fetchTrendingSongs, fetchHotSongs]);
 
   const handlePlaySong = (song: Song) => {
-    setSong(song);
-    setTimeout(() => play(), 100);
+    // 根据当前上下文选择合适的歌曲列表
+    let currentSongList: Song[] = [];
+    if (query && results.songs.length > 0) {
+      // 如果在搜索状态，使用搜索结果
+      currentSongList = results.songs;
+    } else {
+      // 否则使用当前显示的歌曲列表
+      currentSongList = displaySongs;
+    }
+    
+    // 找到歌曲在列表中的索引
+    const songIndex = currentSongList.findIndex(s => s.id === song.id);
+    
+    if (songIndex !== -1 && currentSongList.length > 0) {
+      // 替换播放列表并开始播放
+      replacePlaylistAndPlay(currentSongList, songIndex);
+    } else {
+      // 如果找不到歌曲或列表为空，则单独播放这首歌
+      setSong(song);
+      setTimeout(() => play(), 100);
+    }
   };
 
   const handleLikeSong = (songId: string, e: React.MouseEvent) => {
