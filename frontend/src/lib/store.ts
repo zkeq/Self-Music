@@ -11,6 +11,7 @@ interface PlayerStore extends PlayerState {
   currentMood: string | null;
   isLoading: boolean;
   error: string | null;
+  shouldSeek: number | null; // 用于触发音频跳转
   
   // Actions
   setSong: (song: Song) => void;
@@ -70,6 +71,7 @@ export const usePlayerStore = create<PlayerStore>()(
       currentMood: null,
       isLoading: false,
       error: null,
+      shouldSeek: null,
 
       // Actions
       setSong: (song) => {
@@ -171,10 +173,7 @@ export const usePlayerStore = create<PlayerStore>()(
       seekTo: (time) => {
         const { duration } = get();
         const clampedTime = Math.max(0, Math.min(time, duration || time));
-        set({ currentTime: clampedTime });
-        
-        // 立即更新时间，无需等待音频事件
-        return clampedTime;
+        set({ shouldSeek: clampedTime });
       },
 
       setLoading: (loading) => set({ isLoading: loading }),

@@ -5,9 +5,7 @@ import { usePlayerStore } from '@/lib/store';
 
 export function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isSeekingRef = useRef(false);
   const timeUpdateRef = useRef<number | null>(null);
-  const lastSeekTime = useRef<number>(0);
 
   const {
     currentSong,
@@ -15,6 +13,7 @@ export function AudioManager() {
     volume,
     currentTime,
     repeatMode,
+    shouldSeek,
     setCurrentTime,
     setDuration,
     pause,
@@ -26,34 +25,7 @@ export function AudioManager() {
     const audio = audioRef.current;
     if (!audio || typeof time !== 'number' || isNaN(time)) return;
     
-    const timeDiff = Math.abs(audio.currentTime - time);
-    
-    // 如果音频还在加载中或者尚未准备就绪，暂时存储seek时间
-    if (audio.readyState < 2) {
-      console.log('Audio not ready, storing seek time:', time);
-      lastSeekTime.current = time;
-      return;
-    }
-    
-    // 只有当时间差大于0.5秒时才进行跳转，避免在正常播放时频繁调整
-    if (timeDiff > 0.5 && !isSeekingRef.current) {
-      console.log('Seeking to:', time, 'from:', audio.currentTime);
-      isSeekingRef.current = true;
-      
-      // 确保时间在有效范围内
-      const clampedTime = Math.max(0, Math.min(time, audio.duration || time));
-      audio.currentTime = clampedTime;
-      lastSeekTime.current = clampedTime;
-      
-      // 如果音频缓冲不足，等待数据加载
-      if (audio.buffered.length > 0) {
-        const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-        if (clampedTime > bufferedEnd) {
-          // 请求加载更多数据
-          audio.load();
-        }
-      }
-    }
+    audio.currentTime = time;
   }, []);
 
   // 初始化音频对象 - 只在组件挂载时执行一次
@@ -85,16 +57,14 @@ export function AudioManager() {
     };
 
     const handleTimeUpdate = () => {
-      if (!isSeekingRef.current && audio.currentTime !== undefined && !isNaN(audio.currentTime)) {
-        setCurrentTime(audio.currentTime);
-      }
+      setCurrentTime(audio.currentTime);
     };
 
     const handlePlay = () => {
       console.log('Audio play event');
       // 开始定期更新时间
       const updateTime = () => {
-        if (!audio.paused && !audio.ended && !isSeekingRef.current) {
+        if (!audio.paused && !audio.ended) {
           setCurrentTime(audio.currentTime);
           timeUpdateRef.current = requestAnimationFrame(updateTime);
         }
@@ -133,25 +103,7 @@ export function AudioManager() {
       pause();
     };
 
-    const handleCanPlay = () => {
-      console.log('Audio can play, duration:', audio.duration);
-      // 如果之前有等待的seek操作，现在执行
-      if (lastSeekTime.current > 0 && Math.abs(audio.currentTime - lastSeekTime.current) > 1) {
-        console.log('Executing pending seek to:', lastSeekTime.current);
-        audio.currentTime = lastSeekTime.current;
-      }
-    };
-
-    const handleLoadStart = () => {
-      console.log('Loading audio:', audio.src);
-    };
-
-    const handleSeeking = () => {
-      isSeekingRef.current = true;
-    };
-
     const handleSeeked = () => {
-      isSeekingRef.current = false;
       setCurrentTime(audio.currentTime);
     };
 
@@ -161,9 +113,6 @@ export function AudioManager() {
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('seeking', handleSeeking);
     audio.addEventListener('seeked', handleSeeked);
 
     return () => {
@@ -176,9 +125,6 @@ export function AudioManager() {
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('seeking', handleSeeking);
       audio.removeEventListener('seeked', handleSeeked);
     };
   }, [setCurrentTime, setDuration, pause, nextSong]);
@@ -233,13 +179,17 @@ export function AudioManager() {
     audio.volume = volume;
   }, [volume]);
 
-  // 使用 useEffect 监听 currentTime 变化，但不将其作为依赖
+  // 处理用户主动的时间跳转请求
   useEffect(() => {
-    // 避免在初始渲染时执行 seek
-    if (typeof currentTime === 'number' && currentTime !== lastSeekTime.current) {
-      handleSeek(currentTime);
+    if (shouldSeek !== null) {
+      handleSeek(shouldSeek);
+      // 清除 shouldSeek 标志，避免重复触发
+      usePlayerStore.setState({ shouldSeek: null });
     }
-  });
+  }, [shouldSeek, handleSeek]);
+
+  // 暴露 handleSeek 函数供外部使用，移除自动触发的 useEffect
+  // handleSeek 函数已经通过 handleSeek callback 暴露给外部组件使用
 
   // 这个组件不渲染任何可见内容，只管理音频播放
   return null;

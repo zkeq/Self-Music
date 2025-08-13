@@ -46,7 +46,6 @@ export function BottomPlayer() {
 
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
-    setCurrentTime(newTime);
     seekTo(newTime);
   };
 

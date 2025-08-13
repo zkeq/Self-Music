@@ -104,11 +104,9 @@ export default function PlayPage() {
   const handleVolumeChange = (value: number[]) => setVolume(value[0] / 100);
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
-    setCurrentTime(newTime);
     seekTo(newTime);
   };
   const handleLyricClick = (time: number) => {
-    setCurrentTime(time);
     seekTo(time);
   };
   const handleFullscreenLyrics = () => setIsFullscreenLyrics(true);
