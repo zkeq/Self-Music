@@ -88,12 +88,12 @@ export function AudioManager() {
       }
       
       if (repeatMode === 'one') {
+        // 单曲循环：重新播放当前歌曲
         audio.currentTime = 0;
         audio.play().catch(console.error);
-      } else if (repeatMode === 'all') {
-        nextSong();
       } else {
-        pause();
+        // 其他情况（列表播放、随机播放、列表循环）：让 nextSong 函数处理
+        nextSong();
       }
     };
 

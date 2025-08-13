@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { usePlayerStore } from '@/lib/store';
 
 export function useDefaultSongLoader() {
-  const { currentSong, loadDefaultSong } = usePlayerStore();
+  const { currentSong, initializePlaylist } = usePlayerStore();
 
   useEffect(() => {
-    // 如果没有当前歌曲，自动加载默认歌曲
+    // 如果没有当前歌曲，自动初始化播放列表
     if (!currentSong) {
-      console.log('Loading default song...');
-      loadDefaultSong();
+      console.log('Initializing playlist...');
+      initializePlaylist();
     }
-  }, [currentSong, loadDefaultSong]);
+  }, [currentSong, initializePlaylist]);
 }

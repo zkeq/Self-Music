@@ -218,7 +218,7 @@ export default function PlayPage() {
               isLiked={false}
               volume={volume * 100}
               currentTime={currentTime}
-              duration={duration || displaySong.duration}
+              duration={duration}
               onPlayPause={handlePlayPause}
               onPrevious={handlePrevious}
               onNext={handleNext}

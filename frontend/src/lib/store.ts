@@ -145,12 +145,16 @@ export const usePlayerStore = create<PlayerStore>()(
             currentSong: nextSong,
             currentTime: 0,
             duration: 0,
+            isPlaying: true, // 确保新歌曲开始播放
             // 同步播放列表状态
             ...(updatedPlaylist && {
               playlist: updatedPlaylist.songs,
               currentIndex: updatedPlaylist.currentIndex
             })
           });
+        } else {
+          // 没有下一首歌时，停止播放
+          set({ isPlaying: false });
         }
       },
 
@@ -165,6 +169,7 @@ export const usePlayerStore = create<PlayerStore>()(
             currentSong: prevSong,
             currentTime: 0,
             duration: 0,
+            isPlaying: true, // 确保新歌曲开始播放
             // 同步播放列表状态
             ...(updatedPlaylist && {
               playlist: updatedPlaylist.songs,
