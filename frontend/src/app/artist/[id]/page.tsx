@@ -163,7 +163,7 @@ function ArtistDetailContent() {
     try {
       const result = await api.getAlbumSongs(albumId);
       if (result.success && result.data) {
-        setAlbumSongs(prev => ({ ...prev, [albumId]: result.data }));
+        setAlbumSongs(prev => ({ ...prev, [albumId]: result.data! }));
       }
     } catch (error) {
       console.error('Error loading album songs:', error);

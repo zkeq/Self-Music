@@ -97,10 +97,16 @@ export default function SongsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const songData = {
+        ...formData,
+        playCount: editingSong?.playCount || 0,
+        liked: editingSong?.liked || false
+      };
+      
       if (editingSong) {
-        await adminAPI.updateSong(editingSong.id, formData);
+        await adminAPI.updateSong(editingSong.id, songData);
       } else {
-        await adminAPI.createSong(formData);
+        await adminAPI.createSong(songData);
       }
       setDialogOpen(false);
       setEditingSong(null);
