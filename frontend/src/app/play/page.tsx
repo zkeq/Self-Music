@@ -61,22 +61,30 @@ export default function PlayPage() {
       return parseLRC(DEFAULT_LYRICS);
     }
     
-    // 这里可以调用API获取其他歌曲的歌词
-    // 暂时使用基于当前歌曲的模拟数据作为后备
-    const baseLyrics = [
-      { time: 0, text: `♪ ${currentSong.title} ♪` },
-      { time: 10, text: `演唱：${currentSong.artist}` },
-      { time: 20, text: `专辑：${currentSong.album || '单曲'}` },
-      { time: 30, text: '在音乐的世界里' },
-      { time: 40, text: '感受每一个节拍' },
-      { time: 50, text: '让旋律带走烦恼' },
-      { time: 60, text: '沉浸在美妙的声音中' },
-      { time: 80, text: `♪ ${currentSong.title} ♪` },
-      { time: 90, text: '音乐无处不在' },
-      { time: 100, text: '每一首歌都是一个故事' },
-    ];
+    // 使用歌曲对象中的真实歌词
+    if (currentSong.lyrics) {
+      try {
+        // 尝试解析 LRC 格式的歌词
+        return parseLRC(currentSong.lyrics);
+      } catch (error) {
+        console.warn('Failed to parse lyrics as LRC, treating as plain text');
+        // 如果不是 LRC 格式，按行分割并为每行分配时间戳
+        const lines = currentSong.lyrics.split('\n').filter(line => line.trim());
+        return lines.map((text, index) => ({
+          time: index * 10, // 每行间隔10秒
+          text: text.trim()
+        }));
+      }
+    }
     
-    return baseLyrics;
+    // 如果没有歌词，显示歌曲基本信息
+    return [
+      { time: 0, text: `♪ ${currentSong.title} ♪` },
+      { time: 10, text: `演唱：${currentSong.artist?.name || currentSong.artist}` },
+      { time: 20, text: `专辑：${currentSong.album?.title || currentSong.album || '单曲'}` },
+      { time: 30, text: '暂无歌词' },
+      { time: 40, text: '享受这美妙的旋律' },
+    ];
   }, [currentSong]);
 
   const handlePlayPause = () => {
