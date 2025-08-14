@@ -33,7 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface PlaylistWithSongs extends Playlist {
+interface PlaylistWithSongs extends Omit<Playlist, 'songs'> {
   songs?: Song[];
 }
 
