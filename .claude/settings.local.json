@@ -17,7 +17,8 @@
       "Bash(cat:*)",
       "Bash(grep:*)",
       "Bash(sed:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

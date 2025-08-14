@@ -55,6 +55,8 @@ function ArtistDetailContent() {
   const [artist, setArtist] = useState<Artist | null>(null);
   const [artistSongs, setArtistSongs] = useState<Song[]>([]);
   const [artistAlbums, setArtistAlbums] = useState<Album[]>([]);
+  const [albumSongs, setAlbumSongs] = useState<Record<string, Song[]>>({});
+  const [loadingAlbums, setLoadingAlbums] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -93,6 +95,10 @@ function ArtistDetailContent() {
 
         if (albumsResult.success && albumsResult.data) {
           setArtistAlbums(albumsResult.data);
+          // 自动加载所有专辑的歌曲
+          albumsResult.data.forEach(album => {
+            loadAlbumSongs(album.id);
+          });
         }
 
         setError(null);
@@ -122,12 +128,58 @@ function ArtistDetailContent() {
     }
   };
 
-  const handlePlayAlbum = (album: Album) => {
-    // 这里需要获取专辑的歌曲列表
-    // 由于示例中没有专辑歌曲的详细API，暂时使用艺术家的歌曲作为示例
-    const albumSongs = artistSongs.filter(song => song.album?.id === album.id);
-    if (albumSongs.length > 0) {
-      replacePlaylistAndPlay(albumSongs, 0);
+  const handlePlayAlbum = async (album: Album) => {
+    try {
+      // 获取专辑歌曲
+      let songs = albumSongs[album.id];
+      
+      if (!songs) {
+        // 如果还没有加载过这个专辑的歌曲，则获取
+        const result = await api.getAlbumSongs(album.id);
+        if (result.success && result.data) {
+          songs = result.data;
+          setAlbumSongs(prev => ({ ...prev, [album.id]: songs }));
+        } else {
+          console.error('Failed to load album songs:', result.error);
+          return;
+        }
+      }
+      
+      if (songs && songs.length > 0) {
+        replacePlaylistAndPlay(songs, 0);
+      }
+    } catch (error) {
+      console.error('Error playing album:', error);
+    }
+  };
+
+  const loadAlbumSongs = async (albumId: string) => {
+    if (albumSongs[albumId] || loadingAlbums.has(albumId)) {
+      return; // 已经加载过或正在加载中
+    }
+
+    setLoadingAlbums(prev => new Set(prev).add(albumId));
+    
+    try {
+      const result = await api.getAlbumSongs(albumId);
+      if (result.success && result.data) {
+        setAlbumSongs(prev => ({ ...prev, [albumId]: result.data }));
+      }
+    } catch (error) {
+      console.error('Error loading album songs:', error);
+    } finally {
+      setLoadingAlbums(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(albumId);
+        return newSet;
+      });
+    }
+  };
+
+  const handlePlayAlbumSong = (albumId: string, songIndex: number) => {
+    const songs = albumSongs[albumId];
+    if (songs && songs.length > 0) {
+      replacePlaylistAndPlay(songs, songIndex);
     }
   };
 
@@ -361,44 +413,90 @@ function ArtistDetailContent() {
               >
                 <h2 className="text-2xl font-bold mb-6">专辑</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {artistAlbums.map((album: Album, albumIndex: number) => (
-                    <motion.div
-                      key={album.id}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.1 * albumIndex }}
-                      className="bg-card rounded-lg p-6 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold">{album.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {album.releaseDate && new Date(album.releaseDate).getFullYear()} • {album.songCount} 首歌曲
-                          </p>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      
-                      {album.coverUrl && (
-                        <Avatar className="w-full h-32 rounded-lg mb-4">
-                          <AvatarImage src={album.coverUrl} alt={album.title} />
-                          <AvatarFallback>
-                            <Music className="w-8 h-8" />
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      
-                      <Button 
-                        variant="ghost" 
-                        className="w-full"
-                        onClick={() => handlePlayAlbum(album)}
+                  {artistAlbums.map((album: Album, albumIndex: number) => {
+                    const songs = albumSongs[album.id] || [];
+                    const isLoading = loadingAlbums.has(album.id);
+                    
+                    return (
+                      <motion.div
+                        key={album.id}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.4, delay: 0.1 * albumIndex }}
+                        className="bg-card rounded-lg p-6 shadow-sm"
                       >
-                        播放专辑
-                      </Button>
-                    </motion.div>
-                  ))}
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold">{album.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {album.releaseDate && new Date(album.releaseDate).getFullYear()} • {songs.length || album.songCount || 0} 首歌曲
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {album.coverUrl && (
+                          <Avatar className="w-full h-32 rounded-lg mb-4">
+                            <AvatarImage src={album.coverUrl} alt={album.title} />
+                            <AvatarFallback>
+                              <Music className="w-8 h-8" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        
+                        {/* 专辑歌曲列表 */}
+                        {isLoading ? (
+                          <div className="flex items-center justify-center py-4 mb-4">
+                            <div className="w-5 h-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent mr-2" />
+                            <span className="text-sm text-muted-foreground">加载歌曲中...</span>
+                          </div>
+                        ) : songs.length > 0 ? (
+                          <div className="mb-4">
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {songs.map((song: Song, songIndex: number) => (
+                                <motion.div
+                                  key={song.id}
+                                  className="flex items-center px-2 py-1 hover:bg-muted/50 rounded-md cursor-pointer group transition-colors text-sm"
+                                  onClick={() => handlePlayAlbumSong(album.id, songIndex)}
+                                  initial={{ x: -10, opacity: 0 }}
+                                  animate={{ x: 0, opacity: 1 }}
+                                  transition={{ duration: 0.2, delay: 0.03 * songIndex }}
+                                >
+                                  <div className="w-6 text-xs text-muted-foreground">
+                                    <span className="group-hover:hidden">{songIndex + 1}</span>
+                                    <Play className="w-3 h-3 hidden group-hover:block text-primary" />
+                                  </div>
+                                  
+                                  <div className="flex-1 ml-2 min-w-0">
+                                    <div className="font-medium text-xs truncate">{song.title}</div>
+                                  </div>
+                                  
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDuration(song.duration)}
+                                  </span>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground text-sm mb-4 py-2">
+                            暂无歌曲
+                          </div>
+                        )}
+                        
+                        <Button 
+                          variant="ghost" 
+                          className="w-full"
+                          onClick={() => handlePlayAlbum(album)}
+                          disabled={songs.length === 0}
+                        >
+                          播放专辑
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
