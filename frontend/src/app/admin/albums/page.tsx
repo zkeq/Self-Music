@@ -79,10 +79,16 @@ export default function AlbumsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const albumData = {
+        ...formData,
+        songCount: editingAlbum?.songCount || 0,
+        duration: editingAlbum?.duration || 0
+      };
+      
       if (editingAlbum) {
-        await adminAPI.updateAlbum(editingAlbum.id, formData);
+        await adminAPI.updateAlbum(editingAlbum.id, albumData);
       } else {
-        await adminAPI.createAlbum(formData);
+        await adminAPI.createAlbum(albumData);
       }
       setDialogOpen(false);
       setEditingAlbum(null);
