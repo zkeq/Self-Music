@@ -147,7 +147,7 @@ async def get_artist(artist_id: str):
     if not artist:
         raise HTTPException(status_code=404, detail="Artist not found")
     
-    return {"success": True, "data": artist}
+    return artist
 
 @router.get("/api/artists/{artist_id}/songs")
 async def get_artist_songs(artist_id: str):
@@ -198,7 +198,7 @@ async def get_artist_songs(artist_id: str):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 @router.get("/api/artists/{artist_id}/albums")
 async def get_artist_albums(artist_id: str):
@@ -238,7 +238,7 @@ async def get_artist_albums(artist_id: str):
         albums.append(album)
     
     conn.close()
-    return {"success": True, "data": albums}
+    return albums
 
 # Albums API
 @router.get("/api/albums")
@@ -302,7 +302,7 @@ async def get_album(album_id: str):
     if not album:
         raise HTTPException(status_code=404, detail="Album not found")
     
-    return {"success": True, "data": album}
+    return album
 
 @router.get("/api/albums/{album_id}/songs")
 async def get_album_songs(album_id: str):
@@ -353,7 +353,7 @@ async def get_album_songs(album_id: str):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 # Songs API  
 @router.get("/api/songs")
@@ -461,7 +461,7 @@ async def get_song(song_id: str):
     }
     
     conn.close()
-    return {"success": True, "data": song}
+    return song
 
 @router.get("/api/songs/{song_id}/stream")
 async def stream_song(song_id: str):
@@ -582,7 +582,7 @@ async def get_similar_songs(song_id: str, limit: int = Query(10, ge=1, le=50)):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 # Playlists API
 @router.get("/api/playlists")
@@ -744,7 +744,7 @@ async def get_playlist(playlist_id: str):
     }
     
     conn.close()
-    return {"success": True, "data": playlist}
+    return playlist
 
 # Playlist request models
 class PlaylistCreate(BaseModel):
@@ -860,7 +860,7 @@ async def update_playlist(playlist_id: str, playlist: PlaylistUpdate):
         "updatedAt": row[11]
     }
     
-    return {"success": True, "data": playlist_data}
+    return playlist_data
 
 @router.delete("/api/playlists/{playlist_id}")
 async def delete_playlist(playlist_id: str):
@@ -981,7 +981,7 @@ async def get_moods():
         }
         moods.append(mood)
     
-    return {"success": True, "data": moods}
+    return moods
 
 @router.get("/api/moods/{mood_id}")
 async def get_mood(mood_id: str):
@@ -1006,7 +1006,7 @@ async def get_mood(mood_id: str):
         "updatedAt": row[8]
     }
     
-    return {"success": True, "data": mood}
+    return mood
 
 @router.get("/api/moods/{mood_id}/songs")
 async def get_mood_songs(mood_id: str):
@@ -1059,7 +1059,7 @@ async def get_mood_songs(mood_id: str):
             songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 # Search API
 @router.get("/api/search")
@@ -1288,7 +1288,7 @@ async def get_recommendations(
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 @router.get("/api/trending/songs")
 async def get_trending_songs(limit: int = Query(20, ge=1, le=50)):
@@ -1334,7 +1334,7 @@ async def get_trending_songs(limit: int = Query(20, ge=1, le=50)):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 @router.get("/api/hot/songs")
 async def get_hot_songs(limit: int = Query(20, ge=1, le=50)):
@@ -1380,7 +1380,7 @@ async def get_hot_songs(limit: int = Query(20, ge=1, le=50)):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
 
 @router.get("/api/new/songs")
 async def get_new_songs(limit: int = Query(20, ge=1, le=50)):
@@ -1426,4 +1426,4 @@ async def get_new_songs(limit: int = Query(20, ge=1, le=50)):
         songs.append(song)
     
     conn.close()
-    return {"success": True, "data": songs}
+    return songs
