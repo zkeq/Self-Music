@@ -71,7 +71,6 @@ import {
   Mail,
   Phone,
   Settings,
-  Tool,
   Wrench,
   Scissors,
   Brush,
