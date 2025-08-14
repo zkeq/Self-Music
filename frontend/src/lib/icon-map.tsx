@@ -176,7 +176,7 @@ export function renderIcon(
   iconName: string, 
   className?: string,
   fallback: React.ComponentType<{ className?: string }> = Music2
-): JSX.Element {
+): React.ReactElement {
   const IconComponent = getIconComponent(iconName, fallback);
   return <IconComponent className={className} />;
 }
