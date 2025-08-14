@@ -321,7 +321,7 @@ async def get_album_songs(album_id: str):
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
         WHERE s.albumId = ?
-        ORDER BY s.createdAt DESC
+        ORDER BY s.createdAt ASC
     ''', (album_id,))
     rows = cursor.fetchall()
     
@@ -606,6 +606,10 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
         # Get songs for this playlist
         songs = []
         if song_ids:
+            # Create ORDER BY clause based on song_ids order
+            case_statements = [f"WHEN s.id = '{song_id}' THEN {i}" for i, song_id in enumerate(song_ids)]
+            order_by_case = f"CASE {' '.join(case_statements)} ELSE {len(song_ids)} END"
+            
             placeholders = ','.join('?' * len(song_ids))
             cursor.execute(f'''
                 SELECT s.*, ar.name as artist_name, al.title as album_title 
@@ -613,6 +617,7 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
                 JOIN artists ar ON s.artistId = ar.id 
                 LEFT JOIN albums al ON s.albumId = al.id 
                 WHERE s.id IN ({placeholders})
+                ORDER BY {order_by_case}
             ''', song_ids)
             song_rows = cursor.fetchall()
             
@@ -690,6 +695,10 @@ async def get_playlist(playlist_id: str):
     # Get songs for this playlist
     songs = []
     if song_ids:
+        # Create ORDER BY clause based on song_ids order
+        case_statements = [f"WHEN s.id = '{song_id}' THEN {i}" for i, song_id in enumerate(song_ids)]
+        order_by_case = f"CASE {' '.join(case_statements)} ELSE {len(song_ids)} END"
+        
         placeholders = ','.join('?' * len(song_ids))
         cursor.execute(f'''
             SELECT s.*, ar.name as artist_name, al.title as album_title 
@@ -697,6 +706,7 @@ async def get_playlist(playlist_id: str):
             JOIN artists ar ON s.artistId = ar.id 
             LEFT JOIN albums al ON s.albumId = al.id 
             WHERE s.id IN ({placeholders})
+            ORDER BY {order_by_case}
         ''', song_ids)
         song_rows = cursor.fetchall()
         
@@ -1025,7 +1035,7 @@ async def get_mood_songs(mood_id: str):
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
         WHERE s.moodIds LIKE ?
-        ORDER BY s.playCount DESC
+        ORDER BY s.createdAt ASC
     ''', (f'%{mood_id}%',))
     rows = cursor.fetchall()
     
