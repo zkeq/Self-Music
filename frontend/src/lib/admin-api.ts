@@ -1,6 +1,6 @@
 import { LoginRequest, LoginResponse, AdminApiResponse, Artist, Album, Song, Mood, Playlist } from '@/types';
 
-const API_BASE = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:8000/api';
+const API_BASE = process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_API_URL : 'http://localhost:8000/api';
 
 class AdminAPI {
   private token: string | null = null;
