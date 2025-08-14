@@ -86,7 +86,7 @@ import {
   File,
   Search as SearchIcon,
   Filter,
-  Sort,
+  ArrowUpDown,
   BarChart,
   PieChart,
   LineChart
