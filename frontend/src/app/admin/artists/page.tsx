@@ -68,10 +68,16 @@ export default function ArtistsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const artistData = {
+        ...formData,
+        songCount: editingArtist?.songCount || 0,
+        albumCount: editingArtist?.albumCount || 0
+      };
+      
       if (editingArtist) {
-        await adminAPI.updateArtist(editingArtist.id, formData);
+        await adminAPI.updateArtist(editingArtist.id, artistData);
       } else {
-        await adminAPI.createArtist(formData);
+        await adminAPI.createArtist(artistData);
       }
       setDialogOpen(false);
       setEditingArtist(null);
