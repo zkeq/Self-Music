@@ -14,7 +14,8 @@ import {
   List,
   Library,
   Smile,
-  Users
+  Users,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -196,7 +197,29 @@ export function Sidebar({ className }: SidebarProps) {
           </nav>
 
           {/* Footer */}
-          <div className="p-4">
+          <div className="p-4 space-y-3">
+            {/* Admin Panel Link */}
+            <div>
+              <a href="/admin/login" onClick={() => setIsMobileOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start text-left font-normal transition-all duration-300",
+                    "hover:bg-accent hover:text-accent-foreground border border-border/50",
+                    isCollapsed ? "px-0 justify-center" : "px-3"
+                  )}
+                >
+                  <Settings className={cn("h-4 w-4 shrink-0 transition-all duration-300", isCollapsed ? "" : "mr-3")} />
+                  <span className={cn(
+                    "truncate transition-all duration-300 overflow-hidden",
+                    isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+                  )}>
+                    管理面板
+                  </span>
+                </Button>
+              </a>
+            </div>
+            
             {!isCollapsed && (
               <div className="text-xs text-muted-foreground text-center">
                 © 2024 Self-Music
