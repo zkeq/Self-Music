@@ -16,6 +16,9 @@ from datetime import datetime, timedelta
 from mutagen import File as MutagenFile
 import mimetypes
 
+# Import user routes
+from user import router as user_router
+
 app = FastAPI(title="Self-Music API", version="1.0.0")
 security = HTTPBearer()
 
@@ -31,8 +34,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Include user routes (no authentication required)
+app.include_router(user_router)
 
 # Database Models
 class Artist(BaseModel):

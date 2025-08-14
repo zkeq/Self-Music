@@ -11,8 +11,8 @@ import type {
 } from '@/types';
 import { mockApi } from './mock-api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK === 'true' || !process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const USE_MOCK_API = false;
 
 // Real API Client Configuration
 class RealApiClient {

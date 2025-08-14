@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Artist, Album, Song, Playlist, Mood, PaginatedResponse } from '@/types';
-import * as api from './api';
+import { api } from './api';
 
 // Artists Store
 interface ArtistsState {
@@ -52,20 +52,28 @@ export const useArtistsStore = create<ArtistsState & ArtistsActions>()(
           const response = await api.getArtists(page, limit);
           if (response.success && response.data) {
             set({
-              artists: response.data.data,
+              artists: response.data.data || [],
               pagination: {
-                page: response.data.page,
-                limit: response.data.limit,
-                total: response.data.total,
-                totalPages: response.data.totalPages,
+                page: response.data.page || page,
+                limit: response.data.limit || limit,
+                total: response.data.total || 0,
+                totalPages: response.data.totalPages || 0,
               },
               isLoading: false,
             });
           } else {
-            set({ error: response.error || 'Failed to fetch artists', isLoading: false });
+            set({ 
+              artists: [],
+              error: response.error || 'Failed to fetch artists', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            artists: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -90,10 +98,18 @@ export const useArtistsStore = create<ArtistsState & ArtistsActions>()(
           if (response.success && response.data) {
             set({ artistSongs: response.data, isLoading: false });
           } else {
-            set({ error: response.error || 'Failed to fetch artist songs', isLoading: false });
+            set({ 
+              artistSongs: [],
+              error: response.error || 'Failed to fetch artist songs', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            artistSongs: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -104,10 +120,18 @@ export const useArtistsStore = create<ArtistsState & ArtistsActions>()(
           if (response.success && response.data) {
             set({ artistAlbums: response.data, isLoading: false });
           } else {
-            set({ error: response.error || 'Failed to fetch artist albums', isLoading: false });
+            set({ 
+              artistAlbums: [],
+              error: response.error || 'Failed to fetch artist albums', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            artistAlbums: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -178,20 +202,28 @@ export const useSongsStore = create<SongsState & SongsActions>()(
           const response = await api.getSongs(page, limit);
           if (response.success && response.data) {
             set({
-              songs: response.data.data,
+              songs: response.data.data || [],
               pagination: {
-                page: response.data.page,
-                limit: response.data.limit,
-                total: response.data.total,
-                totalPages: response.data.totalPages,
+                page: response.data.page || page,
+                limit: response.data.limit || limit,
+                total: response.data.total || 0,
+                totalPages: response.data.totalPages || 0,
               },
               isLoading: false,
             });
           } else {
-            set({ error: response.error || 'Failed to fetch songs', isLoading: false });
+            set({ 
+              songs: [],
+              error: response.error || 'Failed to fetch songs', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            songs: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -214,9 +246,12 @@ export const useSongsStore = create<SongsState & SongsActions>()(
           const response = await api.getTrendingSongs(limit);
           if (response.success && response.data) {
             set({ trending: response.data });
+          } else {
+            set({ trending: [] });
           }
         } catch (error) {
           console.error('Failed to fetch trending songs:', error);
+          set({ trending: [] });
         }
       },
 
@@ -225,9 +260,12 @@ export const useSongsStore = create<SongsState & SongsActions>()(
           const response = await api.getHotSongs(limit);
           if (response.success && response.data) {
             set({ hot: response.data });
+          } else {
+            set({ hot: [] });
           }
         } catch (error) {
           console.error('Failed to fetch hot songs:', error);
+          set({ hot: [] });
         }
       },
 
@@ -236,9 +274,12 @@ export const useSongsStore = create<SongsState & SongsActions>()(
           const response = await api.getNewSongs(limit);
           if (response.success && response.data) {
             set({ new: response.data });
+          } else {
+            set({ new: [] });
           }
         } catch (error) {
           console.error('Failed to fetch new songs:', error);
+          set({ new: [] });
         }
       },
 
@@ -297,20 +338,28 @@ export const usePlaylistsStore = create<PlaylistsState & PlaylistsActions>()(
           const response = await api.getPlaylists(page, limit);
           if (response.success && response.data) {
             set({
-              playlists: response.data.data,
+              playlists: response.data.data || [],
               pagination: {
-                page: response.data.page,
-                limit: response.data.limit,
-                total: response.data.total,
-                totalPages: response.data.totalPages,
+                page: response.data.page || page,
+                limit: response.data.limit || limit,
+                total: response.data.total || 0,
+                totalPages: response.data.totalPages || 0,
               },
               isLoading: false,
             });
           } else {
-            set({ error: response.error || 'Failed to fetch playlists', isLoading: false });
+            set({ 
+              playlists: [],
+              error: response.error || 'Failed to fetch playlists', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            playlists: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -449,10 +498,18 @@ export const useMoodsStore = create<MoodsState & MoodsActions>()(
           if (response.success && response.data) {
             set({ moods: response.data, isLoading: false });
           } else {
-            set({ error: response.error || 'Failed to fetch moods', isLoading: false });
+            set({ 
+              moods: [],
+              error: response.error || 'Failed to fetch moods', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            moods: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -477,10 +534,18 @@ export const useMoodsStore = create<MoodsState & MoodsActions>()(
           if (response.success && response.data) {
             set({ moodSongs: response.data, isLoading: false });
           } else {
-            set({ error: response.error || 'Failed to fetch mood songs', isLoading: false });
+            set({ 
+              moodSongs: [],
+              error: response.error || 'Failed to fetch mood songs', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            moodSongs: [],
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
@@ -539,14 +604,27 @@ export const useSearchStore = create<SearchState & SearchActions>()(
           const response = await api.search(query);
           if (response.success && response.data) {
             set({ 
-              results: response.data, 
+              results: {
+                songs: response.data.songs || [],
+                artists: response.data.artists || [],
+                albums: response.data.albums || [],
+                playlists: response.data.playlists || [],
+              }, 
               isLoading: false 
             });
           } else {
-            set({ error: response.error || 'Failed to search', isLoading: false });
+            set({ 
+              results: { songs: [], artists: [], albums: [], playlists: [] },
+              error: response.error || 'Failed to search', 
+              isLoading: false 
+            });
           }
         } catch (error) {
-          set({ error: 'Network error', isLoading: false });
+          set({ 
+            results: { songs: [], artists: [], albums: [], playlists: [] },
+            error: 'Network error', 
+            isLoading: false 
+          });
         }
       },
 
