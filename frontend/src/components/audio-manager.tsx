@@ -53,7 +53,23 @@ export function AudioManager() {
 
     const handleLoadedMetadata = () => {
       console.log('Audio loaded metadata, duration:', audio.duration);
-      setDuration(audio.duration);
+      if (audio.duration > 0 && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleLoadedData = () => {
+      console.log('Audio loaded data, duration:', audio.duration);
+      if (audio.duration > 0 && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleCanPlay = () => {
+      console.log('Audio can play, duration:', audio.duration);
+      if (audio.duration > 0 && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -108,6 +124,8 @@ export function AudioManager() {
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('loadeddata', handleLoadedData);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
@@ -120,6 +138,8 @@ export function AudioManager() {
         cancelAnimationFrame(timeUpdateRef.current);
       }
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('loadeddata', handleLoadedData);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
@@ -140,6 +160,7 @@ export function AudioManager() {
     
     console.log('Loading new song:', currentSong.title, 'URL:', audioUrl);
     
+    // 检查是否是新的音频源
     if (audio.src !== audioUrl) {
       // 停止之前的时间更新
       if (timeUpdateRef.current) {
@@ -150,8 +171,14 @@ export function AudioManager() {
       audio.src = audioUrl;
       audio.load();
       console.log('Audio source set to:', audioUrl);
+    } else {
+      // 如果是相同的音频源，检查是否需要更新时长
+      if (audio.duration > 0 && audio.duration !== Infinity) {
+        console.log('Same audio source, updating duration:', audio.duration);
+        setDuration(audio.duration);
+      }
     }
-  }, [currentSong]);
+  }, [currentSong, setDuration]);
 
   // 处理播放/暂停
   useEffect(() => {
