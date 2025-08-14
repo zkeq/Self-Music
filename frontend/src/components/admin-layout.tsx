@@ -25,8 +25,13 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+interface User {
+  username: string;
+  role: string;
+}
+
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const router = useRouter();
