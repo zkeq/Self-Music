@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Music2, Heart, Clock } from 'lucide-react';
 import type { Song } from '@/types';
+import { getIconComponent } from '@/lib/icon-map';
 
 interface SearchResultsProps {
   songs: Song[];
@@ -53,11 +54,15 @@ export function SearchResults({
             <div className="flex-1">
               <div className="font-medium truncate">{song.title}</div>
               <div className="flex space-x-1">
-                {song.moods.slice(0, 2).map((mood) => (
-                  <Badge key={mood.id} variant="secondary" className="text-xs">
-                    {mood.name}
-                  </Badge>
-                ))}
+                {song.moods.slice(0, 2).map((mood) => {
+                  const IconComponent = getIconComponent(mood.icon);
+                  return (
+                    <Badge key={mood.id} variant="secondary" className="text-xs flex items-center gap-1">
+                      <IconComponent className="h-2.5 w-2.5" />
+                      {mood.name}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
             <div className="w-32 text-sm text-muted-foreground truncate">

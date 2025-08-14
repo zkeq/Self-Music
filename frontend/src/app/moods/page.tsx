@@ -7,24 +7,16 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Play, Heart, Smile, Coffee, Zap, Sun, CloudRain, Music2, ArrowLeft } from 'lucide-react';
+import { Play, Music2, ArrowLeft } from 'lucide-react';
 import { useMoodsStore } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
 import type { Song } from '@/types';
+import { getIconComponent } from '@/lib/icon-map';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
-
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  'Smile': Smile,
-  'Coffee': Coffee,
-  'Zap': Zap,
-  'Sun': Sun,
-  'CloudRain': CloudRain,
-  'Heart': Heart,
 };
 
 export default function MoodsPage() {
@@ -70,7 +62,7 @@ export default function MoodsPage() {
   };
 
   if (selectedMoodId && currentMood) {
-    const IconComponent = iconMap[currentMood.icon] || Music2;
+    const IconComponent = getIconComponent(currentMood.icon, Music2);
     
     return (
       <motion.div 
@@ -244,7 +236,7 @@ export default function MoodsPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {moods.map((mood, index) => {
-                const IconComponent = iconMap[mood.icon] || Music2;
+                const IconComponent = getIconComponent(mood.icon, Music2);
                 
                 return (
                   <motion.div

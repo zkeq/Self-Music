@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables, ColorPalette } from '@/lib/color-utils';
 
 import { Song } from '@/types/index';
+import { getIconComponent } from '@/lib/icon-map';
 
 interface AlbumCoverProps {
   song: Song;
@@ -249,7 +250,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
           transition={{ delay: 0.5 }}
         >
           {song.moods.map((mood) => {
-            const getMoodVariant = (mood: string) => {
+            const getMoodVariant = (moodName: string) => {
               const moodStyles: Record<string, { 
                 className: string; 
                 style?: React.CSSProperties;
@@ -286,12 +287,13 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
                 }
               };
               
-              return moodStyles[mood] || {
+              return moodStyles[moodName] || {
                 className: 'border-gray-200/40 bg-gradient-to-br from-gray-50/80 to-slate-50/50 text-gray-700 dark:border-gray-700/30 dark:from-gray-900/50 dark:to-slate-900/30 dark:text-gray-300 shadow-gray-500/10',
               };
             };
 
             const moodStyle = getMoodVariant(mood.name);
+            const IconComponent = getIconComponent(mood.icon, Music);
             
             return (
               <motion.div
@@ -312,10 +314,12 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
                     "px-3 py-1.5 text-xs font-medium transition-all duration-300 cursor-default",
                     "hover:shadow-lg backdrop-blur-sm border-2",
                     "ring-0 focus-visible:ring-2 focus-visible:ring-offset-2",
+                    "flex items-center gap-1.5",
                     moodStyle.className
                   )}
                   style={moodStyle.style}
                 >
+                  <IconComponent className="h-3 w-3" />
                   {mood.name}
                 </Badge>
               </motion.div>

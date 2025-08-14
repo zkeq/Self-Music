@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { getIconComponent } from '@/lib/icon-map';
 
 interface PlaylistPanelProps {
   className?: string;
@@ -280,11 +281,15 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                           </p>
                           {song.moods && song.moods.length > 0 && (
                             <div className="flex gap-1 mt-1">
-                              {song.moods.slice(0, 2).map((mood) => (
-                                <Badge key={mood.id} variant="outline" className="h-4 text-xs px-1">
-                                  {mood.name}
-                                </Badge>
-                              ))}
+                              {song.moods.slice(0, 2).map((mood) => {
+                                const IconComponent = getIconComponent(mood.icon);
+                                return (
+                                  <Badge key={mood.id} variant="outline" className="h-4 text-xs px-1 flex items-center gap-1">
+                                    <IconComponent className="h-2.5 w-2.5" />
+                                    {mood.name}
+                                  </Badge>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
