@@ -11,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { MultiArtistSelector } from '@/components/multi-artist-selector';
+import { ArtistBadge } from '@/components/artist-badge';
 import { 
   Plus, 
   Edit, 
@@ -22,9 +24,11 @@ import {
   Album as AlbumIcon,
   Heart,
   Clock,
-  MoreHorizontal
+  MoreHorizontal,
+  Info
 } from 'lucide-react';
 import { Song, Artist, Album, Mood } from '@/types';
+import { formatArtistNames, getAllArtistNames } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +53,12 @@ export default function SongsPage() {
   const [formData, setFormData] = useState({
     title: '',
     artistId: '',
+    artistIds: [] as string[],  // 多艺术家ID数组
+    selectedArtists: [] as Artist[],  // 选中的艺术家对象
+    primaryArtistId: '',  // 主艺术家ID
     albumId: '',
+    selectedAlbum: null as Album | null,  // 选中的专辑
+    isInheritingArtists: false,  // 是否从专辑继承艺术家
     duration: 0,
     audioUrl: '',
     coverUrl: '',
@@ -96,9 +105,27 @@ export default function SongsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 验证艺术家信息
+    if (!formData.isInheritingArtists && formData.artistIds.length === 0) {
+      alert('请选择艺术家或选择一个专辑来继承艺术家信息');
+      return;
+    }
+    
     try {
       const songData = {
-        ...formData,
+        title: formData.title,
+        artistId: formData.primaryArtistId || formData.artistIds[0] || formData.artistId,
+        artistIds: formData.isInheritingArtists ? 
+          (formData.selectedAlbum?.artists?.map(a => a.id) || []) : 
+          formData.artistIds,
+        albumId: formData.albumId || undefined,
+        duration: formData.duration,
+        audioUrl: formData.audioUrl,
+        coverUrl: formData.coverUrl,
+        lyrics: formData.lyrics,
+        moodIds: formData.moodIds,
+        genre: formData.genre,
         playCount: editingSong?.playCount || 0,
         liked: editingSong?.liked || false
       };
@@ -119,10 +146,35 @@ export default function SongsPage() {
 
   const handleEdit = (song: SongWithRelations) => {
     setEditingSong(song);
+    
+    // 检查歌曲是否属于专辑并且继承艺术家
+    const selectedAlbum = song.albumId ? albums.find(a => a.id === song.albumId) : null;
+    const isInheritingFromAlbum = selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0;
+    
+    // 准备艺术家数据
+    let selectedArtists: Artist[] = [];
+    let artistIds: string[] = [];
+    let primaryArtistId = '';
+    
+    if (song.artists && song.artists.length > 0) {
+      selectedArtists = song.artists;
+      artistIds = song.artists.map(a => a.id);
+      primaryArtistId = song.artists.find(a => a.isPrimary)?.id || artistIds[0] || '';
+    } else if (song.artist) {
+      selectedArtists = [song.artist];
+      artistIds = [song.artist.id];
+      primaryArtistId = song.artist.id;
+    }
+    
     setFormData({
       title: song.title,
       artistId: song.artistId,
+      artistIds: isInheritingFromAlbum ? [] : artistIds,
+      selectedArtists: isInheritingFromAlbum ? [] : selectedArtists,
+      primaryArtistId: isInheritingFromAlbum ? '' : primaryArtistId,
       albumId: song.albumId || '',
+      selectedAlbum: selectedAlbum,
+      isInheritingArtists: isInheritingFromAlbum,
       duration: song.duration,
       audioUrl: song.audioUrl || '',
       coverUrl: song.coverUrl || '',
@@ -148,7 +200,12 @@ export default function SongsPage() {
     setFormData({
       title: '',
       artistId: '',
+      artistIds: [],
+      selectedArtists: [],
+      primaryArtistId: '',
       albumId: '',
+      selectedAlbum: null,
+      isInheritingArtists: false,
       duration: 0,
       audioUrl: '',
       coverUrl: '',
@@ -156,6 +213,50 @@ export default function SongsPage() {
       moodIds: [],
       genre: ''
     });
+  };
+
+  // 处理专辑选择变化
+  const handleAlbumChange = (albumId: string) => {
+    const selectedAlbum = albums.find(album => album.id === albumId);
+    const shouldInherit = selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0;
+    
+    setFormData(prev => ({
+      ...prev,
+      albumId,
+      selectedAlbum: selectedAlbum || null,
+      isInheritingArtists: shouldInherit || false,
+      // 如果选择了专辑且专辑有艺术家，清空手动选择的艺术家
+      selectedArtists: shouldInherit ? [] : prev.selectedArtists,
+      artistIds: shouldInherit ? [] : prev.artistIds,
+      primaryArtistId: shouldInherit ? '' : prev.primaryArtistId
+    }));
+  };
+
+  // 处理多艺术家选择变化（用于非专辑歌曲）
+  const handleSelectedArtistsChange = (selectedArtists: Artist[]) => {
+    const artistIds = selectedArtists.map(artist => artist.id);
+    setFormData(prev => ({
+      ...prev,
+      selectedArtists,
+      artistIds,
+      isInheritingArtists: false
+    }));
+  };
+
+  // 处理主艺术家变化（用于非专辑歌曲）
+  const handlePrimaryArtistChange = (artistId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      primaryArtistId: artistId
+    }));
+  };
+
+  // 获取当前歌曲的艺术家（用于显示）
+  const getCurrentArtists = () => {
+    if (formData.isInheritingArtists && formData.selectedAlbum) {
+      return formData.selectedAlbum.artists || [];
+    }
+    return formData.selectedArtists;
   };
 
   const handleMoodToggle = (moodId: string) => {
@@ -207,7 +308,7 @@ export default function SongsPage() {
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">歌曲名称 *</Label>
                     <Input
@@ -219,40 +320,67 @@ export default function SongsPage() {
                     />
                   </div>
                   
+                  {/* 专辑选择 */}
                   <div className="space-y-2">
-                    <Label htmlFor="artistId">艺术家 *</Label>
-                    <select
-                      id="artistId"
-                      value={formData.artistId}
-                      onChange={(e) => setFormData({ ...formData, artistId: e.target.value, albumId: '' })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      required
-                    >
-                      <option value="">选择艺术家</option>
-                      {artists.map((artist) => (
-                        <option key={artist.id} value={artist.id}>{artist.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="albumId">专辑</Label>
+                    <Label htmlFor="albumId">专辑（可选）</Label>
                     <select
                       id="albumId"
                       value={formData.albumId}
-                      onChange={(e) => setFormData({ ...formData, albumId: e.target.value })}
+                      onChange={(e) => handleAlbumChange(e.target.value)}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!formData.artistId}
                     >
-                      <option value="">选择专辑（可选）</option>
-                      {getAlbumsForArtist(formData.artistId).map((album) => (
-                        <option key={album.id} value={album.id}>{album.title}</option>
+                      <option value="">选择专辑（将继承专辑艺术家）</option>
+                      {albums.map((album) => (
+                        <option key={album.id} value={album.id}>
+                          {album.title} - {album.artists ? getAllArtistNames(album) : album.artist?.name || '未知艺术家'}
+                        </option>
                       ))}
                     </select>
                   </div>
-                  
+
+                  {/* 艺术家继承状态显示 */}
+                  {formData.isInheritingArtists && formData.selectedAlbum && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <p className="text-sm text-blue-800 font-medium">
+                            将继承专辑《{formData.selectedAlbum.title}》的艺术家：
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {formData.selectedAlbum.artists?.map((artist) => (
+                              <ArtistBadge
+                                key={artist.id}
+                                artist={artist}
+                                isPrimary={artist.isPrimary}
+                                size="sm"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 手动艺术家选择（仅当未选择专辑或专辑无艺术家时显示） */}
+                  {!formData.isInheritingArtists && (
+                    <div className="space-y-2">
+                      <MultiArtistSelector
+                        allArtists={artists}
+                        selectedArtists={formData.selectedArtists}
+                        primaryArtistId={formData.primaryArtistId}
+                        onSelectedArtistsChange={handleSelectedArtistsChange}
+                        onPrimaryArtistChange={handlePrimaryArtistChange}
+                        label="艺术家"
+                        required
+                        placeholder="搜索并选择艺术家..."
+                        maxArtists={5}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="duration">时长（秒）</Label>
                     <Input
@@ -261,6 +389,16 @@ export default function SongsPage() {
                       value={formData.duration}
                       onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
                       placeholder="歌曲时长"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="genre">音乐风格</Label>
+                    <Input
+                      id="genre"
+                      value={formData.genre}
+                      onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                      placeholder="例如: 流行, 摇滚, 爵士"
                     />
                   </div>
                 </div>
@@ -285,16 +423,6 @@ export default function SongsPage() {
                       placeholder="封面图片URL"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="genre">音乐风格</Label>
-                  <Input
-                    id="genre"
-                    value={formData.genre}
-                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                    placeholder="例如: 流行, 摇滚, 爵士"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -393,7 +521,7 @@ export default function SongsPage() {
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
-                              {song.artistName || '未知艺术家'}
+                              {song.artists ? getAllArtistNames(song) : song.artistName || '未知艺术家'}
                             </span>
                             {song.albumTitle && (
                               <span className="flex items-center gap-1">
@@ -411,6 +539,20 @@ export default function SongsPage() {
                             </span>
                             {song.liked && <Heart className="h-3 w-3 text-red-500 fill-current" />}
                           </div>
+                          
+                          {/* 显示艺术家标签 */}
+                          {song.artists && song.artists.length > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {song.artists.map((artist) => (
+                                <ArtistBadge
+                                  key={artist.id}
+                                  artist={artist}
+                                  isPrimary={artist.isPrimary}
+                                  size="sm"
+                                />
+                              ))}
+                            </div>
+                          )}
                           
                           <div className="flex flex-wrap gap-1 mt-2">
                             {song.genre && (

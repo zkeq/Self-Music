@@ -11,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { MultiArtistSelector } from '@/components/multi-artist-selector';
+import { ArtistBadge } from '@/components/artist-badge';
 import { 
   Plus, 
   Edit, 
@@ -23,6 +25,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { Album, Artist } from '@/types';
+import { formatArtistNames, getAllArtistNames } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +47,9 @@ export default function AlbumsPage() {
   const [formData, setFormData] = useState({
     title: '',
     artistId: '',
+    artistIds: [] as string[],  // 新增：多艺术家ID数组
+    selectedArtists: [] as Artist[],  // 新增：选中的艺术家对象
+    primaryArtistId: '',  // 新增：主艺术家ID
     coverUrl: '',
     releaseDate: '',
     genre: '',
@@ -78,9 +84,22 @@ export default function AlbumsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 验证至少选择一个艺术家
+    if (formData.artistIds.length === 0) {
+      alert('请至少选择一个艺术家');
+      return;
+    }
+    
     try {
       const albumData = {
-        ...formData,
+        title: formData.title,
+        artistId: formData.primaryArtistId || formData.artistIds[0], // 主艺术家作为主要艺术家ID
+        artistIds: formData.artistIds, // 所有艺术家ID数组
+        coverUrl: formData.coverUrl,
+        releaseDate: formData.releaseDate,
+        genre: formData.genre,
+        description: formData.description,
         songCount: editingAlbum?.songCount || 0,
         duration: editingAlbum?.duration || 0
       };
@@ -101,9 +120,18 @@ export default function AlbumsPage() {
 
   const handleEdit = (album: AlbumWithArtist) => {
     setEditingAlbum(album);
+    
+    // 准备艺术家数据
+    const selectedArtists = album.artists || (album.artist ? [album.artist] : []);
+    const artistIds = selectedArtists.map(a => a.id);
+    const primaryArtistId = selectedArtists.find(a => a.isPrimary)?.id || artistIds[0] || '';
+    
     setFormData({
       title: album.title,
       artistId: album.artistId,
+      artistIds: artistIds,
+      selectedArtists: selectedArtists,
+      primaryArtistId: primaryArtistId,
       coverUrl: album.coverUrl || '',
       releaseDate: album.releaseDate,
       genre: album.genre || '',
@@ -127,6 +155,9 @@ export default function AlbumsPage() {
     setFormData({
       title: '',
       artistId: '',
+      artistIds: [],
+      selectedArtists: [],
+      primaryArtistId: '',
       coverUrl: '',
       releaseDate: '',
       genre: '',
@@ -136,6 +167,9 @@ export default function AlbumsPage() {
 
   const filteredAlbums = albums.filter(album =>
     album.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (album.artists && album.artists.some(artist => 
+      artist.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )) ||
     (album.artistName && album.artistName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -151,6 +185,24 @@ export default function AlbumsPage() {
       return `${hours}小时${minutes}分钟`;
     }
     return `${minutes}分钟`;
+  };
+
+  // 处理多艺术家选择变化
+  const handleSelectedArtistsChange = (selectedArtists: Artist[]) => {
+    const artistIds = selectedArtists.map(artist => artist.id);
+    setFormData(prev => ({
+      ...prev,
+      selectedArtists,
+      artistIds
+    }));
+  };
+
+  // 处理主艺术家变化
+  const handlePrimaryArtistChange = (artistId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      primaryArtistId: artistId
+    }));
   };
 
   return (
@@ -179,7 +231,7 @@ export default function AlbumsPage() {
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">专辑名称 *</Label>
                     <Input
@@ -192,19 +244,17 @@ export default function AlbumsPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="artistId">艺术家 *</Label>
-                    <select
-                      id="artistId"
-                      value={formData.artistId}
-                      onChange={(e) => setFormData({ ...formData, artistId: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    <MultiArtistSelector
+                      allArtists={artists}
+                      selectedArtists={formData.selectedArtists}
+                      primaryArtistId={formData.primaryArtistId}
+                      onSelectedArtistsChange={handleSelectedArtistsChange}
+                      onPrimaryArtistChange={handlePrimaryArtistChange}
+                      label="艺术家"
                       required
-                    >
-                      <option value="">选择艺术家</option>
-                      {artists.map((artist) => (
-                        <option key={artist.id} value={artist.id}>{artist.name}</option>
-                      ))}
-                    </select>
+                      placeholder="搜索并选择艺术家..."
+                      maxArtists={5}
+                    />
                   </div>
                 </div>
 
@@ -312,7 +362,7 @@ export default function AlbumsPage() {
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
-                              {album.artistName || '未知艺术家'}
+                              {album.artists ? getAllArtistNames(album) : album.artistName || '未知艺术家'}
                             </span>
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -323,6 +373,21 @@ export default function AlbumsPage() {
                               {album.songCount} 首歌曲
                             </span>
                           </div>
+                          
+                          {/* 显示艺术家标签 */}
+                          {album.artists && album.artists.length > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {album.artists.map((artist) => (
+                                <ArtistBadge
+                                  key={artist.id}
+                                  artist={artist}
+                                  isPrimary={artist.isPrimary}
+                                  size="sm"
+                                />
+                              ))}
+                            </div>
+                          )}
+                          
                           {album.duration > 0 && (
                             <p className="text-xs text-muted-foreground">
                               {formatDuration(album.duration)}

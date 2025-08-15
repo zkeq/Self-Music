@@ -649,6 +649,24 @@ async def update_album(album_id: str, album: Album, username: str = Depends(veri
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
+    # Get existing album artists for count adjustment
+    existing_artists = get_album_artists(cursor, album_id)
+    existing_artist_ids = [a['id'] for a in existing_artists]
+    
+    # Verify primary artist exists
+    cursor.execute('SELECT id FROM artists WHERE id=?', (album.artistId,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Primary artist not found")
+    
+    # Verify all artists exist if artistIds provided
+    if album.artistIds:
+        for artist_id in album.artistIds:
+            cursor.execute('SELECT id FROM artists WHERE id=?', (artist_id,))
+            if not cursor.fetchone():
+                conn.close()
+                raise HTTPException(status_code=400, detail=f"Artist {artist_id} not found")
+    
     now = get_current_time()
     
     cursor.execute('''
@@ -662,6 +680,19 @@ async def update_album(album_id: str, album: Album, username: str = Depends(veri
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Album not found")
+    
+    # Handle multiple artists
+    new_artist_ids = album.artistIds if album.artistIds else [album.artistId]
+    manage_album_artists(cursor, album_id, new_artist_ids, album.artistId)
+    
+    # Update artist album counts
+    # Decrease count for removed artists
+    for artist_id in set(existing_artist_ids) - set(new_artist_ids):
+        cursor.execute('UPDATE artists SET albumCount = albumCount - 1 WHERE id=? AND albumCount > 0', (artist_id,))
+    
+    # Increase count for new artists
+    for artist_id in set(new_artist_ids) - set(existing_artist_ids):
+        cursor.execute('UPDATE artists SET albumCount = albumCount + 1 WHERE id=?', (artist_id,))
     
     conn.commit()
     conn.close()
