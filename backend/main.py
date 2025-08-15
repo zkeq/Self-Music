@@ -55,7 +55,8 @@ class Artist(BaseModel):
 class Album(BaseModel):
     id: Optional[str] = None
     title: str
-    artistId: str
+    artistId: str  # Keep for backward compatibility - primary artist
+    artistIds: List[str] = []  # New field for multiple artists
     coverUrl: Optional[str] = None
     releaseDate: str
     songCount: int = 0
@@ -68,7 +69,8 @@ class Album(BaseModel):
 class Song(BaseModel):
     id: Optional[str] = None
     title: str
-    artistId: str
+    artistId: str  # Keep for backward compatibility - primary artist
+    artistIds: List[str] = []  # New field for multiple artists
     albumId: Optional[str] = None
     duration: int = 0
     audioUrl: Optional[str] = None
@@ -224,6 +226,34 @@ def init_db():
         )
     ''')
     
+    # Song-Artists association table (for multiple artists per song)
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS song_artists (
+            id TEXT PRIMARY KEY,
+            songId TEXT NOT NULL,
+            artistId TEXT NOT NULL,
+            isPrimary BOOLEAN DEFAULT FALSE,
+            createdAt TEXT,
+            FOREIGN KEY (songId) REFERENCES songs (id) ON DELETE CASCADE,
+            FOREIGN KEY (artistId) REFERENCES artists (id) ON DELETE CASCADE,
+            UNIQUE(songId, artistId)
+        )
+    ''')
+    
+    # Album-Artists association table (for multiple artists per album)
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS album_artists (
+            id TEXT PRIMARY KEY,
+            albumId TEXT NOT NULL,
+            artistId TEXT NOT NULL,
+            isPrimary BOOLEAN DEFAULT FALSE,
+            createdAt TEXT,
+            FOREIGN KEY (albumId) REFERENCES albums (id) ON DELETE CASCADE,
+            FOREIGN KEY (artistId) REFERENCES artists (id) ON DELETE CASCADE,
+            UNIQUE(albumId, artistId)
+        )
+    ''')
+    
     # Insert default admin user
     admin_id = str(uuid.uuid4())
     admin_password = hashlib.sha256("admin123".encode()).hexdigest()
@@ -234,6 +264,47 @@ def init_db():
         ''', (admin_id, "admin", admin_password, "admin", datetime.now().isoformat()))
     except:
         pass
+    
+    # Migrate existing song-artist relationships
+    try:
+        # Check if migration has already been done
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM song_artists')
+        song_artists_count = cursor.fetchone()[0]
+        
+        if song_artists_count == 0:
+            # Migrate existing songs
+            cursor.execute('SELECT id, artistId, createdAt FROM songs WHERE artistId IS NOT NULL')
+            songs = cursor.fetchall()
+            
+            for song_id, artist_id, created_at in songs:
+                association_id = str(uuid.uuid4())
+                cursor.execute('''
+                    INSERT OR IGNORE INTO song_artists (id, songId, artistId, isPrimary, createdAt)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (association_id, song_id, artist_id, True, created_at))
+    except Exception as e:
+        print(f"Song-Artist migration warning: {e}")
+    
+    # Migrate existing album-artist relationships
+    try:
+        # Check if migration has already been done
+        cursor.execute('SELECT COUNT(*) FROM album_artists')
+        album_artists_count = cursor.fetchone()[0]
+        
+        if album_artists_count == 0:
+            # Migrate existing albums
+            cursor.execute('SELECT id, artistId, createdAt FROM albums WHERE artistId IS NOT NULL')
+            albums = cursor.fetchall()
+            
+            for album_id, artist_id, created_at in albums:
+                association_id = str(uuid.uuid4())
+                cursor.execute('''
+                    INSERT OR IGNORE INTO album_artists (id, albumId, artistId, isPrimary, createdAt)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (association_id, album_id, artist_id, True, created_at))
+    except Exception as e:
+        print(f"Album-Artist migration warning: {e}")
     
     conn.commit()
     conn.close()
@@ -297,6 +368,105 @@ def parse_json_field(field_value: str) -> List[str]:
 
 def serialize_json_field(field_value: List[str]) -> str:
     return json.dumps(field_value) if field_value else "[]"
+
+# Multi-artist helper functions
+def get_song_artists(cursor, song_id: str) -> List[Dict]:
+    """Get all artists for a song with primary artist info"""
+    cursor.execute('''
+        SELECT a.*, sa.isPrimary FROM artists a
+        JOIN song_artists sa ON a.id = sa.artistId
+        WHERE sa.songId = ?
+        ORDER BY sa.isPrimary DESC, a.name ASC
+    ''', (song_id,))
+    rows = cursor.fetchall()
+    
+    artists = []
+    for row in rows:
+        artist = {
+            "id": row[0],
+            "name": row[1],
+            "bio": row[2],
+            "avatar": row[3],
+            "coverUrl": row[4],
+            "followers": row[5],
+            "songCount": row[6],
+            "albumCount": row[7],
+            "genres": parse_json_field(row[8]),
+            "verified": bool(row[9]),
+            "createdAt": row[10],
+            "updatedAt": row[11],
+            "isPrimary": bool(row[12])
+        }
+        artists.append(artist)
+    
+    return artists
+
+def get_album_artists(cursor, album_id: str) -> List[Dict]:
+    """Get all artists for an album with primary artist info"""
+    cursor.execute('''
+        SELECT a.*, aa.isPrimary FROM artists a
+        JOIN album_artists aa ON a.id = aa.artistId
+        WHERE aa.albumId = ?
+        ORDER BY aa.isPrimary DESC, a.name ASC
+    ''', (album_id,))
+    rows = cursor.fetchall()
+    
+    artists = []
+    for row in rows:
+        artist = {
+            "id": row[0],
+            "name": row[1],
+            "bio": row[2],
+            "avatar": row[3],
+            "coverUrl": row[4],
+            "followers": row[5],
+            "songCount": row[6],
+            "albumCount": row[7],
+            "genres": parse_json_field(row[8]),
+            "verified": bool(row[9]),
+            "createdAt": row[10],
+            "updatedAt": row[11],
+            "isPrimary": bool(row[12])
+        }
+        artists.append(artist)
+    
+    return artists
+
+def manage_song_artists(cursor, song_id: str, artist_ids: List[str], primary_artist_id: str = None):
+    """Manage artist associations for a song"""
+    if not artist_ids:
+        return
+    
+    # Remove existing associations
+    cursor.execute('DELETE FROM song_artists WHERE songId = ?', (song_id,))
+    
+    # Add new associations
+    now = get_current_time()
+    for i, artist_id in enumerate(artist_ids):
+        association_id = str(uuid.uuid4())
+        is_primary = (artist_id == primary_artist_id) or (i == 0 and not primary_artist_id)
+        cursor.execute('''
+            INSERT INTO song_artists (id, songId, artistId, isPrimary, createdAt)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (association_id, song_id, artist_id, is_primary, now))
+
+def manage_album_artists(cursor, album_id: str, artist_ids: List[str], primary_artist_id: str = None):
+    """Manage artist associations for an album"""
+    if not artist_ids:
+        return
+    
+    # Remove existing associations
+    cursor.execute('DELETE FROM album_artists WHERE albumId = ?', (album_id,))
+    
+    # Add new associations
+    now = get_current_time()
+    for i, artist_id in enumerate(artist_ids):
+        association_id = str(uuid.uuid4())
+        is_primary = (artist_id == primary_artist_id) or (i == 0 and not primary_artist_id)
+        cursor.execute('''
+            INSERT INTO album_artists (id, albumId, artistId, isPrimary, createdAt)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (association_id, album_id, artist_id, is_primary, now))
 
 # Artist CRUD
 @app.get("/api/admin/artists")
@@ -404,15 +574,19 @@ async def get_albums(username: str = Depends(verify_token)):
         ORDER BY a.createdAt DESC
     ''')
     rows = cursor.fetchall()
-    conn.close()
     
     albums = []
     for row in rows:
+        # Get all artists for this album
+        album_artists = get_album_artists(cursor, row[0])
+        primary_artist = next((a for a in album_artists if a.get('isPrimary')), album_artists[0] if album_artists else None)
+        
         album = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artistName": row[11],
+            "artistName": primary_artist['name'] if primary_artist else row[11],
+            "artists": album_artists,  # All artists
             "coverUrl": row[3],
             "releaseDate": row[4],
             "songCount": row[5],
@@ -424,6 +598,7 @@ async def get_albums(username: str = Depends(verify_token)):
         }
         albums.append(album)
     
+    conn.close()
     return {"success": True, "data": albums}
 
 @app.post("/api/admin/albums")
@@ -431,11 +606,19 @@ async def create_album(album: Album, username: str = Depends(verify_token)):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
-    # Verify artist exists
+    # Verify primary artist exists
     cursor.execute('SELECT id FROM artists WHERE id=?', (album.artistId,))
     if not cursor.fetchone():
         conn.close()
-        raise HTTPException(status_code=400, detail="Artist not found")
+        raise HTTPException(status_code=400, detail="Primary artist not found")
+    
+    # Verify all artists exist if artistIds provided
+    if album.artistIds:
+        for artist_id in album.artistIds:
+            cursor.execute('SELECT id FROM artists WHERE id=?', (artist_id,))
+            if not cursor.fetchone():
+                conn.close()
+                raise HTTPException(status_code=400, detail=f"Artist {artist_id} not found")
     
     album_id = str(uuid.uuid4())
     now = get_current_time()
@@ -448,8 +631,13 @@ async def create_album(album: Album, username: str = Depends(verify_token)):
         album.songCount, album.duration, album.genre, album.description, now, now
     ))
     
-    # Update artist album count
-    cursor.execute('UPDATE artists SET albumCount = albumCount + 1 WHERE id=?', (album.artistId,))
+    # Handle multiple artists
+    artist_ids = album.artistIds if album.artistIds else [album.artistId]
+    manage_album_artists(cursor, album_id, artist_ids, album.artistId)
+    
+    # Update artist album counts
+    for artist_id in set(artist_ids):  # Use set to avoid duplicate updates
+        cursor.execute('UPDATE artists SET albumCount = albumCount + 1 WHERE id=?', (artist_id,))
     
     conn.commit()
     conn.close()
@@ -509,15 +697,19 @@ async def get_songs(username: str = Depends(verify_token)):
         ORDER BY s.createdAt DESC
     ''')
     rows = cursor.fetchall()
-    conn.close()
     
     songs = []
     for row in rows:
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artistName": row[14],
+            "artistName": primary_artist['name'] if primary_artist else row[14],
+            "artists": song_artists,  # All artists
             "albumId": row[3],
             "albumTitle": row[15],
             "duration": row[4],
@@ -533,6 +725,7 @@ async def get_songs(username: str = Depends(verify_token)):
         }
         songs.append(song)
     
+    conn.close()
     return {"success": True, "data": songs}
 
 @app.post("/api/admin/songs")
@@ -540,11 +733,19 @@ async def create_song(song: Song, username: str = Depends(verify_token)):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
-    # Verify artist exists
+    # Verify primary artist exists
     cursor.execute('SELECT id FROM artists WHERE id=?', (song.artistId,))
     if not cursor.fetchone():
         conn.close()
-        raise HTTPException(status_code=400, detail="Artist not found")
+        raise HTTPException(status_code=400, detail="Primary artist not found")
+    
+    # Verify all artists exist if artistIds provided
+    if song.artistIds:
+        for artist_id in song.artistIds:
+            cursor.execute('SELECT id FROM artists WHERE id=?', (artist_id,))
+            if not cursor.fetchone():
+                conn.close()
+                raise HTTPException(status_code=400, detail=f"Artist {artist_id} not found")
     
     song_id = str(uuid.uuid4())
     now = get_current_time()
@@ -558,8 +759,13 @@ async def create_song(song: Song, username: str = Depends(verify_token)):
         song.playCount, song.liked, song.genre, now, now
     ))
     
-    # Update artist song count
-    cursor.execute('UPDATE artists SET songCount = songCount + 1 WHERE id=?', (song.artistId,))
+    # Handle multiple artists
+    artist_ids = song.artistIds if song.artistIds else [song.artistId]
+    manage_song_artists(cursor, song_id, artist_ids, song.artistId)
+    
+    # Update artist song counts
+    for artist_id in set(artist_ids):  # Use set to avoid duplicate updates
+        cursor.execute('UPDATE artists SET songCount = songCount + 1 WHERE id=?', (artist_id,))
     
     conn.commit()
     conn.close()
@@ -570,6 +776,24 @@ async def create_song(song: Song, username: str = Depends(verify_token)):
 async def update_song(song_id: str, song: Song, username: str = Depends(verify_token)):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
+    
+    # Get existing song artists for count adjustment
+    existing_artists = get_song_artists(cursor, song_id)
+    existing_artist_ids = [a['id'] for a in existing_artists]
+    
+    # Verify primary artist exists
+    cursor.execute('SELECT id FROM artists WHERE id=?', (song.artistId,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Primary artist not found")
+    
+    # Verify all artists exist if artistIds provided
+    if song.artistIds:
+        for artist_id in song.artistIds:
+            cursor.execute('SELECT id FROM artists WHERE id=?', (artist_id,))
+            if not cursor.fetchone():
+                conn.close()
+                raise HTTPException(status_code=400, detail=f"Artist {artist_id} not found")
     
     now = get_current_time()
     
@@ -586,6 +810,19 @@ async def update_song(song_id: str, song: Song, username: str = Depends(verify_t
         conn.close()
         raise HTTPException(status_code=404, detail="Song not found")
     
+    # Handle multiple artists
+    new_artist_ids = song.artistIds if song.artistIds else [song.artistId]
+    manage_song_artists(cursor, song_id, new_artist_ids, song.artistId)
+    
+    # Update artist song counts
+    # Decrease count for removed artists
+    for artist_id in set(existing_artist_ids) - set(new_artist_ids):
+        cursor.execute('UPDATE artists SET songCount = songCount - 1 WHERE id=? AND songCount > 0', (artist_id,))
+    
+    # Increase count for new artists
+    for artist_id in set(new_artist_ids) - set(existing_artist_ids):
+        cursor.execute('UPDATE artists SET songCount = songCount + 1 WHERE id=?', (artist_id,))
+    
     conn.commit()
     conn.close()
     
@@ -596,11 +833,19 @@ async def delete_song(song_id: str, username: str = Depends(verify_token)):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
+    # Get existing song artists for count adjustment
+    existing_artists = get_song_artists(cursor, song_id)
+    existing_artist_ids = [a['id'] for a in existing_artists]
+    
     cursor.execute('DELETE FROM songs WHERE id=?', (song_id,))
     
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Update artist song counts (the song_artists associations will be deleted automatically due to CASCADE)
+    for artist_id in existing_artist_ids:
+        cursor.execute('UPDATE artists SET songCount = songCount - 1 WHERE id=? AND songCount > 0', (artist_id,))
     
     conn.commit()
     conn.close()

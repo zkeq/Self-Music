@@ -50,12 +50,16 @@ def get_album_by_id(cursor, album_id: str) -> Optional[Dict]:
     if not row:
         return None
     
-    artist_data = get_artist_by_id(cursor, row[2])
+    # Get all artists for this album
+    album_artists = get_album_artists(cursor, album_id)
+    primary_artist = next((a for a in album_artists if a.get('isPrimary')), album_artists[0] if album_artists else None)
+    
     return {
         "id": row[0],
         "title": row[1],
         "artistId": row[2],
-        "artist": artist_data,
+        "artist": primary_artist,  # Primary artist for backward compatibility
+        "artists": album_artists,  # All artists
         "coverUrl": row[3],
         "releaseDate": row[4],
         "songCount": row[5],
@@ -65,6 +69,68 @@ def get_album_by_id(cursor, album_id: str) -> Optional[Dict]:
         "createdAt": row[9],
         "updatedAt": row[10]
     }
+
+def get_album_artists(cursor, album_id: str) -> List[Dict]:
+    """Get all artists for an album with primary artist info"""
+    cursor.execute('''
+        SELECT a.*, aa.isPrimary FROM artists a
+        JOIN album_artists aa ON a.id = aa.artistId
+        WHERE aa.albumId = ?
+        ORDER BY aa.isPrimary DESC, a.name ASC
+    ''', (album_id,))
+    rows = cursor.fetchall()
+    
+    artists = []
+    for row in rows:
+        artist = {
+            "id": row[0],
+            "name": row[1],
+            "bio": row[2],
+            "avatar": row[3],
+            "coverUrl": row[4],
+            "followers": row[5],
+            "songCount": row[6],
+            "albumCount": row[7],
+            "genres": parse_json_field(row[8]),
+            "verified": bool(row[9]),
+            "createdAt": row[10],
+            "updatedAt": row[11],
+            "isPrimary": bool(row[12])
+        }
+        artists.append(artist)
+    
+    return artists
+
+def get_song_artists(cursor, song_id: str) -> List[Dict]:
+    """Get all artists for a song with primary artist info"""
+    cursor.execute('''
+        SELECT a.*, sa.isPrimary FROM artists a
+        JOIN song_artists sa ON a.id = sa.artistId
+        WHERE sa.songId = ?
+        ORDER BY sa.isPrimary DESC, a.name ASC
+    ''', (song_id,))
+    rows = cursor.fetchall()
+    
+    artists = []
+    for row in rows:
+        artist = {
+            "id": row[0],
+            "name": row[1],
+            "bio": row[2],
+            "avatar": row[3],
+            "coverUrl": row[4],
+            "followers": row[5],
+            "songCount": row[6],
+            "albumCount": row[7],
+            "genres": parse_json_field(row[8]),
+            "verified": bool(row[9]),
+            "createdAt": row[10],
+            "updatedAt": row[11],
+            "isPrimary": bool(row[12])
+        }
+        artists.append(artist)
+    
+    return artists
 
 def get_moods_for_song(cursor, mood_ids: List[str]) -> List[Dict]:
     if not mood_ids:
@@ -160,12 +226,14 @@ async def get_artist_songs(artist_id: str):
         conn.close()
         raise HTTPException(status_code=404, detail="Artist not found")
     
+    # Get songs where this artist is involved (through song_artists table)
     cursor.execute('''
-        SELECT s.*, ar.name as artist_name, al.title as album_title 
+        SELECT DISTINCT s.*, ar.name as artist_name, al.title as album_title 
         FROM songs s 
+        JOIN song_artists sa ON s.id = sa.songId
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
-        WHERE s.artistId = ?
+        WHERE sa.artistId = ?
         ORDER BY s.createdAt DESC
     ''', (artist_id,))
     rows = cursor.fetchall()
@@ -174,13 +242,19 @@ async def get_artist_songs(artist_id: str):
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -211,21 +285,28 @@ async def get_artist_albums(artist_id: str):
         conn.close()
         raise HTTPException(status_code=404, detail="Artist not found")
     
+    # Get albums where this artist is involved (through album_artists table)
     cursor.execute('''
-        SELECT a.*, ar.name as artist_name FROM albums a 
+        SELECT DISTINCT a.*, ar.name as artist_name FROM albums a 
+        JOIN album_artists aa ON a.id = aa.albumId
         JOIN artists ar ON a.artistId = ar.id 
-        WHERE a.artistId = ?
+        WHERE aa.artistId = ?
         ORDER BY a.createdAt DESC
     ''', (artist_id,))
     rows = cursor.fetchall()
     
     albums = []
     for row in rows:
+        # Get all artists for this album
+        album_artists = get_album_artists(cursor, row[0])
+        primary_artist = next((a for a in album_artists if a.get('isPrimary')), album_artists[0] if album_artists else None)
+        
         album = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": album_artists,  # All artists
             "coverUrl": row[3],
             "releaseDate": row[4],
             "songCount": row[5],
@@ -261,12 +342,16 @@ async def get_albums(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le
     
     albums = []
     for row in rows:
-        artist_data = get_artist_by_id(cursor, row[2])
+        # Get all artists for this album
+        album_artists = get_album_artists(cursor, row[0])
+        primary_artist = next((a for a in album_artists if a.get('isPrimary')), album_artists[0] if album_artists else None)
+        
         album = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": album_artists,  # All artists
             "coverUrl": row[3],
             "releaseDate": row[4],
             "songCount": row[5],
@@ -329,13 +414,17 @@ async def get_album_songs(album_id: str):
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album,
             "duration": row[4],
@@ -380,14 +469,19 @@ async def get_songs(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -437,14 +531,19 @@ async def get_song(song_id: str):
     
     mood_ids = parse_json_field(row[8])
     moods = get_moods_for_song(cursor, mood_ids)
-    artist_data = get_artist_by_id(cursor, row[2])
+    
+    # Get all artists for this song
+    song_artists = get_song_artists(cursor, row[0])
+    primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+    
     album_data = get_album_by_id(cursor, row[3]) if row[3] else None
     
     song = {
         "id": row[0],
         "title": row[1],
         "artistId": row[2],
-        "artist": artist_data,
+        "artist": primary_artist,  # Primary artist for backward compatibility
+        "artists": song_artists,   # All artists
         "albumId": row[3],
         "album": album_data,
         "duration": row[4],
@@ -557,14 +656,19 @@ async def get_similar_songs(song_id: str, limit: int = Query(10, ge=1, le=50)):
     for row in unique_songs:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -624,14 +728,19 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
             for song_row in song_rows:
                 mood_ids = parse_json_field(song_row[8])
                 moods = get_moods_for_song(cursor, mood_ids)
-                artist_data = get_artist_by_id(cursor, song_row[2])
+                
+                # Get all artists for this song
+                song_artists = get_song_artists(cursor, song_row[0])
+                primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+                
                 album_data = get_album_by_id(cursor, song_row[3]) if song_row[3] else None
                 
                 song = {
                     "id": song_row[0],
                     "title": song_row[1],
                     "artistId": song_row[2],
-                    "artist": artist_data,
+                    "artist": primary_artist,  # Primary artist for backward compatibility
+                    "artists": song_artists,   # All artists
                     "albumId": song_row[3],
                     "album": album_data,
                     "duration": song_row[4],
@@ -713,14 +822,19 @@ async def get_playlist(playlist_id: str):
         for song_row in song_rows:
             mood_ids = parse_json_field(song_row[8])
             moods = get_moods_for_song(cursor, mood_ids)
-            artist_data = get_artist_by_id(cursor, song_row[2])
+            
+            # Get all artists for this song
+            song_artists = get_song_artists(cursor, song_row[0])
+            primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+            
             album_data = get_album_by_id(cursor, song_row[3]) if song_row[3] else None
             
             song = {
                 "id": song_row[0],
                 "title": song_row[1],
                 "artistId": song_row[2],
-                "artist": artist_data,
+                "artist": primary_artist,  # Primary artist for backward compatibility
+                "artists": song_artists,   # All artists
                 "albumId": song_row[3],
                 "album": album_data,
                 "duration": song_row[4],
@@ -1044,14 +1158,19 @@ async def get_mood_songs(mood_id: str):
         mood_ids = parse_json_field(row[8])
         if mood_id in mood_ids:  # Double check the mood is actually in the list
             moods = get_moods_for_song(cursor, mood_ids)
-            artist_data = get_artist_by_id(cursor, row[2])
+            
+            # Get all artists for this song
+            song_artists = get_song_artists(cursor, row[0])
+            primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+            
             album_data = get_album_by_id(cursor, row[3]) if row[3] else None
             
             song = {
                 "id": row[0],
                 "title": row[1],
                 "artistId": row[2],
-                "artist": artist_data,
+                "artist": primary_artist,  # Primary artist for backward compatibility
+                "artists": song_artists,   # All artists
                 "albumId": row[3],
                 "album": album_data,
                 "duration": row[4],
@@ -1079,30 +1198,37 @@ async def search_content(q: str = Query(..., min_length=1)):
     
     query = f"%{q.lower()}%"
     
-    # Search songs
+    # Search songs (include songs by all associated artists, not just primary artist)
     cursor.execute('''
-        SELECT s.*, ar.name as artist_name, al.title as album_title 
+        SELECT DISTINCT s.*, ar.name as artist_name, al.title as album_title 
         FROM songs s 
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
-        WHERE LOWER(s.title) LIKE ? OR LOWER(ar.name) LIKE ? OR LOWER(s.genre) LIKE ?
+        LEFT JOIN song_artists sa ON s.id = sa.songId
+        LEFT JOIN artists sar ON sa.artistId = sar.id
+        WHERE LOWER(s.title) LIKE ? OR LOWER(ar.name) LIKE ? OR LOWER(s.genre) LIKE ? OR LOWER(sar.name) LIKE ?
         ORDER BY s.playCount DESC
         LIMIT 20
-    ''', (query, query, query))
+    ''', (query, query, query, query))
     song_rows = cursor.fetchall()
     
     songs = []
     for row in song_rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -1146,24 +1272,30 @@ async def search_content(q: str = Query(..., min_length=1)):
         }
         artists.append(artist)
     
-    # Search albums
+    # Search albums (include albums by all associated artists, not just primary artist)
     cursor.execute('''
-        SELECT a.*, ar.name as artist_name FROM albums a 
+        SELECT DISTINCT a.*, ar.name as artist_name FROM albums a 
         JOIN artists ar ON a.artistId = ar.id 
-        WHERE LOWER(a.title) LIKE ? OR LOWER(ar.name) LIKE ? OR LOWER(a.genre) LIKE ?
+        LEFT JOIN album_artists aa ON a.id = aa.albumId
+        LEFT JOIN artists aar ON aa.artistId = aar.id
+        WHERE LOWER(a.title) LIKE ? OR LOWER(ar.name) LIKE ? OR LOWER(a.genre) LIKE ? OR LOWER(aar.name) LIKE ?
         ORDER BY a.songCount DESC
         LIMIT 20
-    ''', (query, query, query))
+    ''', (query, query, query, query))
     album_rows = cursor.fetchall()
     
     albums = []
     for row in album_rows:
-        artist_data = get_artist_by_id(cursor, row[2])
+        # Get all artists for this album
+        album_artists = get_album_artists(cursor, row[0])
+        primary_artist = next((a for a in album_artists if a.get('isPrimary')), album_artists[0] if album_artists else None)
+        
         album = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": album_artists,  # All artists
             "coverUrl": row[3],
             "releaseDate": row[4],
             "songCount": row[5],
@@ -1273,14 +1405,19 @@ async def get_recommendations(
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -1319,14 +1456,19 @@ async def get_trending_songs(limit: int = Query(20, ge=1, le=50)):
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -1365,14 +1507,19 @@ async def get_hot_songs(limit: int = Query(20, ge=1, le=50)):
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],
@@ -1411,14 +1558,19 @@ async def get_new_songs(limit: int = Query(20, ge=1, le=50)):
     for row in rows:
         mood_ids = parse_json_field(row[8])
         moods = get_moods_for_song(cursor, mood_ids)
-        artist_data = get_artist_by_id(cursor, row[2])
+        
+        # Get all artists for this song
+        song_artists = get_song_artists(cursor, row[0])
+        primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
+        
         album_data = get_album_by_id(cursor, row[3]) if row[3] else None
         
         song = {
             "id": row[0],
             "title": row[1],
             "artistId": row[2],
-            "artist": artist_data,
+            "artist": primary_artist,  # Primary artist for backward compatibility
+            "artists": song_artists,   # All artists
             "albumId": row[3],
             "album": album_data,
             "duration": row[4],

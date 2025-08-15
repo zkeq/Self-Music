@@ -11,13 +11,16 @@ export interface Artist {
   verified: boolean;
   createdAt: string;
   updatedAt: string;
+  isPrimary?: boolean; // For multi-artist associations
 }
 
 export interface Album {
   id: string;
   title: string;
-  artist: Artist;
+  artist: Artist; // Primary artist for backward compatibility
+  artists?: Artist[]; // All artists
   artistId: string;
+  artistIds?: string[]; // Multiple artist IDs
   coverUrl?: string;
   releaseDate: string;
   songCount: number;
@@ -31,8 +34,10 @@ export interface Album {
 export interface Song {
   id: string;
   title: string;
-  artist: Artist;
+  artist: Artist; // Primary artist for backward compatibility
+  artists?: Artist[]; // All artists
   artistId: string;
+  artistIds?: string[]; // Multiple artist IDs
   album?: Album;
   albumId?: string;
   duration: number;
@@ -159,3 +164,38 @@ export interface AdminApiResponse<T = unknown> {
   message?: string;
   error?: string;
 }
+
+// Utility functions for multi-artist support
+export const formatArtistNames = (artists?: Artist[], maxNames = 2): string => {
+  if (!artists || artists.length === 0) return 'Unknown Artist';
+  
+  if (artists.length === 1) {
+    return artists[0].name;
+  }
+  
+  if (artists.length <= maxNames) {
+    return artists.map(a => a.name).join(', ');
+  }
+  
+  const displayedArtists = artists.slice(0, maxNames);
+  const remainingCount = artists.length - maxNames;
+  return `${displayedArtists.map(a => a.name).join(', ')} & ${remainingCount} others`;
+};
+
+export const getPrimaryArtist = (song: Song | Album): Artist => {
+  // If artists array exists, find primary artist or return first one
+  if (song.artists && song.artists.length > 0) {
+    const primary = song.artists.find(a => a.isPrimary);
+    return primary || song.artists[0];
+  }
+  
+  // Fallback to the single artist field
+  return song.artist;
+};
+
+export const getAllArtistNames = (song: Song | Album): string => {
+  if (song.artists && song.artists.length > 0) {
+    return formatArtistNames(song.artists);
+  }
+  return song.artist?.name || 'Unknown Artist';
+};

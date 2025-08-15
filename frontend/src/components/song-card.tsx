@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Play, Heart, Music2, TrendingUp, ListPlus } from 'lucide-react';
 import type { Song } from '@/types';
+import { getAllArtistNames } from '@/types';
 
 interface SongCardProps {
   song: Song;
@@ -36,7 +37,9 @@ export function SongCard({ song, onPlay, onLike, onAddToPlaylist, formatPlayCoun
           
           <div className="flex-1 min-w-0">
             <h3 className="font-medium truncate mb-1">{song.title}</h3>
-            <p className="text-sm text-muted-foreground truncate mb-2">{song.artist.name}</p>
+            <p className="text-sm text-muted-foreground truncate mb-2" title={getAllArtistNames(song)}>
+              {getAllArtistNames(song)}
+            </p>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <TrendingUp className="w-3 h-3" />
               <span>{formatPlayCount(song.playCount)} 播放</span>

@@ -8,7 +8,7 @@ import { Music } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables, ColorPalette } from '@/lib/color-utils';
 
-import { Song } from '@/types/index';
+import { Song, getAllArtistNames, getPrimaryArtist } from '@/types/index';
 import { getIconComponent } from '@/lib/icon-map';
 
 interface AlbumCoverProps {
@@ -117,7 +117,7 @@ export function AlbumCover({ song, className, size = 'lg' }: AlbumCoverProps) {
       )}>
         <AvatarImage 
           src={song.coverUrl} 
-          alt={`${song.title} - ${song.artist.name}`}
+          alt={`${song.title} - ${getAllArtistNames(song)}`}
           className="object-cover"
         />
         <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20">
@@ -186,8 +186,9 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.15 }}
             className="text-muted-foreground truncate"
+            title={getAllArtistNames(song)}
           >
-            {song.artist.name}
+            {getAllArtistNames(song)}
           </motion.p>
         </div>
       </div>
@@ -217,8 +218,9 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.35 }}
+        title={getAllArtistNames(song)}
       >
-        {song.artist.name}
+        {getAllArtistNames(song)}
       </motion.p>
       
       {/* Album */}
@@ -229,6 +231,11 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
         transition={{ delay: 0.4 }}
       >
         专辑：{song.album?.title || '未知专辑'}
+        {song.album && song.album.artists && song.album.artists.length > 1 && (
+          <span className="text-xs opacity-70">
+            {' '}(与 {getAllArtistNames(song.album)} 合作)
+          </span>
+        )}
       </motion.p>
       
       {/* Duration */}
