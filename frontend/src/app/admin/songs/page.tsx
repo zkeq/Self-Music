@@ -148,8 +148,8 @@ export default function SongsPage() {
     setEditingSong(song);
     
     // 检查歌曲是否属于专辑并且继承艺术家
-    const selectedAlbum = song.albumId ? albums.find(a => a.id === song.albumId) : null;
-    const isInheritingFromAlbum = selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0;
+    const selectedAlbum = song.albumId ? albums.find(a => a.id === song.albumId) || null : null;
+    const isInheritingFromAlbum = Boolean(selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0);
     
     // 准备艺术家数据
     let selectedArtists: Artist[] = [];
@@ -217,14 +217,14 @@ export default function SongsPage() {
 
   // 处理专辑选择变化
   const handleAlbumChange = (albumId: string) => {
-    const selectedAlbum = albums.find(album => album.id === albumId);
-    const shouldInherit = selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0;
+    const selectedAlbum = albums.find(album => album.id === albumId) || null;
+    const shouldInherit = Boolean(selectedAlbum && selectedAlbum.artists && selectedAlbum.artists.length > 0);
     
     setFormData(prev => ({
       ...prev,
       albumId,
-      selectedAlbum: selectedAlbum || null,
-      isInheritingArtists: shouldInherit || false,
+      selectedAlbum: selectedAlbum,
+      isInheritingArtists: shouldInherit,
       // 如果选择了专辑且专辑有艺术家，清空手动选择的艺术家
       selectedArtists: shouldInherit ? [] : prev.selectedArtists,
       artistIds: shouldInherit ? [] : prev.artistIds,
