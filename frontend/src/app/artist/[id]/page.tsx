@@ -438,12 +438,13 @@ function ArtistDetailContent() {
                         </div>
                         
                         {album.coverUrl && (
-                          <Avatar className="w-full h-32 rounded-lg mb-4">
-                            <AvatarImage src={album.coverUrl} alt={album.title} />
-                            <AvatarFallback>
-                              <Music className="w-8 h-8" />
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="aspect-square w-full rounded-lg mb-4 overflow-hidden bg-muted/10">
+                            <img 
+                              src={album.coverUrl} 
+                              alt={album.title}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
                         )}
                         
                         {/* 专辑歌曲列表 */}
