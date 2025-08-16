@@ -199,3 +199,82 @@ export const getAllArtistNames = (song: Song | Album): string => {
   }
   return song.artist?.name || 'Unknown Artist';
 };
+
+// Import related types
+export interface ImportSearchItem {
+  id: string;
+  url: string;
+  searchTerm: string;
+  status: 'pending' | 'searching' | 'found' | 'detailed' | 'ready' | 'importing' | 'imported' | 'error';
+  error?: string;
+  searchResults?: ImportSongResult[];
+  selectedResult?: ImportSongResult;
+  detailedInfo?: ImportDetailedInfo;
+  existsInDb?: boolean;
+  originalUrl?: string; // 添加原始URL字段
+}
+
+export interface ImportSongResult {
+  songId: number;
+  name: string;
+  ar: number[];  // 添加艺术家ID数组
+  arName: string[];
+  albumName: string;
+  albumId: number;
+  interval: string;
+  img: string;
+  duration: number; // parsed from interval
+}
+
+export interface ImportDetailedInfo {
+  song: ImportSongResult;
+  album: ImportAlbumInfo;
+  artists: ImportArtistInfo[];
+  lyrics: string;
+}
+
+export interface ImportAlbumInfo {
+  id: number;
+  title: string;
+  artist: string;
+  coverUrl: string;
+  releaseDate: string;
+  company?: string;
+  description?: string;
+}
+
+export interface ImportArtistInfo {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  intro?: string;
+  fanCount?: string;
+}
+
+export interface ImportBatchRequest {
+  items: ImportBatchItem[];
+}
+
+export interface ImportBatchItem {
+  songInfo: ImportSongResult;
+  albumInfo: ImportAlbumInfo;
+  artistsInfo: ImportArtistInfo[];
+  lyrics: string;
+  audioUrl: string; // 添加音频URL字段
+  skipIfExists: boolean;
+}
+
+export interface ImportBatchResponse {
+  success: boolean;
+  imported: number;
+  skipped: number;
+  errors: string[];
+  details: ImportBatchResult[];
+}
+
+export interface ImportBatchResult {
+  songId: number;
+  status: 'imported' | 'skipped' | 'error';
+  reason?: string;
+  localId?: string; // ID in local database if imported
+}

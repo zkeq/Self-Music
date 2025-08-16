@@ -12,6 +12,7 @@ import hashlib
 import uuid
 import os
 import shutil
+import requests
 from datetime import datetime, timedelta
 from mutagen import File as MutagenFile
 import mimetypes
@@ -118,6 +119,49 @@ class User(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+# Import related models
+class ImportSongInfo(BaseModel):
+    songId: int
+    name: str
+    arName: List[str]
+    albumName: str
+    albumId: int
+    interval: str
+    img: str
+    duration: int
+
+class ImportAlbumInfo(BaseModel):
+    id: int
+    title: str
+    artist: str
+    coverUrl: str
+    releaseDate: str
+    company: Optional[str] = None
+    description: Optional[str] = None
+
+class ImportArtistInfo(BaseModel):
+    id: str
+    name: str
+    avatarUrl: Optional[str] = None
+    intro: Optional[str] = None
+    fanCount: Optional[str] = None
+
+class ImportBatchItem(BaseModel):
+    songInfo: ImportSongInfo
+    albumInfo: ImportAlbumInfo
+    artistsInfo: List[ImportArtistInfo]
+    lyrics: str
+    audioUrl: str  # 添加音频URL字段
+    skipIfExists: bool = True
+
+class ImportBatchRequest(BaseModel):
+    items: List[ImportBatchItem]
+
+class CheckExistsRequest(BaseModel):
+    songName: str
+    artistName: str
+    albumName: Optional[str] = None
 
 # Database setup
 def init_db():
@@ -1085,6 +1129,194 @@ async def upload_file(file: UploadFile = File(...), username: str = Depends(veri
         shutil.copyfileobj(file.file, buffer)
     
     return {"success": True, "data": {"filename": filename, "url": f"/uploads/{filename}"}}
+
+# Import endpoints
+@app.post("/api/admin/import/check-exists")
+async def check_song_exists(request: CheckExistsRequest, username: str = Depends(verify_token)):
+    """检查歌曲是否已存在于数据库中"""
+    conn = sqlite3.connect('music.db')
+    cursor = conn.cursor()
+    
+    try:
+        # 检查歌曲是否存在（基于歌曲名和主要艺术家名）
+        cursor.execute('''
+            SELECT s.id, s.title, ar.name as artist_name 
+            FROM songs s 
+            JOIN artists ar ON s.artistId = ar.id 
+            WHERE s.title = ? AND ar.name = ?
+        ''', (request.songName, request.artistName))
+        
+        existing_song = cursor.fetchone()
+        
+        if existing_song:
+            return {
+                "success": True, 
+                "exists": True, 
+                "data": {
+                    "id": existing_song[0],
+                    "title": existing_song[1], 
+                    "artistName": existing_song[2]
+                }
+            }
+        else:
+            return {"success": True, "exists": False}
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"检查失败: {str(e)}")
+    finally:
+        conn.close()
+
+@app.post("/api/admin/import/batch")
+async def batch_import(request: ImportBatchRequest, username: str = Depends(verify_token)):
+    """批量导入音乐数据"""
+    conn = sqlite3.connect('music.db')
+    cursor = conn.cursor()
+    
+    imported_count = 0
+    skipped_count = 0
+    errors = []
+    results = []
+    
+    try:
+        for item in request.items:
+            try:
+                song_info = item.songInfo
+                album_info = item.albumInfo
+                artists_info = item.artistsInfo
+                lyrics = item.lyrics
+                audio_url = item.audioUrl  # 使用传入的音频URL
+                
+                # 检查歌曲是否已存在
+                if item.skipIfExists:
+                    cursor.execute('''
+                        SELECT s.id FROM songs s 
+                        JOIN artists ar ON s.artistId = ar.id 
+                        WHERE s.title = ? AND ar.name = ?
+                    ''', (song_info.name, artists_info[0].name if artists_info else ''))
+                    
+                    existing = cursor.fetchone()
+                    if existing:
+                        skipped_count += 1
+                        results.append({
+                            "songId": song_info.songId,
+                            "status": "skipped",
+                            "reason": "歌曲已存在"
+                        })
+                        continue
+                
+                # 导入或获取艺术家
+                created_artists = []
+                primary_artist_id = None
+                
+                for i, artist_info in enumerate(artists_info):
+                    # 检查艺术家是否已存在
+                    cursor.execute('SELECT id FROM artists WHERE name = ?', (artist_info.name,))
+                    existing_artist = cursor.fetchone()
+                    
+                    if existing_artist:
+                        artist_id = existing_artist[0]
+                    else:
+                        # 创建新艺术家
+                        artist_id = str(uuid.uuid4())
+                        now = get_current_time()
+                        cursor.execute('''
+                            INSERT INTO artists (id, name, bio, avatar, coverUrl, followers, songCount, albumCount, genres, verified, createdAt, updatedAt)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            artist_id, artist_info.name, 
+                            artist_info.intro[:500] if artist_info.intro else None,  # 限制简介长度
+                            artist_info.avatarUrl, artist_info.avatarUrl, 
+                            int(artist_info.fanCount.replace(',', '')) if artist_info.fanCount and artist_info.fanCount.replace(',', '').isdigit() else 0,
+                            0, 0, "[]", False, now, now
+                        ))
+                    
+                    created_artists.append(artist_id)
+                    if i == 0:  # 第一个艺术家作为主艺术家
+                        primary_artist_id = artist_id
+                
+                # 导入或获取专辑
+                album_id = None
+                if album_info:
+                    # 检查专辑是否已存在（基于标题和主艺术家）
+                    cursor.execute('''
+                        SELECT id FROM albums WHERE title = ? AND artistId = ?
+                    ''', (album_info.title, primary_artist_id))
+                    existing_album = cursor.fetchone()
+                    
+                    if existing_album:
+                        album_id = existing_album[0]
+                    else:
+                        # 创建新专辑
+                        album_id = str(uuid.uuid4())
+                        now = get_current_time()
+                        cursor.execute('''
+                            INSERT INTO albums (id, title, artistId, coverUrl, releaseDate, songCount, duration, genre, description, createdAt, updatedAt)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ''', (
+                            album_id, album_info.title, primary_artist_id, album_info.coverUrl,
+                            album_info.releaseDate, 0, 0, None, album_info.description, now, now
+                        ))
+                        
+                        # 创建专辑-艺术家关联
+                        manage_album_artists(cursor, album_id, created_artists, primary_artist_id)
+                        
+                        # 更新艺术家专辑计数
+                        for artist_id in created_artists:
+                            cursor.execute('UPDATE artists SET albumCount = albumCount + 1 WHERE id=?', (artist_id,))
+                
+                # 创建歌曲
+                song_id = str(uuid.uuid4())
+                now = get_current_time()
+                
+                cursor.execute('''
+                    INSERT INTO songs (id, title, artistId, albumId, duration, audioUrl, coverUrl, lyrics, moodIds, playCount, liked, genre, createdAt, updatedAt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    song_id, song_info.name, primary_artist_id, album_id, song_info.duration,
+                    audio_url, song_info.img, lyrics, "[]", 0, False, None, now, now
+                ))
+                
+                # 创建歌曲-艺术家关联
+                manage_song_artists(cursor, song_id, created_artists, primary_artist_id)
+                
+                # 更新艺术家歌曲计数
+                for artist_id in created_artists:
+                    cursor.execute('UPDATE artists SET songCount = songCount + 1 WHERE id=?', (artist_id,))
+                
+                # 更新专辑歌曲计数
+                if album_id:
+                    cursor.execute('UPDATE albums SET songCount = songCount + 1 WHERE id=?', (album_id,))
+                
+                imported_count += 1
+                results.append({
+                    "songId": song_info.songId,
+                    "status": "imported",
+                    "localId": song_id
+                })
+                
+            except Exception as e:
+                errors.append(f"导入歌曲 {song_info.name} 失败: {str(e)}")
+                results.append({
+                    "songId": song_info.songId,
+                    "status": "error",
+                    "reason": str(e)
+                })
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "imported": imported_count,
+            "skipped": skipped_count,
+            "errors": errors,
+            "details": results
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"批量导入失败: {str(e)}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     init_db()

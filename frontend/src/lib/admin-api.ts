@@ -1,4 +1,4 @@
-import { LoginRequest, LoginResponse, AdminApiResponse, Artist, Album, Song, Mood, Playlist } from '@/types';
+import { LoginRequest, LoginResponse, AdminApiResponse, Artist, Album, Song, Mood, Playlist, ImportBatchRequest, ImportBatchResponse } from '@/types';
 
 const API_BASE = process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_API_URL : 'http://localhost:8000/api';
 
@@ -350,6 +350,39 @@ class AdminAPI {
 
     if (!response.ok) {
       throw new Error('Failed to upload file');
+    }
+
+    return response.json();
+  }
+
+  // Import related methods
+  async checkSongExists(songName: string, artistName: string, albumName?: string): Promise<AdminApiResponse<{ exists: boolean; data?: any }>> {
+    const response = await fetch(`${API_BASE}/admin/import/check-exists`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        songName,
+        artistName,
+        albumName
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to check song existence');
+    }
+
+    return response.json();
+  }
+
+  async batchImport(request: ImportBatchRequest): Promise<ImportBatchResponse> {
+    const response = await fetch(`${API_BASE}/admin/import/batch`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to perform batch import');
     }
 
     return response.json();
