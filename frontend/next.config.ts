@@ -1,15 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 强制启用热加载和快速刷新
-  experimental: {
-    turbo: {
-      // 修复 turbopack 热加载问题
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // Turbopack配置 (修复deprecated警告)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
@@ -23,6 +20,15 @@ const nextConfig: NextConfig = {
       };
     }
     return config;
+  },
+  // 构建优化
+  typescript: {
+    // 在构建过程中忽略类型错误
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    // 在构建过程中忽略ESLint错误
+    ignoreDuringBuilds: false,
   },
 };
 

@@ -219,8 +219,8 @@ export default function ImportPage() {
           if (result) {
             return {
               ...item,
-              status: result.status === 'imported' ? 'imported' : 
-                      result.status === 'skipped' ? 'imported' : 'error',
+              status: result.status === 'imported' ? 'imported' as const : 
+                      result.status === 'skipped' ? 'imported' as const : 'error' as const,
               error: result.reason
             };
           }

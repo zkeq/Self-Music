@@ -21,7 +21,8 @@
       "Bash(find:*)",
       "Bash(python3:*)",
       "Bash(python:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(timeout 30 npm run build)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

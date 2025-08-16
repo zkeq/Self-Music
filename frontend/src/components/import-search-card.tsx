@@ -21,8 +21,8 @@ import {
   Eye,
   Database
 } from 'lucide-react';
-import { ImportSearchItem, ImportSongResult, ImportDetailedInfo } from '@/types';
-import { neteaseAPI } from '@/lib/netease-api';
+import { ImportSearchItem, ImportSongResult, ImportDetailedInfo, ImportArtistInfo } from '@/types';
+import { neteaseAPI, NeteaseAlbumInfo, NeteaseLyricsResponse } from '@/lib/netease-api';
 import { adminAPI } from '@/lib/admin-api';
 import { MusicInfoDisplay } from '@/components/music-info-display';
 
@@ -169,9 +169,9 @@ export function ImportSearchCard({ item, onUpdate }: ImportSearchCardProps) {
       const results = await Promise.all(requests);
       
       // 解构结果
-      const albumInfo = results[0];
-      const lyrics = results[1];
-      const artistsInfo = results.slice(2); // 艺术家信息从第3个元素开始
+      const albumInfo = results[0] as NeteaseAlbumInfo;
+      const lyrics = results[1] as NeteaseLyricsResponse;
+      const artistsInfo = results.slice(2) as ImportArtistInfo[]; // 艺术家信息从第3个元素开始
 
       const detailedInfo: ImportDetailedInfo = {
         song: result,
