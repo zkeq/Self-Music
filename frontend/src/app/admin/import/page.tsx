@@ -8,9 +8,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Download, 
-  Search, 
+import {
+  Download,
+  Search,
   Music,
   AlertCircle,
   CheckCircle,
@@ -43,7 +43,7 @@ export default function ImportPage() {
       return;
     }
 
-      const items: ImportSearchItem[] = urlList.map((url, index) => {
+    const items: ImportSearchItem[] = urlList.map((url, index) => {
       const searchTerm = neteaseAPI.extractSearchTermFromUrl(url.trim());
       return {
         id: `search-${Date.now()}-${index}`,
@@ -68,7 +68,7 @@ export default function ImportPage() {
     setProgress(0);
 
     const totalItems = searchItems.length;
-    
+
     // 创建线程池
     const threadPool = new ThreadPool({
       maxThreads: threadCount,
@@ -89,13 +89,13 @@ export default function ImportPage() {
     }));
 
     threadPool.addTasks(searchTasks);
-    
+
     try {
       const results = await threadPool.executeAll<ImportSearchItem>();
-      
+
       // 处理搜索结果
       const detailedTasks: ThreadPoolTask<ImportSearchItem>[] = [];
-      
+
       for (const result of results) {
         if (result.success && result.data?.selectedResult) {
           const item = result.data; // 直接从结果中获取完整的item
@@ -134,8 +134,8 @@ export default function ImportPage() {
   // 搜索单个项目（用于并发执行）
   const searchSingleItemConcurrent = async (item: ImportSearchItem): Promise<ImportSearchItem> => {
     // 更新当前项目状态为搜索中
-    setSearchItems(prev => prev.map(prevItem => 
-      prevItem.id === item.id 
+    setSearchItems(prev => prev.map(prevItem =>
+      prevItem.id === item.id
         ? { ...prevItem, status: 'searching' }
         : prevItem
     ));
@@ -143,7 +143,7 @@ export default function ImportPage() {
     try {
       // 搜索歌曲
       const searchResponse = await neteaseAPI.searchSongs(item.searchTerm);
-      
+
       if (searchResponse.list && searchResponse.list.length > 0) {
         // 转换搜索结果
         const searchResults = searchResponse.list.map(result => ({
@@ -159,39 +159,39 @@ export default function ImportPage() {
         }));
 
         // 更新搜索结果
-        setSearchItems(prev => prev.map(prevItem => 
-          prevItem.id === item.id 
-            ? { 
-                ...prevItem, 
-                status: 'found',
-                searchResults,
-                selectedResult: searchResults[0], // 默认选择第一个结果
-                error: undefined,
-                detailedInfo: undefined,
-                existsInDb: undefined
-              }
+        setSearchItems(prev => prev.map(prevItem =>
+          prevItem.id === item.id
+            ? {
+              ...prevItem,
+              status: 'found',
+              searchResults,
+              selectedResult: searchResults[0], // 默认选择第一个结果
+              error: undefined,
+              detailedInfo: undefined,
+              existsInDb: undefined
+            }
             : prevItem
         ));
 
-        return { 
-          ...item, 
-          searchResults, 
+        return {
+          ...item,
+          searchResults,
           selectedResult: searchResults[0],
           status: 'found' as const
         };
       } else {
         // 没有找到结果
-        setSearchItems(prev => prev.map(prevItem => 
-          prevItem.id === item.id 
-            ? { 
-                ...prevItem, 
-                status: 'error',
-                error: '未找到匹配的歌曲',
-                searchResults: undefined,
-                selectedResult: undefined,
-                detailedInfo: undefined,
-                existsInDb: undefined
-              }
+        setSearchItems(prev => prev.map(prevItem =>
+          prevItem.id === item.id
+            ? {
+              ...prevItem,
+              status: 'error',
+              error: '未找到匹配的歌曲',
+              searchResults: undefined,
+              selectedResult: undefined,
+              detailedInfo: undefined,
+              existsInDb: undefined
+            }
             : prevItem
         ));
 
@@ -200,17 +200,17 @@ export default function ImportPage() {
     } catch (error) {
       // 搜索出错
       const errorMessage = error instanceof Error ? error.message : '搜索失败';
-      setSearchItems(prev => prev.map(prevItem => 
-        prevItem.id === item.id 
-          ? { 
-              ...prevItem, 
-              status: 'error',
-              error: errorMessage,
-              searchResults: undefined,
-              selectedResult: undefined,
-              detailedInfo: undefined,
-              existsInDb: undefined
-            }
+      setSearchItems(prev => prev.map(prevItem =>
+        prevItem.id === item.id
+          ? {
+            ...prevItem,
+            status: 'error',
+            error: errorMessage,
+            searchResults: undefined,
+            selectedResult: undefined,
+            detailedInfo: undefined,
+            existsInDb: undefined
+          }
           : prevItem
       ));
 
@@ -224,7 +224,7 @@ export default function ImportPage() {
 
     try {
       const result = item.selectedResult;
-      
+
       // 获取专辑信息、歌词和艺术家信息
       const [albumInfo, lyrics, ...artistsInfo] = await Promise.all([
         neteaseAPI.getAlbumInfo(result.albumId),
@@ -267,26 +267,26 @@ export default function ImportPage() {
       };
 
       // 更新详细信息
-      setSearchItems(prev => prev.map(prevItem => 
-        prevItem.id === item.id 
-          ? { 
-              ...prevItem, 
-              status: 'detailed' as const,
-              detailedInfo
-            }
+      setSearchItems(prev => prev.map(prevItem =>
+        prevItem.id === item.id
+          ? {
+            ...prevItem,
+            status: 'detailed' as const,
+            detailedInfo
+          }
           : prevItem
       ));
 
       return { ...item, detailedInfo, status: 'detailed' as const };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取详细信息失败';
-      setSearchItems(prev => prev.map(prevItem => 
-        prevItem.id === item.id 
-          ? { 
-              ...prevItem, 
-              status: 'error' as const,
-              error: errorMessage
-            }
+      setSearchItems(prev => prev.map(prevItem =>
+        prevItem.id === item.id
+          ? {
+            ...prevItem,
+            status: 'error' as const,
+            error: errorMessage
+          }
           : prevItem
       ));
 
@@ -297,15 +297,15 @@ export default function ImportPage() {
   // 保持旧的搜索函数用于单个项目重新搜索
   const searchSingleItem = async (item: ImportSearchItem, index?: number, total?: number) => {
     // 更新当前项目状态为搜索中
-    setSearchItems(prev => prev.map(prevItem => 
-      prevItem.id === item.id 
+    setSearchItems(prev => prev.map(prevItem =>
+      prevItem.id === item.id
         ? { ...prevItem, status: 'searching' }
         : prevItem
     ));
 
     try {
       const searchResponse = await neteaseAPI.searchSongs(item.searchTerm);
-      
+
       if (searchResponse.list && searchResponse.list.length > 0) {
         const searchResults = searchResponse.list.map(result => ({
           songId: result.songId,
@@ -319,54 +319,54 @@ export default function ImportPage() {
           duration: neteaseAPI.parseDuration(result.interval)
         }));
 
-        setSearchItems(prev => prev.map(prevItem => 
-          prevItem.id === item.id 
-            ? { 
-                ...prevItem, 
-                status: 'found',
-                searchResults,
-                selectedResult: searchResults[0],
-                error: undefined,
-                detailedInfo: undefined,
-                existsInDb: undefined
-              }
+        setSearchItems(prev => prev.map(prevItem =>
+          prevItem.id === item.id
+            ? {
+              ...prevItem,
+              status: 'found',
+              searchResults,
+              selectedResult: searchResults[0],
+              error: undefined,
+              detailedInfo: undefined,
+              existsInDb: undefined
+            }
             : prevItem
         ));
       } else {
-        setSearchItems(prev => prev.map(prevItem => 
-          prevItem.id === item.id 
-            ? { 
-                ...prevItem, 
-                status: 'error',
-                error: '未找到匹配的歌曲',
-                searchResults: undefined,
-                selectedResult: undefined,
-                detailedInfo: undefined,
-                existsInDb: undefined
-              }
-            : prevItem
-        ));
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '搜索失败';
-      setSearchItems(prev => prev.map(prevItem => 
-        prevItem.id === item.id 
-          ? { 
-              ...prevItem, 
+        setSearchItems(prev => prev.map(prevItem =>
+          prevItem.id === item.id
+            ? {
+              ...prevItem,
               status: 'error',
-              error: errorMessage,
+              error: '未找到匹配的歌曲',
               searchResults: undefined,
               selectedResult: undefined,
               detailedInfo: undefined,
               existsInDb: undefined
             }
+            : prevItem
+        ));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '搜索失败';
+      setSearchItems(prev => prev.map(prevItem =>
+        prevItem.id === item.id
+          ? {
+            ...prevItem,
+            status: 'error',
+            error: errorMessage,
+            searchResults: undefined,
+            selectedResult: undefined,
+            detailedInfo: undefined,
+            existsInDb: undefined
+          }
           : prevItem
       ));
     }
 
     if (typeof index === 'number' && typeof total === 'number') {
       setProgress(((index + 1) / total) * 100);
-      
+
       if (index < total - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -380,12 +380,12 @@ export default function ImportPage() {
       searchTerm: newSearchTerm,
       status: 'pending' as const
     };
-    
+
     // 先更新搜索词
-    setSearchItems(prev => prev.map(prevItem => 
+    setSearchItems(prev => prev.map(prevItem =>
       prevItem.id === item.id ? updatedItem : prevItem
     ));
-    
+
     // 然后搜索
     await searchSingleItem(updatedItem);
   };
@@ -402,9 +402,9 @@ export default function ImportPage() {
 
   // 批量导入准备好的歌曲
   const batchImport = async () => {
-    const readyItems = searchItems.filter(item => 
-      item.status === 'detailed' && 
-      item.detailedInfo && 
+    const readyItems = searchItems.filter(item =>
+      item.status === 'detailed' &&
+      item.detailedInfo &&
       item.selectedResult
     );
 
@@ -461,15 +461,15 @@ export default function ImportPage() {
       if (response.success) {
         // 更新导入状态
         const updatedItems = searchItems.map(item => {
-          const result = response.details?.find(detail => 
+          const result = response.details?.find(detail =>
             detail.songId === item.selectedResult?.songId
           );
-          
+
           if (result) {
             return {
               ...item,
-              status: result.status === 'imported' ? 'imported' as const : 
-                      result.status === 'skipped' ? 'imported' as const : 'error' as const,
+              status: result.status === 'imported' ? 'imported' as const :
+                result.status === 'skipped' ? 'imported' as const : 'error' as const,
               error: result.reason
             };
           }
@@ -507,9 +507,9 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
     errors: searchItems.filter(item => item.status === 'error').length
   };
 
-  const readyToImport = searchItems.filter(item => 
-    item.status === 'detailed' && 
-    item.detailedInfo && 
+  const readyToImport = searchItems.filter(item =>
+    item.status === 'detailed' &&
+    item.detailedInfo &&
     item.selectedResult
   ).length;
 
@@ -522,10 +522,10 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
             <h1 className="text-3xl font-bold tracking-tight">一键导入</h1>
             <p className="text-muted-foreground">从网易云音乐批量导入歌曲信息</p>
           </div>
-          
+
           <div className="flex gap-2">
             {readyToImport > 0 && (
-              <Button 
+              <Button
                 onClick={batchImport}
                 disabled={isImporting || isProcessing}
                 className="flex items-center gap-2"
@@ -538,9 +538,9 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
                 批量导入 ({readyToImport})
               </Button>
             )}
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               onClick={() => setShowSettings(!showSettings)}
               disabled={isProcessing || isImporting}
               className="flex items-center gap-2"
@@ -548,8 +548,8 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
               <Settings className="h-4 w-4" />
               设置
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={resetAll}
               disabled={isProcessing || isImporting}
             >
@@ -577,7 +577,7 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
                   disabled={isProcessing || isImporting}
                 />
               </div>
-              
+
               {/* 设置面板 */}
               {showSettings && (
                 <div className="border rounded-lg p-4 space-y-3">
@@ -607,7 +607,7 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
                 <div className="text-sm text-muted-foreground">
                   {urls.split('\n').filter(url => url.trim()).length} 个URL
                 </div>
-                
+
                 <Button
                   onClick={startSearch}
                   disabled={isProcessing || isImporting || !urls.trim()}
@@ -691,14 +691,14 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
               <h2 className="text-xl font-semibold">搜索结果</h2>
               <Badge variant="secondary">{searchItems.length} 项</Badge>
             </div>
-            
+
             <div className="space-y-4">
               {searchItems.map((item) => (
                 <ImportSearchCard
                   key={item.id}
                   item={item}
                   onUpdate={(updatedItem) => {
-                    setSearchItems(prev => prev.map(prevItem => 
+                    setSearchItems(prev => prev.map(prevItem =>
                       prevItem.id === updatedItem.id ? updatedItem : prevItem
                     ));
                   }}

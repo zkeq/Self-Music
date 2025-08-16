@@ -36,8 +36,8 @@ export class ThreadPool {
   private onProgress?: (completed: number, total: number) => void;
   
   private activeThreads = 0;
-  private queue: ThreadPoolTask[] = [];
-  private results: Map<string, ThreadPoolResult> = new Map();
+  private queue: ThreadPoolTask<unknown>[] = [];
+  private results: Map<string, ThreadPoolResult<unknown>> = new Map();
   private isRunning = false;
 
   constructor(options: ThreadPoolOptions = {}) {
@@ -50,15 +50,15 @@ export class ThreadPool {
   /**
    * Add a task to the thread pool
    */
-  addTask(task: ThreadPoolTask<unknown>): void {
-    this.queue.push(task);
+  addTask<T>(task: ThreadPoolTask<T>): void {
+    this.queue.push(task as ThreadPoolTask<unknown>);
   }
 
   /**
    * Add multiple tasks to the thread pool
    */
-  addTasks(tasks: ThreadPoolTask<unknown>[]): void {
-    this.queue.push(...tasks);
+  addTasks<T>(tasks: ThreadPoolTask<T>[]): void {
+    this.queue.push(...(tasks as ThreadPoolTask<unknown>[]));
   }
 
   /**
@@ -74,14 +74,17 @@ export class ThreadPool {
     this.results.clear();
 
     const totalTasks = this.queue.length;
-    let completedTasks = 0;
+    if (totalTasks === 0) {
+      this.isRunning = false;
+      return [];
+    }
 
     // Sort tasks by priority (higher priority first)
     this.queue.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     // Create worker promises
     const workers = Array.from({ length: Math.min(this.maxThreads, this.queue.length) }, () => 
-      this.worker<T>()
+      this.worker()
     );
 
     try {
@@ -277,9 +280,7 @@ export class BatchProcessor {
    * Process a batch of API requests with rate limiting
    */
   async processBatch<T>(
-    requests: Array<() => Promise<T>>,
-    onProgress?: (completed: number, total: number) => void
-  ): Promise<ThreadPoolResult<T>[]> {
+    requests: Array<() => Promise<T>>  ): Promise<ThreadPoolResult<T>[]> {
     const tasks = requests.map((request, index) => ({
       id: `batch-${index}`,
       name: `Request ${index}`,
