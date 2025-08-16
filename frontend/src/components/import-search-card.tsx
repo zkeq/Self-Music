@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -19,7 +20,11 @@ import {
   Loader2,
   Download,
   Eye,
-  Database
+  Database,
+  Edit,
+  Save,
+  X,
+  RotateCcw
 } from 'lucide-react';
 import { ImportSearchItem, ImportSongResult, ImportDetailedInfo, ImportArtistInfo } from '@/types';
 import { neteaseAPI, NeteaseAlbumInfo, NeteaseLyricsResponse } from '@/lib/netease-api';
@@ -29,11 +34,15 @@ import { MusicInfoDisplay } from '@/components/music-info-display';
 interface ImportSearchCardProps {
   item: ImportSearchItem;
   onUpdate: (updatedItem: ImportSearchItem) => void;
+  onResearch?: (item: ImportSearchItem, newSearchTerm: string) => void;
 }
 
-export function ImportSearchCard({ item, onUpdate }: ImportSearchCardProps) {
+export function ImportSearchCard({ item, onUpdate, onResearch }: ImportSearchCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [isEditingSearchTerm, setIsEditingSearchTerm] = useState(false);
+  const [editedSearchTerm, setEditedSearchTerm] = useState(item.searchTerm);
+  const [isResearching, setIsResearching] = useState(false);
 
   // 获取状态显示信息
   const getStatusInfo = () => {
@@ -93,6 +102,48 @@ export function ImportSearchCard({ item, onUpdate }: ImportSearchCardProps) {
           text: '未知' 
         };
     }
+  };
+
+  // 保存编辑的搜索词
+  const handleSaveSearchTerm = () => {
+    if (editedSearchTerm.trim() && editedSearchTerm !== item.searchTerm) {
+      onUpdate({
+        ...item,
+        searchTerm: editedSearchTerm.trim()
+      });
+    }
+    setIsEditingSearchTerm(false);
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setEditedSearchTerm(item.searchTerm);
+    setIsEditingSearchTerm(false);
+  };
+
+  // 重新搜索
+  const handleResearch = async () => {
+    if (!onResearch) return;
+    
+    setIsResearching(true);
+    try {
+      await onResearch(item, editedSearchTerm.trim() || item.searchTerm);
+    } finally {
+      setIsResearching(false);
+    }
+  };
+
+  // 重置搜索状态
+  const handleResetSearch = () => {
+    onUpdate({
+      ...item,
+      status: 'pending',
+      searchResults: undefined,
+      selectedResult: undefined,
+      detailedInfo: undefined,
+      error: undefined,
+      existsInDb: undefined
+    });
   };
 
   // 选择搜索结果
@@ -240,26 +291,104 @@ export function ImportSearchCard({ item, onUpdate }: ImportSearchCardProps) {
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <div className="flex items-center gap-2">
               <StatusIcon 
-                className={`h-4 w-4 ${item.status === 'searching' ? 'animate-spin' : ''}`} 
+                className={`h-4 w-4 ${item.status === 'searching' || isResearching ? 'animate-spin' : ''}`} 
               />
               <Badge className={statusInfo.color}>
                 {statusInfo.text}
               </Badge>
             </div>
-            <div>
-              <CardTitle className="text-sm font-medium">
-                搜索词: {item.searchTerm}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                {item.url}
-              </p>
+            <div className="flex-1">
+              {isEditingSearchTerm ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editedSearchTerm}
+                    onChange={(e) => setEditedSearchTerm(e.target.value)}
+                    placeholder="输入搜索词"
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveSearchTerm();
+                      } else if (e.key === 'Escape') {
+                        handleCancelEdit();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSaveSearchTerm}
+                    className="h-8 px-2"
+                  >
+                    <Save className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCancelEdit}
+                    className="h-8 px-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium">
+                      搜索词: {item.searchTerm}
+                    </CardTitle>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsEditingSearchTerm(true)}
+                      className="h-6 px-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                    {item.url}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           
           <div className="flex items-center gap-2">
+            {/* 重新搜索按钮 */}
+            {onResearch && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResearch}
+                disabled={isResearching || item.status === 'searching'}
+                className="h-8"
+              >
+                {isResearching ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Search className="h-3 w-3" />
+                )}
+                <span className="ml-1 hidden sm:inline">搜索</span>
+              </Button>
+            )}
+            
+            {/* 重置按钮 */}
+            {(item.searchResults || item.error) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleResetSearch}
+                className="h-8"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span className="ml-1 hidden sm:inline">重置</span>
+              </Button>
+            )}
+            
             {item.searchResults && item.searchResults.length > 0 && (
               <Badge variant="secondary">
                 {item.searchResults.length} 个结果

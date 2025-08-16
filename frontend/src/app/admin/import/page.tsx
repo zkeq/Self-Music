@@ -67,78 +67,113 @@ export default function ImportPage() {
     
     for (let i = 0; i < searchItems.length; i++) {
       const item = searchItems[i];
+      await searchSingleItem(item, i, totalItems);
+    }
+
+    setIsProcessing(false);
+  };
+
+  // 搜索单个项目
+  const searchSingleItem = async (item: ImportSearchItem, index?: number, total?: number) => {
+    // 更新当前项目状态为搜索中
+    setSearchItems(prev => prev.map(prevItem => 
+      prevItem.id === item.id 
+        ? { ...prevItem, status: 'searching' }
+        : prevItem
+    ));
+
+    try {
+      // 搜索歌曲
+      const searchResponse = await neteaseAPI.searchSongs(item.searchTerm);
       
-      // 更新当前项目状态为搜索中
-      setSearchItems(prev => prev.map(prevItem => 
-        prevItem.id === item.id 
-          ? { ...prevItem, status: 'searching' }
-          : prevItem
-      ));
+      if (searchResponse.list && searchResponse.list.length > 0) {
+        // 转换搜索结果
+        const searchResults = searchResponse.list.map(result => ({
+          songId: result.songId,
+          name: result.name,
+          ar: result.ar,  // 添加艺术家ID数组
+          arName: result.arName,
+          albumName: result.albumName,
+          albumId: result.albumId,
+          interval: result.interval,
+          img: result.img,
+          duration: neteaseAPI.parseDuration(result.interval)
+        }));
 
-      try {
-        // 搜索歌曲
-        const searchResponse = await neteaseAPI.searchSongs(item.searchTerm);
-        
-        if (searchResponse.list && searchResponse.list.length > 0) {
-          // 转换搜索结果
-          const searchResults = searchResponse.list.map(result => ({
-            songId: result.songId,
-            name: result.name,
-            ar: result.ar,  // 添加艺术家ID数组
-            arName: result.arName,
-            albumName: result.albumName,
-            albumId: result.albumId,
-            interval: result.interval,
-            img: result.img,
-            duration: neteaseAPI.parseDuration(result.interval)
-          }));
-
-          // 更新搜索结果
-          setSearchItems(prev => prev.map(prevItem => 
-            prevItem.id === item.id 
-              ? { 
-                  ...prevItem, 
-                  status: 'found',
-                  searchResults,
-                  selectedResult: searchResults[0] // 默认选择第一个结果
-                }
-              : prevItem
-          ));
-        } else {
-          // 没有找到结果
-          setSearchItems(prev => prev.map(prevItem => 
-            prevItem.id === item.id 
-              ? { 
-                  ...prevItem, 
-                  status: 'error',
-                  error: '未找到匹配的歌曲'
-                }
-              : prevItem
-          ));
-        }
-      } catch (error) {
-        // 搜索出错
+        // 更新搜索结果
+        setSearchItems(prev => prev.map(prevItem => 
+          prevItem.id === item.id 
+            ? { 
+                ...prevItem, 
+                status: 'found',
+                searchResults,
+                selectedResult: searchResults[0], // 默认选择第一个结果
+                // 清除之前的错误和详细信息
+                error: undefined,
+                detailedInfo: undefined,
+                existsInDb: undefined
+              }
+            : prevItem
+        ));
+      } else {
+        // 没有找到结果
         setSearchItems(prev => prev.map(prevItem => 
           prevItem.id === item.id 
             ? { 
                 ...prevItem, 
                 status: 'error',
-                error: error instanceof Error ? error.message : '搜索失败'
+                error: '未找到匹配的歌曲',
+                searchResults: undefined,
+                selectedResult: undefined,
+                detailedInfo: undefined,
+                existsInDb: undefined
               }
             : prevItem
         ));
       }
+    } catch (error) {
+      // 搜索出错
+      setSearchItems(prev => prev.map(prevItem => 
+        prevItem.id === item.id 
+          ? { 
+              ...prevItem, 
+              status: 'error',
+              error: error instanceof Error ? error.message : '搜索失败',
+              searchResults: undefined,
+              selectedResult: undefined,
+              detailedInfo: undefined,
+              existsInDb: undefined
+            }
+          : prevItem
+      ));
+    }
 
-      // 更新进度
-      setProgress(((i + 1) / totalItems) * 100);
+    // 更新进度（仅在批量搜索时）
+    if (typeof index === 'number' && typeof total === 'number') {
+      setProgress(((index + 1) / total) * 100);
       
       // 添加延迟避免API请求过快
-      if (i < searchItems.length - 1) {
+      if (index < total - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
+  };
 
-    setIsProcessing(false);
+  // 处理单个项目的重新搜索
+  const handleResearchItem = async (item: ImportSearchItem, newSearchTerm: string) => {
+    const updatedItem = {
+      ...item,
+      searchTerm: newSearchTerm,
+      status: 'pending' as const
+    };
+    
+    // 先更新搜索词
+    setSearchItems(prev => prev.map(prevItem => 
+      prevItem.id === item.id ? updatedItem : prevItem
+    ));
+    
+    // 然后搜索
+    await searchSingleItem(updatedItem);
   };
 
   // 重置所有数据
@@ -419,6 +454,7 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
                       prevItem.id === updatedItem.id ? updatedItem : prevItem
                     ));
                   }}
+                  onResearch={handleResearchItem}
                 />
               ))}
             </div>
