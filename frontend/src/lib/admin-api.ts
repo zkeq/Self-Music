@@ -356,7 +356,7 @@ class AdminAPI {
   }
 
   // Import related methods
-  async checkSongExists(songName: string, artistName: string, albumName?: string): Promise<AdminApiResponse<{ exists: boolean; data?: any }>> {
+  async checkSongExists(songName: string, artistName: string, albumName?: string): Promise<AdminApiResponse<{ exists: boolean; data?: { id: string; title: string; artistName: string } }>> {
     const response = await fetch(`${API_BASE}/admin/import/check-exists`, {
       method: 'POST',
       headers: this.getHeaders(),
