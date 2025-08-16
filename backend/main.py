@@ -25,7 +25,7 @@ security = HTTPBearer()
 
 SECRET_KEY = "your-secret-key-change-this-in-production"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 12
 
 app.add_middleware(
     CORSMiddleware,
@@ -162,6 +162,9 @@ class CheckExistsRequest(BaseModel):
     songName: str
     artistName: str
     albumName: Optional[str] = None
+
+class PlaylistReorder(BaseModel):
+    songIds: List[str]
 
 # Database setup
 def init_db():
@@ -1108,6 +1111,53 @@ async def delete_playlist(playlist_id: str, username: str = Depends(verify_token
     conn.close()
     
     return {"success": True, "message": "Playlist deleted successfully"}
+
+@app.put("/api/admin/playlists/{playlist_id}/reorder")
+async def reorder_playlist_songs(playlist_id: str, reorder_data: PlaylistReorder, username: str = Depends(verify_token)):
+    """重新排序歌单中的歌曲"""
+    conn = sqlite3.connect('music.db')
+    cursor = conn.cursor()
+    
+    # Check if playlist exists
+    cursor.execute('SELECT songIds, songCount FROM playlists WHERE id = ?', (playlist_id,))
+    playlist_row = cursor.fetchone()
+    
+    if not playlist_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    
+    current_song_ids = parse_json_field(playlist_row[0])
+    new_song_ids = reorder_data.songIds
+    
+    # Validate that all songs in new order exist in current playlist
+    if set(current_song_ids) != set(new_song_ids):
+        conn.close()
+        raise HTTPException(status_code=400, detail="Song IDs do not match current playlist")
+    
+    # Validate that all song IDs exist in the database
+    if new_song_ids:
+        placeholders = ','.join('?' * len(new_song_ids))
+        cursor.execute(f'SELECT COUNT(*) FROM songs WHERE id IN ({placeholders})', new_song_ids)
+        count = cursor.fetchone()[0]
+        
+        if count != len(new_song_ids):
+            conn.close()
+            raise HTTPException(status_code=400, detail="Some songs not found in database")
+    
+    # Update the playlist with new song order
+    cursor.execute('''
+        UPDATE playlists SET songIds=?, updatedAt=?
+        WHERE id=?
+    ''', (
+        serialize_json_field(new_song_ids),
+        get_current_time(),
+        playlist_id
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    return {"success": True, "message": "Playlist order updated successfully"}
 
 # File upload endpoint
 @app.post("/api/admin/upload")

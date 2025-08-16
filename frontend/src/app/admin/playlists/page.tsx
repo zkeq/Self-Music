@@ -23,7 +23,8 @@ import {
   Eye,
   EyeOff,
   User,
-  MoreHorizontal
+  MoreHorizontal,
+  GripVertical
 } from 'lucide-react';
 import { Playlist, Song } from '@/types';
 import {
@@ -32,9 +33,87 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import {
+  CSS,
+} from '@dnd-kit/utilities';
+import { arrayMove } from '@dnd-kit/sortable';
 
 interface PlaylistWithSongs extends Omit<Playlist, 'songs'> {
   songs?: Song[];
+}
+
+// 可排序的歌曲项组件
+function SortableSongItem({ song, onRemove }: { song: Song; onRemove: () => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: song.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center space-x-3 p-2 rounded-lg bg-secondary border ${
+        isDragging ? 'shadow-lg' : ''
+      }`}
+    >
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+        {song.coverUrl ? (
+          <img src={song.coverUrl} alt={song.title} className="w-full h-full rounded-lg object-cover" />
+        ) : (
+          <Music className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1">
+        <p className="font-medium text-sm">{song.title}</p>
+        <p className="text-xs text-muted-foreground">{song.artist?.name || '未知艺术家'}</p>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onRemove}
+        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
 }
 
 export default function PlaylistsPage() {
@@ -52,6 +131,14 @@ export default function PlaylistsPage() {
     isPublic: true,
     creator: 'admin'
   });
+
+  // 拖拽传感器
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchData();
@@ -91,6 +178,13 @@ export default function PlaylistsPage() {
       
       if (editingPlaylist) {
         await adminAPI.updatePlaylist(editingPlaylist.id, playlistData);
+        
+        // 如果排序发生了变化，更新排序
+        const originalOrder = editingPlaylist.songIds || [];
+        const newOrder = formData.songIds;
+        if (JSON.stringify(originalOrder) !== JSON.stringify(newOrder)) {
+          await adminAPI.reorderPlaylistSongs(editingPlaylist.id, newOrder);
+        }
       } else {
         await adminAPI.createPlaylist(playlistData);
       }
@@ -143,6 +237,23 @@ export default function PlaylistsPage() {
       ? formData.songIds.filter(id => id !== songId)
       : [...formData.songIds, songId];
     setFormData({ ...formData, songIds: newSongIds });
+  };
+
+  const handleSongRemove = (songId: string) => {
+    const newSongIds = formData.songIds.filter(id => id !== songId);
+    setFormData({ ...formData, songIds: newSongIds });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      const oldIndex = formData.songIds.indexOf(active.id as string);
+      const newIndex = formData.songIds.indexOf(over?.id as string);
+
+      const newSongIds = arrayMove(formData.songIds, oldIndex, newIndex);
+      setFormData({ ...formData, songIds: newSongIds });
+    }
   };
 
   const calculateDuration = (songIds: string[]) => {
@@ -289,6 +400,39 @@ export default function PlaylistsPage() {
                     已选择 {formData.songIds.length} 首歌曲，总时长 {formatDuration(calculateDuration(formData.songIds))}
                   </div>
                 </div>
+
+                {/* 已选择歌曲的可排序列表 */}
+                {formData.songIds.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>歌单排序 (拖拽调整顺序)</Label>
+                    <div className="max-h-60 overflow-y-auto border border-input rounded-lg p-3">
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={formData.songIds}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-2">
+                            {formData.songIds.map((songId) => {
+                              const song = songs.find(s => s.id === songId);
+                              if (!song) return null;
+                              return (
+                                <SortableSongItem
+                                  key={songId}
+                                  song={song}
+                                  onRemove={() => handleSongRemove(songId)}
+                                />
+                              );
+                            })}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-end space-x-3 pt-4">
                   <Button

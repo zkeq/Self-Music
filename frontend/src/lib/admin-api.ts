@@ -335,6 +335,20 @@ class AdminAPI {
     return response.json();
   }
 
+  async reorderPlaylistSongs(playlistId: string, songIds: string[]): Promise<AdminApiResponse> {
+    const response = await fetch(`${API_BASE}/admin/playlists/${playlistId}/reorder`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ songIds }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to reorder playlist songs');
+    }
+    
+    return response.json();
+  }
+
   // File upload
   async uploadFile(file: File): Promise<AdminApiResponse<{ filename: string; url: string }>> {
     const formData = new FormData();
