@@ -589,6 +589,8 @@ NEXT_PUBLIC_USE_MOCK=true
 
 # 真实API地址
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
+add test
 ```
 
 当 `NEXT_PUBLIC_USE_MOCK=true` 或未设置 `NEXT_PUBLIC_API_URL` 时，前端会使用Mock数据。
