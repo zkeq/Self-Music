@@ -177,6 +177,7 @@ export default function ImportPage() {
         songInfo: {
           songId: item.selectedResult!.songId,
           name: item.selectedResult!.name,
+          ar: item.selectedResult!.ar,  // 添加艺术家ID数组
           arName: item.selectedResult!.arName,
           albumName: item.selectedResult!.albumName,
           albumId: item.selectedResult!.albumId,
