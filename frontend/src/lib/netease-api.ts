@@ -97,14 +97,24 @@ class NeteaseAPI {
     try {
       // 移除URL前缀，获取最后的部分作为搜索关键词
       const parts = url.split('/');
-      const lastPart = parts[parts.length - 1];
+      let lastPart = parts[parts.length - 1];
       
       // 解码URL编码的字符
-      return decodeURIComponent(lastPart);
+      lastPart = decodeURIComponent(lastPart);
+      
+      // 删除文件后缀名（如 .mp3, .flac, .wav, .m4a 等）
+      lastPart = lastPart.replace(/\.(mp3|flac|wav|m4a|ogg|aac|wma)$/i, '');
+      
+      return lastPart;
     } catch (error) {
-      // 如果解码失败，返回原始的最后部分
+      // 如果解码失败，返回原始的最后部分（也删除后缀名）
       const parts = url.split('/');
-      return parts[parts.length - 1];
+      let lastPart = parts[parts.length - 1];
+      
+      // 删除文件后缀名
+      lastPart = lastPart.replace(/\.(mp3|flac|wav|m4a|ogg|aac|wma)$/i, '');
+      
+      return lastPart;
     }
   }
 
