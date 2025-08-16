@@ -16,12 +16,14 @@ import {
   CheckCircle,
   Loader2,
   Upload,
-  Info
+  Info,
+  Settings
 } from 'lucide-react';
 import { ImportSearchItem } from '@/types';
 import { neteaseAPI } from '@/lib/netease-api';
 import { adminAPI } from '@/lib/admin-api';
 import { ImportSearchCard } from '@/components/import-search-card';
+import { ThreadPool, ThreadPoolTask } from '@/lib/thread-pool';
 
 export default function ImportPage() {
   const [urls, setUrls] = useState('');
@@ -30,6 +32,8 @@ export default function ImportPage() {
   const [progress, setProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
+  const [threadCount, setThreadCount] = useState(3);
+  const [showSettings, setShowSettings] = useState(false);
 
   // 解析URL并创建搜索项目
   const parseUrls = () => {
@@ -53,7 +57,7 @@ export default function ImportPage() {
     setSearchItems(items);
   };
 
-  // 开始搜索所有项目
+  // 开始搜索所有项目 - 使用线程池并发搜索
   const startSearch = async () => {
     if (searchItems.length === 0) {
       parseUrls();
@@ -65,16 +69,70 @@ export default function ImportPage() {
 
     const totalItems = searchItems.length;
     
-    for (let i = 0; i < searchItems.length; i++) {
-      const item = searchItems[i];
-      await searchSingleItem(item, i, totalItems);
-    }
+    // 创建线程池
+    const threadPool = new ThreadPool({
+      maxThreads: threadCount,
+      retryCount: 2,
+      retryDelay: 1000,
+      onProgress: (completed, total) => {
+        setProgress((completed / total) * 100);
+      }
+    });
 
-    setIsProcessing(false);
+    // 创建搜索任务
+    const searchTasks: ThreadPoolTask<ImportSearchItem>[] = searchItems.map((item, index) => ({
+      id: item.id,
+      name: `搜索: ${item.searchTerm}`,
+      execute: async () => {
+        return await searchSingleItemConcurrent(item);
+      }
+    }));
+
+    threadPool.addTasks(searchTasks);
+    
+    try {
+      const results = await threadPool.executeAll<ImportSearchItem>();
+      
+      // 处理搜索结果
+      const detailedTasks: ThreadPoolTask<ImportSearchItem>[] = [];
+      
+      for (const result of results) {
+        if (result.success && result.data?.selectedResult) {
+          const item = result.data; // 直接从结果中获取完整的item
+          detailedTasks.push({
+            id: `${item.id}-detailed`,
+            name: `获取详情: ${item.selectedResult?.name || '未知歌曲'}`,
+            execute: async () => {
+              return await fetchDetailedInfoConcurrent(item);
+            }
+          });
+        }
+      }
+
+      // 如果发现有搜索结果，并发获取详细信息
+      if (detailedTasks.length > 0) {
+        const detailedThreadPool = new ThreadPool({
+          maxThreads: Math.min(threadCount, 2), // 获取详情时使用较少线程避免API限制
+          retryCount: 1,
+          retryDelay: 2000,
+          onProgress: (completed, total) => {
+            setProgress(50 + (completed / total) * 50); // 第二部分进度
+          }
+        });
+
+        detailedThreadPool.addTasks(detailedTasks);
+        await detailedThreadPool.executeAll<ImportSearchItem>();
+      }
+
+    } catch (error) {
+      console.error('搜索过程出错:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // 搜索单个项目
-  const searchSingleItem = async (item: ImportSearchItem, index?: number, total?: number) => {
+  // 搜索单个项目（用于并发执行）
+  const searchSingleItemConcurrent = async (item: ImportSearchItem): Promise<ImportSearchItem> => {
     // 更新当前项目状态为搜索中
     setSearchItems(prev => prev.map(prevItem => 
       prevItem.id === item.id 
@@ -91,7 +149,7 @@ export default function ImportPage() {
         const searchResults = searchResponse.list.map(result => ({
           songId: result.songId,
           name: result.name,
-          ar: result.ar,  // 添加艺术家ID数组
+          ar: result.ar,
           arName: result.arName,
           albumName: result.albumName,
           albumId: result.albumId,
@@ -108,13 +166,19 @@ export default function ImportPage() {
                 status: 'found',
                 searchResults,
                 selectedResult: searchResults[0], // 默认选择第一个结果
-                // 清除之前的错误和详细信息
                 error: undefined,
                 detailedInfo: undefined,
                 existsInDb: undefined
               }
             : prevItem
         ));
+
+        return { 
+          ...item, 
+          searchResults, 
+          selectedResult: searchResults[0],
+          status: 'found' as const
+        };
       } else {
         // 没有找到结果
         setSearchItems(prev => prev.map(prevItem => 
@@ -130,15 +194,167 @@ export default function ImportPage() {
               }
             : prevItem
         ));
+
+        return { ...item, status: 'error' as const, error: '未找到匹配的歌曲' };
       }
     } catch (error) {
       // 搜索出错
+      const errorMessage = error instanceof Error ? error.message : '搜索失败';
       setSearchItems(prev => prev.map(prevItem => 
         prevItem.id === item.id 
           ? { 
               ...prevItem, 
               status: 'error',
-              error: error instanceof Error ? error.message : '搜索失败',
+              error: errorMessage,
+              searchResults: undefined,
+              selectedResult: undefined,
+              detailedInfo: undefined,
+              existsInDb: undefined
+            }
+          : prevItem
+      ));
+
+      return { ...item, status: 'error' as const, error: errorMessage };
+    }
+  };
+
+  // 获取详细信息（用于并发执行）
+  const fetchDetailedInfoConcurrent = async (item: ImportSearchItem): Promise<ImportSearchItem> => {
+    if (!item.selectedResult) return item;
+
+    try {
+      const result = item.selectedResult;
+      
+      // 获取专辑信息、歌词和艺术家信息
+      const [albumInfo, lyrics, ...artistsInfo] = await Promise.all([
+        neteaseAPI.getAlbumInfo(result.albumId),
+        neteaseAPI.getLyrics(result.songId),
+        ...result.ar.map(async (artistId, index) => {
+          try {
+            const artistInfo = await neteaseAPI.getArtistInfo(artistId);
+            return {
+              id: artistInfo.artist_id,
+              name: artistInfo.name,
+              avatarUrl: artistInfo.avatar_url,
+              intro: artistInfo.intro,
+              fanCount: String(artistInfo.fan_count || '0')
+            };
+          } catch (error) {
+            return {
+              id: `artist-${result.songId}-${index}`,
+              name: result.arName[index] || 'Unknown',
+              avatarUrl: undefined,
+              intro: undefined,
+              fanCount: '0'
+            };
+          }
+        })
+      ]);
+
+      const detailedInfo = {
+        song: result,
+        album: {
+          id: result.albumId,
+          title: albumInfo.title,
+          artist: albumInfo.artist,
+          coverUrl: albumInfo.cover_url,
+          releaseDate: albumInfo.release_time,
+          company: albumInfo.company,
+          description: albumInfo.description
+        },
+        artists: artistsInfo,
+        lyrics: lyrics.lyric || ''
+      };
+
+      // 更新详细信息
+      setSearchItems(prev => prev.map(prevItem => 
+        prevItem.id === item.id 
+          ? { 
+              ...prevItem, 
+              status: 'detailed' as const,
+              detailedInfo
+            }
+          : prevItem
+      ));
+
+      return { ...item, detailedInfo, status: 'detailed' as const };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '获取详细信息失败';
+      setSearchItems(prev => prev.map(prevItem => 
+        prevItem.id === item.id 
+          ? { 
+              ...prevItem, 
+              status: 'error' as const,
+              error: errorMessage
+            }
+          : prevItem
+      ));
+
+      return { ...item, status: 'error' as const, error: errorMessage };
+    }
+  };
+
+  // 保持旧的搜索函数用于单个项目重新搜索
+  const searchSingleItem = async (item: ImportSearchItem, index?: number, total?: number) => {
+    // 更新当前项目状态为搜索中
+    setSearchItems(prev => prev.map(prevItem => 
+      prevItem.id === item.id 
+        ? { ...prevItem, status: 'searching' }
+        : prevItem
+    ));
+
+    try {
+      const searchResponse = await neteaseAPI.searchSongs(item.searchTerm);
+      
+      if (searchResponse.list && searchResponse.list.length > 0) {
+        const searchResults = searchResponse.list.map(result => ({
+          songId: result.songId,
+          name: result.name,
+          ar: result.ar,
+          arName: result.arName,
+          albumName: result.albumName,
+          albumId: result.albumId,
+          interval: result.interval,
+          img: result.img,
+          duration: neteaseAPI.parseDuration(result.interval)
+        }));
+
+        setSearchItems(prev => prev.map(prevItem => 
+          prevItem.id === item.id 
+            ? { 
+                ...prevItem, 
+                status: 'found',
+                searchResults,
+                selectedResult: searchResults[0],
+                error: undefined,
+                detailedInfo: undefined,
+                existsInDb: undefined
+              }
+            : prevItem
+        ));
+      } else {
+        setSearchItems(prev => prev.map(prevItem => 
+          prevItem.id === item.id 
+            ? { 
+                ...prevItem, 
+                status: 'error',
+                error: '未找到匹配的歌曲',
+                searchResults: undefined,
+                selectedResult: undefined,
+                detailedInfo: undefined,
+                existsInDb: undefined
+              }
+            : prevItem
+        ));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '搜索失败';
+      setSearchItems(prev => prev.map(prevItem => 
+        prevItem.id === item.id 
+          ? { 
+              ...prevItem, 
+              status: 'error',
+              error: errorMessage,
               searchResults: undefined,
               selectedResult: undefined,
               detailedInfo: undefined,
@@ -148,11 +364,9 @@ export default function ImportPage() {
       ));
     }
 
-    // 更新进度（仅在批量搜索时）
     if (typeof index === 'number' && typeof total === 'number') {
       setProgress(((index + 1) / total) * 100);
       
-      // 添加延迟避免API请求过快
       if (index < total - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
@@ -327,6 +541,15 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
             
             <Button 
               variant="outline" 
+              onClick={() => setShowSettings(!showSettings)}
+              disabled={isProcessing || isImporting}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              设置
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={resetAll}
               disabled={isProcessing || isImporting}
             >
@@ -355,6 +578,31 @@ ${response.errors?.length ? '\n错误详情:\n' + response.errors.join('\n') : '
                 />
               </div>
               
+              {/* 设置面板 */}
+              {showSettings && (
+                <div className="border rounded-lg p-4 space-y-3">
+                  <h4 className="font-medium">搜索设置</h4>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">并发线程数</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        value={threadCount}
+                        onChange={(e) => setThreadCount(parseInt(e.target.value))}
+                        className="flex-1"
+                        disabled={isProcessing || isImporting}
+                      />
+                      <span className="text-sm font-medium w-8 text-center">{threadCount}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      较高的线程数可以加快搜索速度，但可能触发API限制
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
                   {urls.split('\n').filter(url => url.trim()).length} 个URL
