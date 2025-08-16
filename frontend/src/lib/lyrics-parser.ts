@@ -12,16 +12,18 @@ export function parseLRC(lrcContent: string): LyricLine[] {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
-    // 匹配时间标签格式 [mm:ss.xx]
-    const timeMatch = trimmedLine.match(/\[(\d{2}):(\d{2})\.(\d{2})\](.*)/);
+    // 匹配时间标签格式 [mm:ss.xx] 或 [mm:ss.xxx]
+    const timeMatch = trimmedLine.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
     
     if (timeMatch) {
-      const minutes = parseInt(timeMatch[1]);
-      const seconds = parseInt(timeMatch[2]);
-      const centiseconds = parseInt(timeMatch[3]);
+      const minutes = parseInt(timeMatch[1], 10);
+      const seconds = parseInt(timeMatch[2], 10);
+      // 使用 padEnd 来统一处理2位或3位毫秒，确保始终是3位数
+      const milliseconds = parseInt(timeMatch[3].padEnd(3, '0'), 10);
       const text = timeMatch[4].trim();
       
-      const time = minutes * 60 + seconds + centiseconds / 100;
+      // 统一按毫秒计算时间
+      const time = minutes * 60 + seconds + milliseconds / 1000;
       
       if (text) { // 只添加有文本内容的行
         lyrics.push({ time, text });
