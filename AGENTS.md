@@ -1,41 +1,41 @@
-# Repository Guidelines
+# 仓库指南
 
-## Project Structure & Module Organization
-- Root: `frontend/` (Next.js + TypeScript + Tailwind CSS 4), `backend/` (FastAPI + SQLite).
-- Frontend:
-  - App routes: `frontend/src/app/*`
-  - UI: `frontend/src/components/*`, utilities: `frontend/src/lib/*`, styles: `frontend/src/app/globals.css` and `frontend/src/styles/*`, assets: `frontend/public/*`.
-- Backend:
-  - API entry: `backend/main.py`, auth/user routes: `backend/user.py`, DB: `backend/music.db`, deps: `backend/requirements.txt`.
+## 项目结构与模块组织
+- 根目录：`frontend/`（Next.js + TypeScript + Tailwind CSS 4），`backend/`（FastAPI + SQLite）。
+- 前端：
+  - 应用路由：`frontend/src/app/*`
+  - UI：`frontend/src/components/*`，工具：`frontend/src/lib/*`，样式：`frontend/src/app/globals.css` 与 `frontend/src/styles/*`，资源：`frontend/public/*`。
+- 后端：
+  - API 入口：`backend/main.py`，认证/用户路由：`backend/user.py`，数据库：`backend/music.db`，依赖：`backend/requirements.txt`。
 
-## Build, Test, and Development Commands
-- Frontend (recommended pnpm):
-  - `pnpm dev` (or `npm run dev`): start Next.js dev server.
-  - `pnpm build` (or `npm run build`): production build.
-  - `pnpm lint` (or `npm run lint`): run ESLint.
-- Backend (Python):
-  - Install deps: `pip install -r backend/requirements.txt`.
-  - Run API (dev): `uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`.
+## 构建、测试与开发命令
+- 前端（推荐 pnpm）：
+  - `pnpm dev`（或 `npm run dev`）：启动 Next.js 开发服务器。
+  - `pnpm build`（或 `npm run build`）：生产构建。
+  - `pnpm lint`（或 `npm run lint`）：运行 ESLint。
+- 后端（Python）：
+  - 安装依赖：`pip install -r backend/requirements.txt`。
+  - 运行 API（开发）：`uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`。
 
-## Coding Style & Naming Conventions
-- TypeScript + React function components; prefer hooks and composition.
-- File names: kebab-case (e.g., `lyrics-display.tsx`, `player-layout.tsx`).
-- Indentation: 2 spaces; keep imports sorted logically.
-- Tailwind: utility-first; prefer conditional classes via `cn` from `frontend/src/lib/utils`.
-- Linting: ESLint (Next.js config). Run `pnpm lint` before commits.
-- Python: Pydantic models for schemas; keep endpoints in small, focused routers.
+## 编码风格与命名约定
+- TypeScript + React 函数组件；优先使用 hooks 与组合。
+- 文件名：kebab-case（例如 `lyrics-display.tsx`、`player-layout.tsx`）。
+- 缩进：2 个空格；保持 import 顺序合理。
+- Tailwind：utility-first；通过 `frontend/src/lib/utils` 中的 `cn` 实现条件类名。
+- Lint：ESLint（Next.js 配置）。提交前运行 `pnpm lint`。
+- Python：使用 Pydantic 模型定义 schema；将端点拆分为小而专注的路由。
 
-## Testing Guidelines
-- No formal unit test suite configured. Validate changes by:
-  - Frontend: run locally, verify key flows (Play page, lyrics, playlist) and check console for errors.
-  - Backend: use `curl`/REST client to hit endpoints; ensure SQLite changes persist.
-- Add tests if introducing complex logic (co-locate or `__tests__` for TS; pytest for Python if added).
+## 测试指南
+- 暂无正式单元测试套件。通过以下方式验证变更：
+  - 前端：本地运行，验证关键流程（播放页、歌词、播放列表），并检查控制台错误。
+  - 后端：使用 `curl`/REST 客户端调用接口；确认 SQLite 持久化有效。
+- 如引入复杂逻辑，请补充测试（TS 与代码同目录或放在 `__tests__`；Python 可添加 pytest）。
 
-## Commit & Pull Request Guidelines
-- Commits: concise imperative subject; include scope when helpful (e.g., `frontend: clamp lyrics on mobile`).
-- PRs: include description, rationale, screenshots or terminal output, and test steps. Link related issues.
-- Ensure: builds pass, `pnpm lint` clean, and API runs locally.
+## 提交与 Pull Request 指南
+- 提交：简洁祈使句主题；必要时包含作用域（例如 `frontend: clamp lyrics on mobile`）。
+- PR：包含描述、动机、截图或终端输出与测试步骤，并关联相关 issue。
+- 确保：构建通过、`pnpm lint` 通过，且 API 能在本地运行。
 
-## Security & Configuration Tips
-- Do not commit secrets. Backend `SECRET_KEY` must be provided via environment in production.
-- Validate uploads and sanitize user input. Lock CORS in production to trusted origins.
+## 安全与配置提示
+- 不要提交任何密钥。生产环境下后端 `SECRET_KEY` 必须通过环境变量提供。
+- 验证上传并清理用户输入。生产环境将 CORS 限制为受信任的来源。
