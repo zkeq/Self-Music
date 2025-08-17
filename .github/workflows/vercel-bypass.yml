@@ -55,7 +55,7 @@ jobs:
         if: steps.check-author.outputs.need_bypass == 'true'
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.MY_GIT_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
 
       - name: Clean up trigger file
@@ -69,7 +69,7 @@ jobs:
         if: steps.check-author.outputs.need_bypass == 'true'
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.MY_GIT_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
 
       - name: Summary
