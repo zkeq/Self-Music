@@ -26,7 +26,7 @@ import {
   MoreHorizontal,
   GripVertical
 } from 'lucide-react';
-import { Playlist, Song } from '@/types';
+import { Playlist, Song, getAllArtistNames } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,7 +98,7 @@ function SortableSongItem({ song, onRemove }: { song: Song; onRemove: () => void
       </div>
       <div className="flex-1">
         <p className="font-medium text-sm">{song.title}</p>
-        <p className="text-xs text-muted-foreground">{song.artist?.name || '未知艺术家'}</p>
+        <p className="text-xs text-muted-foreground">{getAllArtistNames(song)}</p>
       </div>
       <div className="text-xs text-muted-foreground">
         {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}
@@ -387,7 +387,7 @@ export default function PlaylistsPage() {
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-sm">{song.title}</p>
-                          <p className="text-xs text-muted-foreground">{song.artist?.name || '未知艺术家'}</p>
+                          <p className="text-xs text-muted-foreground">{getAllArtistNames(song)}</p>
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}

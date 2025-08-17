@@ -15,6 +15,8 @@ interface LyricsDisplayProps {
   currentTime: number;
   onLyricClick: (time: number) => void;
   className?: string;
+  // 在窄屏模式下启用精简显示（长行省略号）
+  compact?: boolean;
 }
 
 // 时间格式化函数
@@ -29,6 +31,7 @@ export function LyricsDisplay({
   currentTime,
   onLyricClick,
   className,
+  compact = false,
 }: LyricsDisplayProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
   const [hoveredIndex, setHoveredIndex] = useState(-1);
@@ -375,6 +378,8 @@ export function LyricsDisplay({
                   className={cn(
                     "text-base leading-relaxed transition-all duration-300",
                     "select-none relative z-10 text-center",
+                    // 窄屏精简显示：长行省略号；中等及以上屏幕不截断
+                    compact && "w-full line-clamp-1 md:line-clamp-none",
                     {
                       "text-xl lg:text-2xl font-semibold text-primary": isActive,
                       "text-muted-foreground/60 hover:text-muted-foreground": isPassed,
@@ -400,6 +405,8 @@ interface LyricsCardProps {
   className?: string;
   title?: string;
   onFullscreen?: () => void;
+  // 窄屏精简显示（默认启用，桌面端不受影响）
+  compact?: boolean;
 }
 
 export function LyricsCard({
@@ -409,6 +416,7 @@ export function LyricsCard({
   className,
   title = "",
   onFullscreen,
+  compact = true,
 }: LyricsCardProps) {
   return (
     <motion.div 
@@ -466,6 +474,7 @@ export function LyricsCard({
           lyrics={lyrics}
           currentTime={currentTime}
           onLyricClick={onLyricClick}
+          compact={compact}
         />
       </motion.div>
     </motion.div>
