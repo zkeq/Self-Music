@@ -1,12 +1,30 @@
 # 🎵 Self Music - 私人音乐系统
 
+![屏幕截图(616)](https://img.onmicrosoft.cn/zkeq/20250817125324565.png)
+
+![屏幕截图(617)](https://img.onmicrosoft.cn/zkeq/20250817125724096.png)
+
+![屏幕截图(618)](https://img.onmicrosoft.cn/zkeq/20250817125723943.png)
+
+![屏幕截图(619)](https://img.onmicrosoft.cn/zkeq/20250817125723887.png)
+
+![屏幕截图(621)](https://img.onmicrosoft.cn/zkeq/20250817125729741.png)
+
+![屏幕截图(620)](https://img.onmicrosoft.cn/zkeq/20250817125727225.png)
+
+![屏幕截图(624)](https://img.onmicrosoft.cn/zkeq/20250817125723840.png)
+
+![屏幕截图(623)](https://img.onmicrosoft.cn/zkeq/20250817125723806.png)
+
+
+
 ![Self Music Banner](https://img.shields.io/badge/Self%20Music-🎶-ff69b4?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 <div align="center">
 
-**🌟 一个现代化的私人音乐管理与播放系统，支持播放列表、歌词同步与多端访问。**
+**🌟 一个现代化的私人音乐管理与播放系统，支持播放列表、歌词同步与多端访问。（支持一键导入网易云音乐元数据，批量搜刮的私人音乐客户端）**
 
 [🚀 快速开始](#-快速开始) •
 [✨ 功能特性](#-功能特性) •
