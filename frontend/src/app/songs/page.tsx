@@ -27,6 +27,7 @@ import {
   useSearchStore 
 } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
+import { cn } from '@/lib/utils';
 import type { Song } from '@/types';
 
 const formatDuration = (seconds: number) => {
@@ -192,7 +193,11 @@ export default function SongsPage() {
     if (pagination.totalPages <= 1) return null;
     
     return (
-      <div className="flex items-center justify-center space-x-2 mt-8">
+      <div className={cn(
+        "flex items-center justify-center space-x-2 mt-8",
+        // 在移动端有播放器时添加额外的底部空间
+        currentSong && "pb-20 lg:pb-0"
+      )}>
         <Button 
           variant="outline" 
           size="sm" 
