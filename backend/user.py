@@ -750,7 +750,7 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
     cursor.execute('SELECT COUNT(*) FROM playlists WHERE isPublic = 1')
     total = cursor.fetchone()[0]
     
-    # Get paginated results
+    # Get paginated results - only basic playlist info, no songs
     offset = (page - 1) * limit
     cursor.execute('SELECT * FROM playlists WHERE isPublic = 1 ORDER BY createdAt DESC LIMIT ? OFFSET ?', (limit, offset))
     rows = cursor.fetchall()
@@ -759,63 +759,12 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
     for row in rows:
         song_ids = parse_json_field(row[4])
         
-        # Get songs for this playlist
-        songs = []
-        if song_ids:
-            # Create ORDER BY clause based on song_ids order
-            case_statements = [f"WHEN s.id = '{song_id}' THEN {i}" for i, song_id in enumerate(song_ids)]
-            order_by_case = f"CASE {' '.join(case_statements)} ELSE {len(song_ids)} END"
-            
-            placeholders = ','.join('?' * len(song_ids))
-            cursor.execute(f'''
-                SELECT s.*, ar.name as artist_name, al.title as album_title 
-                FROM songs s 
-                JOIN artists ar ON s.artistId = ar.id 
-                LEFT JOIN albums al ON s.albumId = al.id 
-                WHERE s.id IN ({placeholders})
-                ORDER BY {order_by_case}
-            ''', song_ids)
-            song_rows = cursor.fetchall()
-            
-            for song_row in song_rows:
-                mood_ids = parse_json_field(song_row[8])
-                moods = get_moods_for_song(cursor, mood_ids)
-                
-                # Get all artists for this song
-                song_artists = get_song_artists(cursor, song_row[0])
-                primary_artist = next((a for a in song_artists if a.get('isPrimary')), song_artists[0] if song_artists else None)
-                
-                album_data = get_album_by_id(cursor, song_row[3]) if song_row[3] else None
-                
-                song = {
-                    "id": song_row[0],
-                    "title": song_row[1],
-                    "artistId": song_row[2],
-                    "artist": primary_artist,  # Primary artist for backward compatibility
-                    "artists": song_artists,   # All artists
-                    "albumId": song_row[3],
-                    "album": album_data,
-                    "duration": song_row[4],
-                    "audioUrl": song_row[5],
-                    "coverUrl": song_row[6],
-                    "lyrics": song_row[7],
-                    "moodIds": mood_ids,
-                    "moods": moods,
-                    "playCount": song_row[9],
-                    "liked": bool(song_row[10]),
-                    "genre": song_row[11],
-                    "createdAt": song_row[12],
-                    "updatedAt": song_row[13]
-                }
-                songs.append(song)
-        
         playlist = {
             "id": row[0],
             "name": row[1],
             "description": row[2],
             "coverUrl": row[3],
             "songIds": song_ids,
-            "songs": songs,
             "songCount": row[5],
             "playCount": row[6],
             "duration": row[7],
@@ -841,6 +790,40 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
 
 @router.get("/api/playlists/{playlist_id}")
 async def get_playlist(playlist_id: str):
+    """Get basic playlist information without songs"""
+    conn = sqlite3.connect('music.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM playlists WHERE id = ?', (playlist_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    
+    song_ids = parse_json_field(row[4])
+    
+    playlist = {
+        "id": row[0],
+        "name": row[1],
+        "description": row[2],
+        "coverUrl": row[3],
+        "songIds": song_ids,
+        "songCount": row[5],
+        "playCount": row[6],
+        "duration": row[7],
+        "creator": row[8],
+        "isPublic": bool(row[9]),
+        "createdAt": row[10],
+        "updatedAt": row[11]
+    }
+    
+    conn.close()
+    return playlist
+
+@router.get("/api/playlists/{playlist_id}/songs")
+async def get_playlist_songs(playlist_id: str):
+    """Get detailed playlist information including all songs"""
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
