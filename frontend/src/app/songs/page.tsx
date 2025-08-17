@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, Shuffle, PlayCircle, ChevronRight, ChevronLeft, ArrowUpDown } from 'lucide-react';
+import { Search, Shuffle, PlayCircle, ChevronRight, ChevronLeft, ArrowUpDown, Share2, Check } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -97,6 +97,7 @@ export default function SongsPage() {
   } = useSearchStore();
   
   const { setSong, play, replacePlaylistAndPlay } = usePlayerStore();
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
 
   // Load songs data when page, pageSize or sortBy changes
   useEffect(() => {
@@ -144,6 +145,19 @@ export default function SongsPage() {
   const handleLikeSong = (songId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     console.log('Toggle like for song:', songId);
+  };
+
+  const handleShareSong = async (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedSongId(song.id);
+      setTimeout(() => setCopiedSongId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   const handlePlayPlaylist = (playlistId: string) => {
@@ -469,8 +483,20 @@ export default function SongsPage() {
                                 {formatPlayCount(song.playCount)}
                               </div>
                               
-                              <div className="w-20 text-right text-sm text-muted-foreground">
-                                {formatDuration(song.duration)}
+                              <div className="w-24 flex items-center justify-end text-sm text-muted-foreground space-x-2">
+                                <button
+                                  onClick={(e) => handleShareSong(song, e)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="分享歌曲"
+                                  aria-label="分享歌曲"
+                                >
+                                  {copiedSongId === song.id ? (
+                                    <Check className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <Share2 className="w-4 h-4" />
+                                  )}
+                                </button>
+                                <span className="w-12 text-right">{formatDuration(song.duration)}</span>
                               </div>
                             </div>
                           ))}
@@ -513,8 +539,20 @@ export default function SongsPage() {
                                   {formatPlayCount(song.playCount)}
                                 </div>
                                 
-                                <div className="w-20 text-right text-sm text-muted-foreground">
-                                  {formatDuration(song.duration)}
+                                <div className="w-24 flex items-center justify-end text-sm text-muted-foreground space-x-2">
+                                  <button
+                                    onClick={(e) => handleShareSong(song, e)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="分享歌曲"
+                                    aria-label="分享歌曲"
+                                  >
+                                    {copiedSongId === song.id ? (
+                                      <Check className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                      <Share2 className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                  <span className="w-12 text-right">{formatDuration(song.duration)}</span>
                                 </div>
                               </div>
                             ))}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
 import { useDefaultSongLoader } from '@/lib/use-default-song-loader';
 import { parseLRC } from '@/lib/lyrics-parser';
@@ -13,6 +14,7 @@ import { LyricsCard } from '@/components/lyrics-display';
 import { FullscreenLyrics } from '@/components/fullscreen-lyrics';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AmbientGlow } from '@/components/ambient-glow';
+import { api } from '@/lib/api';
 import { PlaylistPanel } from '@/components/playlist-panel';
 
 export default function PlayPage() {
@@ -43,14 +45,75 @@ export default function PlayPage() {
     canPlayNext,
     canPlayPrevious,
     initializePlaylist,
+    setLoading,
+    setError,
+    setSong,
+    setPlaylistWithInfo,
+    replacePlaylistAndPlay,
   } = usePlayerStore();
 
   const [isFullscreenLyrics, setIsFullscreenLyrics] = useState(false);
+  const searchParams = useSearchParams();
+  const handledParamsRef = useRef(false);
   
   // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
   useEffect(() => {
     initializePlaylist();
   }, [initializePlaylist]);
+
+  // 处理通过链接参数指定的播放内容：?playlist=ID 或 ?music=ID / ?song=ID
+  useEffect(() => {
+    // 确保仅处理一次，且在路由参数变更时可再次处理
+    if (!searchParams) return;
+
+    const playlistId = searchParams.get('playlist');
+    const songId = searchParams.get('music') || searchParams.get('song');
+
+    if (!playlistId && !songId) return;
+
+    // 避免重复处理相同参数
+    if (handledParamsRef.current) return;
+    handledParamsRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+
+        if (playlistId) {
+          const res = await api.getPlaylist(playlistId);
+          if (!cancelled) {
+            if (res.success && res.data) {
+              // 设置歌单后尝试自动播放（AudioManager 里会处理被拦截的情况）
+              setPlaylistWithInfo(res.data, 0);
+              // play();
+            } else {
+              setError(res.error || '无法加载指定的歌单');
+            }
+          }
+        } else if (songId) {
+          const res = await api.getSong(songId);
+          if (!cancelled) {
+            if (res.success && res.data) {
+              // 用单曲替换当前播放列表，形成仅包含此歌曲的临时歌单
+              replacePlaylistAndPlay([res.data], 0);
+            } else {
+              setError(res.error || '无法加载指定的歌曲');
+            }
+          }
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : '未知错误');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   
   // 动态歌词数据 - 使用真实的歌词解析
   const currentLyrics = useMemo(() => {

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, TrendingUp } from 'lucide-react';
+import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, TrendingUp, Share2, Check } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Song, Playlist } from '@/types';
@@ -47,6 +47,8 @@ function PlaylistDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const [copied, setCopied] = useState(false); // playlist-level copied
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null); // song-level copied feedback
   const { replacePlaylistAndPlay } = usePlayerStore();
 
   useEffect(() => {
@@ -97,6 +99,19 @@ function PlaylistDetailContent() {
     if (playlist && playlist.songs && playlist.songs.length > 0) {
       const randomIndex = Math.floor(Math.random() * playlist.songs.length);
       replacePlaylistAndPlay(playlist.songs, randomIndex);
+    }
+  };
+
+  const handleSharePlaylist = async () => {
+    if (!playlist) return;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${origin}/play?playlist=${encodeURIComponent(playlist.id)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error('Failed to copy link:', e);
     }
   };
 
@@ -233,6 +248,19 @@ function PlaylistDetailContent() {
                     <Heart className={`w-5 h-5 mr-2 ${isLiked ? 'text-red-500 fill-current' : ''}`} />
                     {isLiked ? '已喜欢' : '喜欢'}
                   </Button>
+                  <Button variant="ghost" size="lg" onClick={handleSharePlaylist} title="分享歌单">
+                    {copied ? (
+                      <>
+                        <Check className="w-5 h-5 mr-2 text-green-500" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-5 h-5 mr-2" />
+                        分享
+                      </>
+                    )}
+                  </Button>
                   <Button variant="ghost" size="lg">
                     <MoreHorizontal className="w-5 h-5" />
                   </Button>
@@ -273,6 +301,29 @@ function PlaylistDetailContent() {
                         {song.liked && (
                           <Heart className="w-4 h-4 text-red-500 fill-current" />
                         )}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                            const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
+                            try {
+                              await navigator.clipboard.writeText(url);
+                              setCopiedSongId(song.id);
+                              setTimeout(() => setCopiedSongId(null), 2000);
+                            } catch (err) {
+                              console.error('Failed to copy song link:', err);
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                          title="分享歌曲"
+                          aria-label="分享歌曲"
+                        >
+                          {copiedSongId === song.id ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
+                        </button>
                         <span className="w-20 text-right text-sm text-muted-foreground">
                           {formatSongDuration(song.duration)}
                         </span>
