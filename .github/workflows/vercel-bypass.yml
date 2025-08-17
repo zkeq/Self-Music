@@ -51,13 +51,6 @@ jobs:
           
           Timestamp: $(date)"
 
-      - name: Push bypass commit
-        if: steps.check-author.outputs.need_bypass == 'true'
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
-
       - name: Clean up trigger file
         if: steps.check-author.outputs.need_bypass == 'true'
         run: |
