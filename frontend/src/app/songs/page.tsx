@@ -96,7 +96,7 @@ export default function SongsPage() {
     isLoading: searchLoading 
   } = useSearchStore();
   
-  const { setSong, play, replacePlaylistAndPlay } = usePlayerStore();
+  const { setSong, play, replacePlaylistAndPlay, currentSong } = usePlayerStore();
   const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
 
   // Load songs data when page, pageSize or sortBy changes
@@ -296,7 +296,7 @@ export default function SongsPage() {
           transition={{ duration: 0.6, delay: 0.4 }}
         >
           <ScrollArea className="h-full">
-            <div className="p-4 pt-0 lg:p-6">
+            <div className="p-4 pt-0 lg:p-6 pb-24 lg:pb-28">
               {query ? (
                 <SearchResults 
                   songs={results.songs}
@@ -446,7 +446,7 @@ export default function SongsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="grid gap-6 lg:grid-cols-2">
+                      <div className={`grid gap-6 lg:grid-cols-2 ${currentSong ? 'pb-24 lg:pb-28' : 'pb-6'}`}>
                         {/* 第一个表格 - 前12首歌曲 */}
                         <div className="bg-card rounded-lg shadow-sm">
                           <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
