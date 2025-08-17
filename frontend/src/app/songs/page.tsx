@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
@@ -8,7 +8,14 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, Shuffle, PlayCircle, ChevronRight } from 'lucide-react';
+import { Search, Shuffle, PlayCircle, ChevronRight, ChevronLeft, ArrowUpDown } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FeaturedSection } from '@/components/featured-section';
 import { PlaylistCard } from '@/components/playlist-card';
 import { ArtistCard } from '@/components/artist-card';
@@ -50,6 +57,9 @@ const formatFollowers = (count: number) => {
 
 export default function SongsPage() {
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [sortBy, setSortBy] = useState('created_desc');
   
   // Store hooks
   const { 
@@ -86,22 +96,26 @@ export default function SongsPage() {
 
   // Load initial data
   useEffect(() => {
-    fetchSongs(1, 12);
+    fetchSongs(currentPage, pageSize, sortBy);
     fetchPlaylists(1, 8);
     fetchArtists(1, 8);
     fetchTrendingSongs(20);
     fetchHotSongs(20);
-  }, [fetchSongs, fetchPlaylists, fetchArtists, fetchTrendingSongs, fetchHotSongs]);
+  }, [currentPage, pageSize, sortBy, fetchSongs, fetchPlaylists, fetchArtists, fetchTrendingSongs, fetchHotSongs]);
 
-  const handlePlaySong = (song: Song) => {
-    // 根据当前上下文选择合适的歌曲列表
+  const handlePlaySong = (song: Song, sourceList?: Song[]) => {
+    // 使用提供的列表或根据当前上下文选择合适的歌曲列表
     let currentSongList: Song[] = [];
-    if (query && results.songs.length > 0) {
+    
+    if (sourceList) {
+      // 如果明确提供了来源列表，使用它
+      currentSongList = sourceList;
+    } else if (query && results.songs.length > 0) {
       // 如果在搜索状态，使用搜索结果
       currentSongList = results.songs;
     } else {
-      // 否则使用当前显示的歌曲列表
-      currentSongList = displaySongs;
+      // 否则使用当前页面的歌曲列表
+      currentSongList = songs;
     }
     
     // 找到歌曲在列表中的索引
@@ -138,7 +152,65 @@ export default function SongsPage() {
     }
   };
 
-  const displaySongs = hot.length > 0 ? hot : songs;
+  const displaySongs = songs; // 直接使用分页的歌曲数据
+  const { pagination } = useSongsStore();
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleSortChange = (newSortBy: string) => {
+    setSortBy(newSortBy);
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+  
+  const renderPagination = () => {
+    if (pagination.totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-8">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        
+        <div className="flex items-center space-x-1">
+          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+            const page = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i;
+            if (page > pagination.totalPages) return null;
+            
+            return (
+              <Button
+                key={page}
+                variant={page === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            );
+          })}
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= pagination.totalPages}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        
+        <span className="text-sm text-muted-foreground ml-4">
+          第 {pagination.page} 页，共 {pagination.totalPages} 页
+        </span>
+      </div>
+    );
+  };
 
   return (
     <motion.div 
@@ -223,8 +295,8 @@ export default function SongsPage() {
                     transition={{ duration: 0.6, delay: 0.55 }}
                   >
                     <FeaturedSection 
-                      songs={displaySongs}
-                      onPlaySong={handlePlaySong}
+                      songs={hot.length > 0 ? hot.slice(0, 12) : trending.slice(0, 12)}
+                      onPlaySong={(song) => handlePlaySong(song, hot.length > 0 ? hot : trending)}
                       onLikeSong={handleLikeSong}
                       onAddToPlaylist={() => {}}
                       formatPlayCount={formatPlayCount}
@@ -295,7 +367,7 @@ export default function SongsPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        {artists.slice(0, 4).map((artist) => (
+                        {(artists || []).slice(0, 4).map((artist) => (
                           <ArtistCard
                             key={artist.id}
                             artist={artist}
@@ -305,6 +377,93 @@ export default function SongsPage() {
                         ))}
                       </div>
                     )}
+                  </motion.section>
+                  
+                  {/* Songs List with Pagination */}
+                  <motion.section
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.8 }}
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-semibold">所有歌曲</h2>
+                      <div className="flex items-center space-x-2">
+                        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        <Select value={sortBy} onValueChange={handleSortChange}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="created_desc">最新添加</SelectItem>
+                            <SelectItem value="created_asc">最早添加</SelectItem>
+                            <SelectItem value="title_asc">标题 A-Z</SelectItem>
+                            <SelectItem value="title_desc">标题 Z-A</SelectItem>
+                            <SelectItem value="play_count_desc">播放量高</SelectItem>
+                            <SelectItem value="play_count_asc">播放量低</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    {songsLoading ? (
+                      <div className="space-y-2">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="bg-card rounded-lg p-4 animate-pulse">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 bg-muted rounded" />
+                              <div className="flex-1">
+                                <div className="h-4 bg-muted rounded mb-2" />
+                                <div className="h-3 bg-muted rounded w-1/2" />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-card rounded-lg shadow-sm">
+                        <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
+                          <div className="w-8">#</div>
+                          <div className="flex-1">标题</div>
+                          <div className="w-20 text-right">播放次数</div>
+                          <div className="w-20 text-right">时长</div>
+                        </div>
+                        
+                        {songs.map((song, index) => (
+                          <div 
+                            key={song.id}
+                            className="flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer group transition-colors"
+                            onClick={() => handlePlaySong(song)}
+                          >
+                            <div className="w-8 text-sm text-muted-foreground">
+                              <span className="group-hover:hidden">{(currentPage - 1) * pageSize + index + 1}</span>
+                              <PlayCircle className="w-4 h-4 hidden group-hover:block text-primary" />
+                            </div>
+                            
+                            <div className="flex items-center flex-1 min-w-0">
+                              <img 
+                                src={song.coverUrl || '/placeholder-cover.jpg'} 
+                                alt={song.title}
+                                className="w-10 h-10 rounded mr-3 object-cover"
+                              />
+                              <div className="min-w-0">
+                                <div className="font-medium truncate">{song.title}</div>
+                                <div className="text-sm text-muted-foreground truncate">{song.artist?.name}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="w-20 text-right text-sm text-muted-foreground">
+                              {formatPlayCount(song.playCount)}
+                            </div>
+                            
+                            <div className="w-20 text-right text-sm text-muted-foreground">
+                              {formatDuration(song.duration)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {renderPagination()}
                   </motion.section>
                 </motion.div>
               )}

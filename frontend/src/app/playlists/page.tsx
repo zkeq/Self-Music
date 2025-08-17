@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, PlayCircle } from 'lucide-react';
+import { Search, Plus, PlayCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PlaylistCard } from '@/components/playlist-card';
 import { usePlaylistsStore, useSearchStore } from '@/lib/data-stores';
 
@@ -24,6 +24,8 @@ const formatPlayCount = (count: number) => {
 
 export default function PlaylistsPage() {
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
   
   const { 
     playlists, 
@@ -40,8 +42,8 @@ export default function PlaylistsPage() {
   } = useSearchStore();
 
   useEffect(() => {
-    fetchPlaylists();
-  }, [fetchPlaylists]);
+    fetchPlaylists(currentPage, pageSize);
+  }, [currentPage, pageSize, fetchPlaylists]);
 
   const handlePlayPlaylist = (playlistId: string) => {
     router.push(`/playlist/${playlistId}`);
@@ -64,6 +66,59 @@ export default function PlaylistsPage() {
   };
 
   const displayPlaylists = query ? results.playlists : playlists;
+  const { pagination } = usePlaylistsStore();
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const renderPagination = () => {
+    if (pagination.totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-8">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        
+        <div className="flex items-center space-x-1">
+          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+            const page = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i;
+            if (page > pagination.totalPages) return null;
+            
+            return (
+              <Button
+                key={page}
+                variant={page === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            );
+          })}
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= pagination.totalPages}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        
+        <span className="text-sm text-muted-foreground ml-4">
+          第 {pagination.page} 页，共 {pagination.totalPages} 页
+        </span>
+      </div>
+    );
+  };
 
   return (
     <motion.div 
@@ -159,6 +214,8 @@ export default function PlaylistsPage() {
                   ))}
                 </motion.div>
               )}
+              
+              {renderPagination()}
 
               {!isLoading && displayPlaylists.length === 0 && (
                 <motion.div 

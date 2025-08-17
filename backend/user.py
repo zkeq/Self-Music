@@ -446,7 +446,11 @@ async def get_album_songs(album_id: str):
 
 # Songs API  
 @router.get("/api/songs")
-async def get_songs(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100)):
+async def get_songs(
+    page: int = Query(1, ge=1), 
+    limit: int = Query(20, ge=1, le=100),
+    sort_by: str = Query("created_desc", regex="^(created_desc|created_asc|title_asc|title_desc|play_count_desc|play_count_asc)$")
+):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
@@ -454,14 +458,30 @@ async def get_songs(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=
     cursor.execute('SELECT COUNT(*) FROM songs')
     total = cursor.fetchone()[0]
     
+    # Determine sort order
+    if sort_by == "created_desc":
+        order_clause = "ORDER BY s.createdAt DESC"
+    elif sort_by == "created_asc":
+        order_clause = "ORDER BY s.createdAt ASC"
+    elif sort_by == "title_asc":
+        order_clause = "ORDER BY s.title ASC"
+    elif sort_by == "title_desc":
+        order_clause = "ORDER BY s.title DESC"
+    elif sort_by == "play_count_desc":
+        order_clause = "ORDER BY s.playCount DESC"
+    elif sort_by == "play_count_asc":
+        order_clause = "ORDER BY s.playCount ASC"
+    else:
+        order_clause = "ORDER BY s.createdAt DESC"
+    
     # Get paginated results
     offset = (page - 1) * limit
-    cursor.execute('''
+    cursor.execute(f'''
         SELECT s.*, ar.name as artist_name, al.title as album_title 
         FROM songs s 
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
-        ORDER BY s.createdAt DESC LIMIT ? OFFSET ?
+        {order_clause} LIMIT ? OFFSET ?
     ''', (limit, offset))
     rows = cursor.fetchall()
     
@@ -508,7 +528,8 @@ async def get_songs(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=
         "total": total,
         "page": page,
         "limit": limit,
-        "totalPages": total_pages
+        "totalPages": total_pages,
+        "sortBy": sort_by
     }
 
 @router.get("/api/songs/{song_id}")
@@ -1133,7 +1154,7 @@ async def get_mood(mood_id: str):
     return mood
 
 @router.get("/api/moods/{mood_id}/songs")
-async def get_mood_songs(mood_id: str):
+async def get_mood_songs(mood_id: str, page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100)):
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
     
@@ -1143,14 +1164,24 @@ async def get_mood_songs(mood_id: str):
         conn.close()
         raise HTTPException(status_code=404, detail="Mood not found")
     
+    # Get total count
+    cursor.execute('''
+        SELECT COUNT(*) FROM songs s 
+        WHERE s.moodIds LIKE ?
+    ''', (f'%{mood_id}%',))
+    total = cursor.fetchone()[0]
+    
+    # Get paginated results
+    offset = (page - 1) * limit
     cursor.execute('''
         SELECT s.*, ar.name as artist_name, al.title as album_title 
         FROM songs s 
         JOIN artists ar ON s.artistId = ar.id 
         LEFT JOIN albums al ON s.albumId = al.id 
         WHERE s.moodIds LIKE ?
-        ORDER BY s.createdAt ASC
-    ''', (f'%{mood_id}%',))
+        ORDER BY s.playCount DESC
+        LIMIT ? OFFSET ?
+    ''', (f'%{mood_id}%', limit, offset))
     rows = cursor.fetchall()
     
     songs = []
@@ -1188,7 +1219,17 @@ async def get_mood_songs(mood_id: str):
             songs.append(song)
     
     conn.close()
-    return songs
+    
+    total_pages = (total + limit - 1) // limit
+    
+    return {
+        "success": True,
+        "data": songs,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "totalPages": total_pages
+    }
 
 # Search API
 @router.get("/api/search")

@@ -141,8 +141,8 @@ class RealApiClient {
     return this.request(`/moods/${id}`);
   }
 
-  async getMoodSongs(id: string): Promise<ApiResponse<Song[]>> {
-    return this.request(`/moods/${id}/songs`);
+  async getMoodSongs(id: string, page = 1, limit = 20): Promise<ApiResponse<Song[] | PaginatedResponse<Song>>> {
+    return this.request(`/moods/${id}/songs?page=${page}&limit=${limit}`);
   }
 
   // Search API

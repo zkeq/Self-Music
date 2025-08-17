@@ -169,7 +169,7 @@ interface SongsState {
 }
 
 interface SongsActions {
-  fetchSongs: (page?: number, limit?: number) => Promise<void>;
+  fetchSongs: (page?: number, limit?: number, sortBy?: string) => Promise<void>;
   fetchSong: (id: string) => Promise<void>;
   fetchTrendingSongs: (limit?: number) => Promise<void>;
   fetchHotSongs: (limit?: number) => Promise<void>;
@@ -196,10 +196,10 @@ export const useSongsStore = create<SongsState & SongsActions>()(
       new: [],
 
       // Actions
-      fetchSongs: async (page = 1, limit = 20) => {
+      fetchSongs: async (page = 1, limit = 20, sortBy = 'created_desc') => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.getSongs(page, limit);
+          const response = await api.getSongs(page, limit, sortBy);
           if (response.success && response.data) {
             set({
               songs: response.data.data || [],
@@ -471,12 +471,18 @@ interface MoodsState {
   moodSongs: Song[];
   isLoading: boolean;
   error: string | null;
+  moodSongsPagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 interface MoodsActions {
   fetchMoods: () => Promise<void>;
   fetchMood: (id: string) => Promise<void>;
-  fetchMoodSongs: (id: string) => Promise<void>;
+  fetchMoodSongs: (id: string, page?: number, limit?: number) => Promise<void>;
   setCurrentMood: (mood: Mood | null) => void;
 }
 
@@ -489,6 +495,12 @@ export const useMoodsStore = create<MoodsState & MoodsActions>()(
       moodSongs: [],
       isLoading: false,
       error: null,
+      moodSongsPagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      },
 
       // Actions
       fetchMoods: async () => {
@@ -527,12 +539,36 @@ export const useMoodsStore = create<MoodsState & MoodsActions>()(
         }
       },
 
-      fetchMoodSongs: async (id: string) => {
+      fetchMoodSongs: async (id: string, page = 1, limit = 20) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await api.getMoodSongs(id);
+          const response = await api.getMoodSongs(id, page, limit);
           if (response.success && response.data) {
-            set({ moodSongs: response.data, isLoading: false });
+            if (Array.isArray(response.data)) {
+              // Legacy response format (no pagination)
+              set({ 
+                moodSongs: response.data, 
+                moodSongsPagination: {
+                  page: 1,
+                  limit: response.data.length,
+                  total: response.data.length,
+                  totalPages: 1,
+                },
+                isLoading: false 
+              });
+            } else {
+              // New paginated response format
+              set({ 
+                moodSongs: response.data.data || [],
+                moodSongsPagination: {
+                  page: response.data.page || page,
+                  limit: response.data.limit || limit,
+                  total: response.data.total || 0,
+                  totalPages: response.data.totalPages || 0,
+                },
+                isLoading: false 
+              });
+            }
           } else {
             set({ 
               moodSongs: [],
