@@ -7,6 +7,7 @@ import { useSongsStore } from '@/lib/data-stores';  // 导入歌曲存储以记�
 export function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeUpdateRef = useRef<number | null>(null);
+  const defaultTitleRef = useRef<string | null>(null);
 
   const {
     currentSong,
@@ -39,6 +40,11 @@ export function AudioManager() {
       console.log('Audio element created');
     }
 
+    // 记录初始标题
+    if (typeof document !== 'undefined' && defaultTitleRef.current === null) {
+      defaultTitleRef.current = document.title;
+    }
+
     return () => {
       if (timeUpdateRef.current) {
         cancelAnimationFrame(timeUpdateRef.current);
@@ -47,8 +53,29 @@ export function AudioManager() {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
+
+      // 恢复标题
+      if (typeof document !== 'undefined' && defaultTitleRef.current) {
+        document.title = defaultTitleRef.current;
+      }
     };
   }, []);
+
+  // 根据播放状态与当前歌曲动态更新页面标题
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const baseTitle = defaultTitleRef.current || 'Self-Music - 音乐流媒体平台';
+
+    if (currentSong && isPlaying) {
+      const artistName = (typeof currentSong.artist === 'string')
+        ? currentSong.artist
+        : currentSong.artist?.name;
+      const nowPlaying = `♪ 正在播放：${currentSong.title}${artistName ? ` - ${artistName}` : ''} | Self-Music`;
+      document.title = nowPlaying;
+    } else {
+      document.title = baseTitle;
+    }
+  }, [currentSong, isPlaying]);
 
   // 设置音频事件监听器 - 只在音频元素创建后执行一次
   useEffect(() => {
