@@ -271,7 +271,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         {/* Song Info - 使用固定宽度避免挤压 */}
                         <div className="flex-1 min-w-0 mr-3 overflow-hidden">
                           <p className={cn(
-                            "text-sm font-medium truncate max-w-[220px]",
+                            "text-sm font-medium truncate max-w-[140px]",
                             index === currentIndex && "text-primary"
                           )}>
                             {song.title}
