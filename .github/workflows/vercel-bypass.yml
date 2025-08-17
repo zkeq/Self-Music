@@ -1,4 +1,4 @@
-name: Vercel Bypass for Non-zkeq Commits
+name: Vercel Bypass for Non-Zkeq Commits
 
 on:
   push:
@@ -21,21 +21,21 @@ jobs:
           echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
           echo "Commit author: $COMMIT_AUTHOR"
 
-      - name: Check if author is not zkeq
+      - name: Check if author is not Zkeq
         id: check-author
         run: |
-          if [ "${{ steps.get-author.outputs.commit_author }}" != "zkeq" ]; then
+          if [ "${{ steps.get-author.outputs.commit_author }}" != "Zkeq" ]; then
             echo "need_bypass=true" >> $GITHUB_OUTPUT
-            echo "Author is not zkeq, bypass needed"
+            echo "Author is not Zkeq, bypass needed"
           else
             echo "need_bypass=false" >> $GITHUB_OUTPUT
-            echo "Author is zkeq, no bypass needed"
+            echo "Author is Zkeq, no bypass needed"
           fi
 
-      - name: Configure git for zkeq
+      - name: Configure git for Zkeq
         if: steps.check-author.outputs.need_bypass == 'true'
         run: |
-          git config --global user.name "zkeq"
+          git config --global user.name "Zkeq"
           git config --global user.email "admin@icodeq.com"
 
       - name: Create bypass commit
@@ -47,7 +47,7 @@ jobs:
           git commit -m "🚀 Trigger Vercel deployment
 
           Original commit by: ${{ steps.get-author.outputs.commit_author }}
-          Bypass commit to trigger Vercel deployment for non-zkeq commits.
+          Bypass commit to trigger Vercel deployment for non-Zkeq commits.
           
           Timestamp: $(date)"
 
@@ -77,5 +77,5 @@ jobs:
           if [ "${{ steps.check-author.outputs.need_bypass }}" == "true" ]; then
             echo "✅ Vercel bypass completed for commit by ${{ steps.get-author.outputs.commit_author }}"
           else
-            echo "ℹ️ No bypass needed - commit is by zkeq"
+            echo "ℹ️ No bypass needed - commit is by Zkeq"
           fi
