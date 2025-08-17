@@ -90,8 +90,8 @@ Self Music is a personal music system designed for individuals or small teams. I
 
 ### 1) Clone
 ```bash
-git clone https://github.com/yourname/self-music.git
-cd self-music
+git clone https://github.com/zkeq/Self-music.git
+cd Self-music
 ```
 
 ### 2) Backend (FastAPI)

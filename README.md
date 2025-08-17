@@ -90,8 +90,8 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
 ### 1) 克隆项目
 ```bash
-git clone https://github.com/yourname/self-music.git
-cd self-music
+git clone https://github.com/zkeq/Self-music.git
+cd Self-music
 ```
 
 ### 2) 启动后端（FastAPI）
