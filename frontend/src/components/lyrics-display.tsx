@@ -443,7 +443,7 @@ export function LyricsCard({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={onFullscreen}
-            className="ml-4 p-2 hover:bg-accent/20 rounded-lg transition-colors duration-200 group"
+            className="ml-4 p-2 hover:bg-accent/20 rounded-lg transition-colors duration-200 group hidden md:inline-flex"
             aria-label="全屏显示歌词"
           >
             <svg 

@@ -179,6 +179,7 @@ export default function PlaySongPage() {
               onLike={handleLike}
               onVolumeChange={handleVolumeChange}
               onSeek={handleSeek}
+              onFullscreen={handleFullscreenLyrics}
               className="w-full max-w-md"
             />
           </PlayerLeftSection>

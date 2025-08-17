@@ -236,6 +236,7 @@ export default function PlayPage() {
               onLike={handleLike}
               onVolumeChange={handleVolumeChange}
               onSeek={handleSeek}
+              onFullscreen={handleFullscreenLyrics}
               className="w-full max-w-md"
             />
           </PlayerLeftSection>
