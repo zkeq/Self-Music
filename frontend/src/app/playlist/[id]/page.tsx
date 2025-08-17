@@ -82,7 +82,7 @@ function PlaylistDetailContent() {
   }, [params.id]);
 
   const handlePlaySong = (songIndex: number) => {
-    if (playlist && playlist.songs) {
+    if (playlist && playlist.songs && playlist.songs.length > 0) {
       replacePlaylistAndPlay(playlist.songs, songIndex);
     }
   };
@@ -255,7 +255,7 @@ function PlaylistDetailContent() {
                   </div>
                 </div>
                 <div>
-                  {playlist.songs.map((song, index) => (
+                  {playlist.songs?.map((song, index) => (
                     <div 
                       key={song.id}
                       className="flex items-center px-4 py-3 hover:bg-muted/50 rounded-md cursor-pointer group"

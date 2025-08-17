@@ -790,39 +790,6 @@ async def get_playlists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1,
 
 @router.get("/api/playlists/{playlist_id}")
 async def get_playlist(playlist_id: str):
-    """Get basic playlist information without songs"""
-    conn = sqlite3.connect('music.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT * FROM playlists WHERE id = ?', (playlist_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Playlist not found")
-    
-    song_ids = parse_json_field(row[4])
-    
-    playlist = {
-        "id": row[0],
-        "name": row[1],
-        "description": row[2],
-        "coverUrl": row[3],
-        "songIds": song_ids,
-        "songCount": row[5],
-        "playCount": row[6],
-        "duration": row[7],
-        "creator": row[8],
-        "isPublic": bool(row[9]),
-        "createdAt": row[10],
-        "updatedAt": row[11]
-    }
-    
-    conn.close()
-    return playlist
-
-@router.get("/api/playlists/{playlist_id}/songs")
-async def get_playlist_songs(playlist_id: str):
     """Get detailed playlist information including all songs"""
     conn = sqlite3.connect('music.db')
     cursor = conn.cursor()
