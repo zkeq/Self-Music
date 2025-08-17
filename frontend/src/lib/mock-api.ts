@@ -129,7 +129,7 @@ class MockApiClient {
     await mockDelay();
     
     // Sort songs based on sort_by parameter
-    let sortedSongs = [...mockSongs];
+    const sortedSongs = [...mockSongs];
     switch (sort_by) {
       case 'title_asc':
         sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
