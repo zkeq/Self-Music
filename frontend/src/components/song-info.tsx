@@ -25,7 +25,7 @@ export function AlbumCover({ song, className, size = 'lg' }: AlbumCoverProps) {
   const sizeClasses = {
     sm: 'h-16 w-16',
     md: 'h-32 w-32',
-    lg: 'h-48 w-48 lg:h-64 lg:w-64 xl:h-80 xl:w-80',
+    lg: 'h-64 w-64 lg:h-80 lg:w-80',
   };
 
   // Extract colors when cover image changes
@@ -197,14 +197,14 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
 
   return (
     <motion.div 
-      className={cn("text-center space-y-2 lg:space-y-4", className)}
+      className={cn("text-center space-y-4", className)}
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.5 }}
     >
       {/* Song Title */}
       <motion.h2 
-        className="text-xl lg:text-2xl xl:text-3xl font-bold text-foreground leading-tight"
+        className="text-2xl lg:text-3xl font-bold text-foreground leading-tight"
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -214,7 +214,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
       
       {/* Artist */}
       <motion.p 
-        className="text-base lg:text-lg text-muted-foreground"
+        className="text-lg text-muted-foreground"
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.35 }}
@@ -225,7 +225,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
       
       {/* Album */}
       <motion.p 
-        className="text-xs lg:text-sm text-muted-foreground/80"
+        className="text-sm text-muted-foreground/80"
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.4 }}
@@ -240,7 +240,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
       
       {/* Duration */}
       <motion.p 
-        className="text-xs lg:text-sm text-muted-foreground/60"
+        className="text-sm text-muted-foreground/60"
         initial={{ y: 10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.45 }}
@@ -251,7 +251,7 @@ export function SongInfo({ song, className, layout = 'vertical' }: SongInfoProps
       {/* Mood Tags */}
       {song.moods && song.moods.length > 0 && (
         <motion.div 
-          className="flex flex-wrap justify-center gap-1 lg:gap-2"
+          className="flex flex-wrap justify-center gap-2"
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5 }}
