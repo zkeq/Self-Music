@@ -269,7 +269,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         </div>
 
                         {/* Song Info */}
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 max-w-[calc(100%-120px)]">
                           <p className={cn(
                             "text-sm font-medium truncate",
                             index === currentIndex && "text-primary"
@@ -280,7 +280,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                             {song.artist.name}
                           </p>
                           {song.moods && song.moods.length > 0 && (
-                            <div className="flex gap-1 mt-1">
+                            <div className="flex gap-1 mt-1 flex-wrap">
                               {song.moods.slice(0, 2).map((mood) => {
                                 const IconComponent = getIconComponent(mood.icon);
                                 return (
@@ -295,7 +295,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         </div>
 
                         {/* Duration & Actions */}
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-shrink-0">
                           <span className="text-xs text-muted-foreground">
                             {formatDuration(song.duration)}
                           </span>

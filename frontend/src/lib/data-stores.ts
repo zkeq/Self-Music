@@ -304,11 +304,12 @@ export const useSongsStore = create<SongsState & SongsActions>()(
       recordPlay: async (songId: string) => {
         try {
           const response = await api.recordPlay(songId);
-          if (response.success && response.data) {
+          if (response.success && response.data && typeof response.data.playCount === 'number') {
             // Update the song's play count in all relevant arrays
             const state = get();
+            const newPlayCount = response.data.playCount;
             const updateSongPlayCount = (song: Song) => 
-              song.id === songId ? { ...song, playCount: response.data!.playCount } : song;
+              song.id === songId ? { ...song, playCount: newPlayCount } : song;
             
             set({
               songs: state.songs.map(updateSongPlayCount),
@@ -317,7 +318,7 @@ export const useSongsStore = create<SongsState & SongsActions>()(
               new: state.new.map(updateSongPlayCount),
               featured: state.featured.map(updateSongPlayCount),  // 包含featured数组
               currentSong: state.currentSong?.id === songId 
-                ? { ...state.currentSong, playCount: response.data!.playCount }
+                ? { ...state.currentSong, playCount: newPlayCount }
                 : state.currentSong
             });
           }
