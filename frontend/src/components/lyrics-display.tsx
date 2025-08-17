@@ -338,7 +338,7 @@ export function LyricsDisplay({
                     animate={{ opacity: 1, width: "auto" }}
                     exit={{ opacity: 0, width: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2"
+                    className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20"
                   >
                     <div className="w-6 md:w-12 h-px bg-gradient-to-r from-primary/60 to-primary/20"></div>
                   </motion.div>
@@ -353,7 +353,7 @@ export function LyricsDisplay({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
-                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 md:gap-3"
+                    className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 flex items-center gap-2 md:gap-3"
                   >
                     <div className="bg-popover/95 backdrop-blur-sm border rounded-md px-2 md:px-3 py-1 md:py-1.5 text-xs text-popover-foreground shadow-lg">
                       {formatTime(lyric.time)}
