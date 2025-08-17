@@ -1,5 +1,7 @@
 # 🎵 Self Music - 私人音乐系统
 
+- 预览地址：https://music.icodeq.com
+
 ![屏幕截图(616)](https://img.onmicrosoft.cn/zkeq/20250817125324565.png)
 
 ![屏幕截图(617)](https://img.onmicrosoft.cn/zkeq/20250817125724096.png)
@@ -16,11 +18,6 @@
 
 ![屏幕截图(623)](https://img.onmicrosoft.cn/zkeq/20250817125723806.png)
 
-
-
-![Self Music Banner](https://img.shields.io/badge/Self%20Music-🎶-ff69b4?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 <div align="center">
 
