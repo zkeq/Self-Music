@@ -97,6 +97,55 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
 ## 🚀 快速开始
 
+### ☁️ 云服务器部署 （后端）[使用宝塔部署]
+
+1. 将 `backend` 文件夹上传至服务器 `\root` 即可
+
+   ![image-20250817130950435](https://img.onmicrosoft.cn/zkeq/20250817130950511.png)
+
+2. 修改 `jwt secret` 为一串随机字符串 `auth.py`
+
+   ![image-20250817131014518](https://img.onmicrosoft.cn/zkeq/20250817131014618.png)
+
+3. 修改默认管理员账号，默认管理员密码 `main.py`
+
+   ![image-20250817131115205](https://img.onmicrosoft.cn/zkeq/20250817131115307.png)
+
+4. 打开宝塔 网站 -> `Ptython项目` -> `新建站点`
+
+   新建一个虚拟环境
+
+   ![image-20250731101721616](https://img.onmicrosoft.cn/zkeq/20250731101721697.png)
+
+5. 表单按如下填写
+
+   ![image-20250731101757603](https://img.onmicrosoft.cn/zkeq/20250731101757694.png)
+
+6. 点击确定后项目会进行创建虚拟环境和安装，等待安装完毕 即可
+
+7. 点击设置可查看项目日志
+
+   ![image-20250731101900749](https://img.onmicrosoft.cn/zkeq/20250731101900862.png)
+
+8. 在这一步如果提示找不到某个依赖，点击 `操作` 中的 `终端`，自行输入 `pip install xxx(包名)` 即可，若提示端口被占用 （更改一个没有被占用的端口即可 `main.py`）
+
+   ![image-20250731102037862](https://img.onmicrosoft.cn/zkeq/20250731102037989.png)
+
+9.  请求服务端口，查看运行情况 （看到这个字符串，说明服务正常运行）
+
+   ![image-20250731102123918](https://img.onmicrosoft.cn/zkeq/20250731102123995.png)
+
+10. 后端部署已完成，可在cdn测绑定反代域名即可上线
+
+### ☁️  Vercel 部署 （前端）
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzkeq%2FSelf-Music%2Ftree%2Fmain%2Ffrontend&env=NEXT_PUBLIC_API_URL&envDescription=%E5%90%8E%E7%AB%AF%E9%A1%B9%E7%9B%AE%E5%9C%B0%E5%9D%80%EF%BC%88%E7%A4%BA%E4%BE%8B%3A%20https%3A%2F%2Fmusic-api.onmicrosoft.cn%2Fapi%EF%BC%89%EF%BC%9A&project-name=self-music&repository-name=self-music)
+
+- 按步骤进行操作即可成功部署
+
+![image-20250731103123137](https://img.onmicrosoft.cn/zkeq/20250731103123356.png)
+
+
 ### 📋 环境要求
 - 🐍 Python 3.8+
 - 📦 Node.js 18+
