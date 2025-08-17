@@ -571,4 +571,5 @@ export const {
   getTrendingSongs: mockGetTrendingSongs,
   getHotSongs: mockGetHotSongs,
   getNewSongs: mockGetNewSongs,
+  recordPlay: mockRecordPlay,
 } = mockApi;
