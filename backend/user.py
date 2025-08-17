@@ -169,7 +169,7 @@ async def get_artists(page: int = Query(1, ge=1), limit: int = Query(20, ge=1, l
     
     # Get paginated results
     offset = (page - 1) * limit
-    cursor.execute('SELECT * FROM artists ORDER BY createdAt DESC LIMIT ? OFFSET ?', (limit, offset))
+    cursor.execute('SELECT * FROM artists ORDER BY songCount DESC LIMIT ? OFFSET ?', (limit, offset))
     rows = cursor.fetchall()
     conn.close()
     
