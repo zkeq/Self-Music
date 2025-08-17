@@ -86,8 +86,8 @@ class RealApiClient {
   }
 
   // Songs API
-  async getSongs(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Song>>> {
-    return this.request(`/songs?page=${page}&limit=${limit}`);
+  async getSongs(page = 1, limit = 20, sortBy = 'created_desc'): Promise<ApiResponse<PaginatedResponse<Song>>> {
+    return this.request(`/songs?page=${page}&limit=${limit}&sort_by=${sortBy}`);
   }
 
   async getSong(id: string): Promise<ApiResponse<Song>> {

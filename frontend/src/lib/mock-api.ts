@@ -125,20 +125,45 @@ class MockApiClient {
   }
 
   // Songs API
-  async getSongs(page = 1, limit = 20): Promise<ApiResponse<PaginatedResponse<Song>>> {
+  async getSongs(page = 1, limit = 20, sort_by = 'created_desc'): Promise<ApiResponse<PaginatedResponse<Song>>> {
     await mockDelay();
+    
+    // Sort songs based on sort_by parameter
+    let sortedSongs = [...mockSongs];
+    switch (sort_by) {
+      case 'title_asc':
+        sortedSongs.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'title_desc':
+        sortedSongs.sort((a, b) => b.title.localeCompare(a.title));
+        break;
+      case 'play_count_asc':
+        sortedSongs.sort((a, b) => a.playCount - b.playCount);
+        break;
+      case 'play_count_desc':
+        sortedSongs.sort((a, b) => b.playCount - a.playCount);
+        break;
+      case 'created_asc':
+        sortedSongs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'created_desc':
+      default:
+        sortedSongs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+    }
+    
     const start = (page - 1) * limit;
     const end = start + limit;
-    const paginatedData = mockSongs.slice(start, end);
+    const paginatedData = sortedSongs.slice(start, end);
     
     return {
       success: true,
       data: {
         data: paginatedData,
-        total: mockSongs.length,
+        total: sortedSongs.length,
         page,
         limit,
-        totalPages: Math.ceil(mockSongs.length / limit),
+        totalPages: Math.ceil(sortedSongs.length / limit),
       },
     };
   }

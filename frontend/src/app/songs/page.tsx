@@ -58,7 +58,7 @@ const formatFollowers = (count: number) => {
 export default function SongsPage() {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(12);
+  const [pageSize] = useState(24);
   const [sortBy, setSortBy] = useState('created_desc');
   
   // Store hooks
@@ -420,46 +420,94 @@ export default function SongsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-card rounded-lg shadow-sm">
-                        <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
-                          <div className="w-8">#</div>
-                          <div className="flex-1">标题</div>
-                          <div className="w-20 text-right">播放次数</div>
-                          <div className="w-20 text-right">时长</div>
-                        </div>
-                        
-                        {songs.map((song, index) => (
-                          <div 
-                            key={song.id}
-                            className="flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer group transition-colors"
-                            onClick={() => handlePlaySong(song)}
-                          >
-                            <div className="w-8 text-sm text-muted-foreground">
-                              <span className="group-hover:hidden">{(currentPage - 1) * pageSize + index + 1}</span>
-                              <PlayCircle className="w-4 h-4 hidden group-hover:block text-primary" />
-                            </div>
-                            
-                            <div className="flex items-center flex-1 min-w-0">
-                              <img 
-                                src={song.coverUrl || '/placeholder-cover.jpg'} 
-                                alt={song.title}
-                                className="w-10 h-10 rounded mr-3 object-cover"
-                              />
-                              <div className="min-w-0">
-                                <div className="font-medium truncate">{song.title}</div>
-                                <div className="text-sm text-muted-foreground truncate">{song.artist?.name}</div>
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        {/* 第一个表格 - 前12首歌曲 */}
+                        <div className="bg-card rounded-lg shadow-sm">
+                          <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
+                            <div className="w-8">#</div>
+                            <div className="flex-1">标题</div>
+                            <div className="w-20 text-right hidden lg:block">播放次数</div>
+                            <div className="w-20 text-right">时长</div>
+                          </div>
+                          
+                          {songs.slice(0, 12).map((song, index) => (
+                            <div 
+                              key={song.id}
+                              className="flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer group transition-colors"
+                              onClick={() => handlePlaySong(song)}
+                            >
+                              <div className="w-8 text-sm text-muted-foreground">
+                                <span className="group-hover:hidden">{(currentPage - 1) * pageSize + index + 1}</span>
+                                <PlayCircle className="w-4 h-4 hidden group-hover:block text-primary" />
+                              </div>
+                              
+                              <div className="flex items-center flex-1 min-w-0">
+                                <img 
+                                  src={song.coverUrl || '/placeholder-cover.jpg'} 
+                                  alt={song.title}
+                                  className="w-10 h-10 rounded mr-3 object-cover"
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-medium truncate">{song.title}</div>
+                                  <div className="text-sm text-muted-foreground truncate">{song.artist?.name}</div>
+                                </div>
+                              </div>
+                              
+                              <div className="w-20 text-right text-sm text-muted-foreground hidden lg:block">
+                                {formatPlayCount(song.playCount)}
+                              </div>
+                              
+                              <div className="w-20 text-right text-sm text-muted-foreground">
+                                {formatDuration(song.duration)}
                               </div>
                             </div>
-                            
-                            <div className="w-20 text-right text-sm text-muted-foreground">
-                              {formatPlayCount(song.playCount)}
+                          ))}
+                        </div>
+
+                        {/* 第二个表格 - 后12首歌曲 (仅在电脑端显示且有足够歌曲时) */}
+                        {songs.length > 12 && (
+                          <div className="bg-card rounded-lg shadow-sm hidden lg:block">
+                            <div className="flex items-center px-4 py-3 text-sm text-muted-foreground border-b">
+                              <div className="w-8">#</div>
+                              <div className="flex-1">标题</div>
+                              <div className="w-20 text-right">播放次数</div>
+                              <div className="w-20 text-right">时长</div>
                             </div>
                             
-                            <div className="w-20 text-right text-sm text-muted-foreground">
-                              {formatDuration(song.duration)}
-                            </div>
+                            {songs.slice(12, 24).map((song, index) => (
+                              <div 
+                                key={song.id}
+                                className="flex items-center px-4 py-3 hover:bg-muted/50 cursor-pointer group transition-colors"
+                                onClick={() => handlePlaySong(song)}
+                              >
+                                <div className="w-8 text-sm text-muted-foreground">
+                                  <span className="group-hover:hidden">{(currentPage - 1) * pageSize + index + 13}</span>
+                                  <PlayCircle className="w-4 h-4 hidden group-hover:block text-primary" />
+                                </div>
+                                
+                                <div className="flex items-center flex-1 min-w-0">
+                                  <img 
+                                    src={song.coverUrl || '/placeholder-cover.jpg'} 
+                                    alt={song.title}
+                                    className="w-10 h-10 rounded mr-3 object-cover"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="font-medium truncate">{song.title}</div>
+                                    <div className="text-sm text-muted-foreground truncate">{song.artist?.name}</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="w-20 text-right text-sm text-muted-foreground">
+                                  {formatPlayCount(song.playCount)}
+                                </div>
+                                
+                                <div className="w-20 text-right text-sm text-muted-foreground">
+                                  {formatDuration(song.duration)}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                     
