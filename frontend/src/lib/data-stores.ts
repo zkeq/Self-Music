@@ -166,6 +166,7 @@ interface SongsState {
   trending: Song[];
   hot: Song[];
   new: Song[];
+  featured: Song[];  // 新增推荐歌曲列表
 }
 
 interface SongsActions {
@@ -174,6 +175,8 @@ interface SongsActions {
   fetchTrendingSongs: (limit?: number) => Promise<void>;
   fetchHotSongs: (limit?: number) => Promise<void>;
   fetchNewSongs: (limit?: number) => Promise<void>;
+  fetchFeaturedSongs: (limit?: number) => Promise<void>;  // 新增推荐歌曲获取方法
+  recordPlay: (songId: string) => Promise<void>;
   setCurrentSong: (song: Song | null) => void;
 }
 
@@ -194,6 +197,7 @@ export const useSongsStore = create<SongsState & SongsActions>()(
       trending: [],
       hot: [],
       new: [],
+      featured: [],  // 新增推荐歌曲初始状态
 
       // Actions
       fetchSongs: async (page = 1, limit = 20, sortBy = 'created_desc') => {
@@ -280,6 +284,45 @@ export const useSongsStore = create<SongsState & SongsActions>()(
         } catch (error) {
           console.error('Failed to fetch new songs:', error);
           set({ new: [] });
+        }
+      },
+
+      fetchFeaturedSongs: async (limit = 20) => {
+        try {
+          const response = await api.getRecommendations({ limit, type: 'random' });
+          if (response.success && response.data) {
+            set({ featured: response.data });
+          } else {
+            set({ featured: [] });
+          }
+        } catch (error) {
+          console.error('Failed to fetch featured songs:', error);
+          set({ featured: [] });
+        }
+      },
+
+      recordPlay: async (songId: string) => {
+        try {
+          const response = await api.recordPlay(songId);
+          if (response.success && response.data) {
+            // Update the song's play count in all relevant arrays
+            const state = get();
+            const updateSongPlayCount = (song: Song) => 
+              song.id === songId ? { ...song, playCount: response.data!.playCount } : song;
+            
+            set({
+              songs: state.songs.map(updateSongPlayCount),
+              trending: state.trending.map(updateSongPlayCount),
+              hot: state.hot.map(updateSongPlayCount),
+              new: state.new.map(updateSongPlayCount),
+              featured: state.featured.map(updateSongPlayCount),  // 包含featured数组
+              currentSong: state.currentSong?.id === songId 
+                ? { ...state.currentSong, playCount: response.data!.playCount }
+                : state.currentSong
+            });
+          }
+        } catch (error) {
+          console.error('Failed to record play:', error);
         }
       },
 

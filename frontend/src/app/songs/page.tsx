@@ -66,9 +66,13 @@ export default function SongsPage() {
     songs, 
     trending, 
     hot, 
+    new: newSongs,
+    featured,  // 新增featured数据
     fetchSongs, 
     fetchTrendingSongs, 
     fetchHotSongs,
+    fetchNewSongs,
+    fetchFeaturedSongs,  // 新增fetchFeaturedSongs
     isLoading: songsLoading 
   } = useSongsStore();
   
@@ -94,14 +98,20 @@ export default function SongsPage() {
   
   const { setSong, play, replacePlaylistAndPlay } = usePlayerStore();
 
-  // Load initial data
+  // Load songs data when page, pageSize or sortBy changes
   useEffect(() => {
     fetchSongs(currentPage, pageSize, sortBy);
+  }, [currentPage, pageSize, sortBy, fetchSongs]);
+
+  // Load static data only on component mount
+  useEffect(() => {
     fetchPlaylists(1, 8);
     fetchArtists(1, 8);
     fetchTrendingSongs(20);
     fetchHotSongs(20);
-  }, [currentPage, pageSize, sortBy, fetchSongs, fetchPlaylists, fetchArtists, fetchTrendingSongs, fetchHotSongs]);
+    fetchNewSongs(20);
+    fetchFeaturedSongs(20);
+  }, [fetchPlaylists, fetchArtists, fetchTrendingSongs, fetchHotSongs, fetchNewSongs, fetchFeaturedSongs]);
 
   const handlePlaySong = (song: Song, sourceList?: Song[]) => {
     // 使用提供的列表或根据当前上下文选择合适的歌曲列表
@@ -295,8 +305,10 @@ export default function SongsPage() {
                     transition={{ duration: 0.6, delay: 0.55 }}
                   >
                     <FeaturedSection 
-                      songs={hot.length > 0 ? hot.slice(0, 12) : trending.slice(0, 12)}
-                      onPlaySong={(song) => handlePlaySong(song, hot.length > 0 ? hot : trending)}
+                      featuredSongs={featured}
+                      hotSongs={hot}
+                      newSongs={newSongs}
+                      onPlaySong={handlePlaySong}
                       onLikeSong={handleLikeSong}
                       onAddToPlaylist={() => {}}
                       formatPlayCount={formatPlayCount}

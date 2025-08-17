@@ -175,6 +175,11 @@ class RealApiClient {
   async getNewSongs(limit = 20): Promise<ApiResponse<Song[]>> {
     return this.request(`/new/songs?limit=${limit}`);
   }
+
+  // Play tracking API
+  async recordPlay(songId: string): Promise<ApiResponse<{ songId: string; playCount: number }>> {
+    return this.request(`/songs/${songId}/play`, { method: 'POST' });
+  }
 }
 
 // Create real API client instance
@@ -210,4 +215,5 @@ export const {
   getTrendingSongs,
   getHotSongs,
   getNewSongs,
+  recordPlay,
 } = api;

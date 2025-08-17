@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/lib/store';
+import { useSongsStore } from '@/lib/data-stores';  // 导入歌曲存储以记录播放量
 
 export function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -19,6 +20,9 @@ export function AudioManager() {
     pause,
     nextSong,
   } = usePlayerStore();
+
+  const { recordPlay } = useSongsStore();  // 获取播放量记录方法
+  const hasRecordedPlay = useRef<Set<string>>(new Set());  // 跟踪已记录播放量的歌曲
 
   // 处理时间跳转的回调函数
   const handleSeek = useCallback((time: number) => {
@@ -78,6 +82,14 @@ export function AudioManager() {
 
     const handlePlay = () => {
       console.log('Audio play event');
+      
+      // 记录播放量（仅为真实歌曲，且每首歌曲只记录一次）
+      if (currentSong && currentSong.id !== 'demo-song-1' && !hasRecordedPlay.current.has(currentSong.id)) {
+        console.log('Recording play for song:', currentSong.title);
+        recordPlay(currentSong.id);
+        hasRecordedPlay.current.add(currentSong.id);
+      }
+      
       // 开始定期更新时间
       const updateTime = () => {
         if (!audio.paused && !audio.ended) {
@@ -147,12 +159,17 @@ export function AudioManager() {
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('seeked', handleSeeked);
     };
-  }, [setCurrentTime, setDuration, pause, nextSong]);
+  }, [setCurrentTime, setDuration, pause, nextSong, currentSong, recordPlay]);  // 添加currentSong和recordPlay依赖
 
   // 处理歌曲切换
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
+    
+    // 当歌曲切换时，重置播放记录（允许重复播放同一首歌曲时记录播放量）
+    if (currentSong.id && currentSong.id !== 'demo-song-1') {
+      hasRecordedPlay.current.clear();
+    }
     
     // 使用提供的audioUrl或fileUrl，或构建默认URL
     const audioUrl = currentSong.audioUrl || 

@@ -583,6 +583,37 @@ async def get_song(song_id: str):
     conn.close()
     return song
 
+@router.post("/api/songs/{song_id}/play")
+async def record_song_play(song_id: str):
+    conn = sqlite3.connect('music.db')
+    cursor = conn.cursor()
+    
+    # Check if song exists
+    cursor.execute('SELECT id, playCount FROM songs WHERE id = ?', (song_id,))
+    song_row = cursor.fetchone()
+    
+    if not song_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    # Update play count
+    cursor.execute('UPDATE songs SET playCount = playCount + 1 WHERE id = ?', (song_id,))
+    
+    # Get updated play count
+    cursor.execute('SELECT playCount FROM songs WHERE id = ?', (song_id,))
+    new_play_count = cursor.fetchone()[0]
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "success": True,
+        "data": {
+            "songId": song_id,
+            "playCount": new_play_count
+        }
+    }
+
 @router.get("/api/songs/{song_id}/stream")
 async def stream_song(song_id: str):
     conn = sqlite3.connect('music.db')
@@ -1432,6 +1463,8 @@ async def get_recommendations(
         order_clause = 'ORDER BY s.createdAt DESC'
     elif type == 'trending':
         order_clause = 'ORDER BY s.playCount DESC'
+    elif type == 'random' or type == 'featured':
+        order_clause = 'ORDER BY RANDOM()'
     else:
         order_clause = 'ORDER BY RANDOM()'
     

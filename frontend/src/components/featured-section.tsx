@@ -6,15 +6,19 @@ import { SongCard } from './song-card';
 import type { Song } from '@/types';
 
 interface FeaturedSectionProps {
-  songs: Song[];
-  onPlaySong: (song: Song) => void;
+  featuredSongs: Song[];  // 推荐歌曲（随机）
+  hotSongs: Song[];       // 热门歌曲（按播放量排序）
+  newSongs: Song[];       // 最新歌曲（按时间排序）
+  onPlaySong: (song: Song, sourceList?: Song[]) => void;
   onLikeSong: (songId: string, e: React.MouseEvent) => void;
   onAddToPlaylist: (song: Song, e: React.MouseEvent) => void;
   formatPlayCount: (count: number) => string;
 }
 
 export function FeaturedSection({ 
-  songs, 
+  featuredSongs,
+  hotSongs,
+  newSongs,
   onPlaySong, 
   onLikeSong, 
   onAddToPlaylist,
@@ -22,24 +26,34 @@ export function FeaturedSection({
 }: FeaturedSectionProps) {
   const [activeSection, setActiveSection] = useState<'featured' | 'trending' | 'new'>('featured');
 
-  const getFeaturedSongs = () => {
-    let filteredSongs;
+  const getCurrentSongs = () => {
     switch (activeSection) {
       case 'trending':
-        filteredSongs = [...songs].sort((a, b) => b.playCount - a.playCount);
-        break;
+        return hotSongs.slice(0, 6);
       case 'new':
-        filteredSongs = [...songs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
+        return newSongs.slice(0, 6);
       default:
-        filteredSongs = songs;
+        return featuredSongs.slice(0, 6);
     }
-    
-    return filteredSongs.slice(0, 6);
+  };
+
+  const getCurrentSourceList = () => {
+    switch (activeSection) {
+      case 'trending':
+        return hotSongs;
+      case 'new':
+        return newSongs;
+      default:
+        return featuredSongs;
+    }
   };
 
   const handleSectionChange = (value: string) => {
     setActiveSection(value as 'featured' | 'trending' | 'new');
+  };
+
+  const handlePlaySong = (song: Song) => {
+    onPlaySong(song, getCurrentSourceList());
   };
 
   return (
@@ -56,11 +70,11 @@ export function FeaturedSection({
       </div>
       
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-        {getFeaturedSongs().map((song) => (
+        {getCurrentSongs().map((song) => (
           <SongCard 
             key={song.id}
             song={song}
-            onPlay={onPlaySong}
+            onPlay={handlePlaySong}
             onLike={onLikeSong}
             onAddToPlaylist={onAddToPlaylist}
             formatPlayCount={formatPlayCount}

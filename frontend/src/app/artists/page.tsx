@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
@@ -8,7 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Search, TrendingUp } from 'lucide-react';
+import { Search, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-react';
 import { ArtistCard } from '@/components/artist-card';
 import { useArtistsStore, useSearchStore } from '@/lib/data-stores';
 
@@ -24,11 +24,14 @@ const formatFollowers = (count: number) => {
 
 export default function ArtistsPage() {
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(18);
   
   const { 
     artists, 
     fetchArtists,
-    isLoading 
+    isLoading,
+    pagination
   } = useArtistsStore();
   
   const { 
@@ -39,8 +42,8 @@ export default function ArtistsPage() {
   } = useSearchStore();
 
   useEffect(() => {
-    fetchArtists();
-  }, [fetchArtists]);
+    fetchArtists(currentPage, pageSize);
+  }, [currentPage, pageSize, fetchArtists]);
 
   const handleViewArtist = (artistId: string) => {
     router.push(`/artist/${artistId}`);
@@ -52,6 +55,58 @@ export default function ArtistsPage() {
     } else {
       clearSearch();
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const renderPagination = () => {
+    if (pagination.totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-center space-x-2 mt-8">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage <= 1}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        
+        <div className="flex items-center space-x-1">
+          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+            const page = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i;
+            if (page > pagination.totalPages) return null;
+            
+            return (
+              <Button
+                key={page}
+                variant={page === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </Button>
+            );
+          })}
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage >= pagination.totalPages}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        
+        <span className="text-sm text-muted-foreground ml-4">
+          第 {pagination.page} 页，共 {pagination.totalPages} 页 (总计 {pagination.total} 位艺术家)
+        </span>
+      </div>
+    );
   };
 
   const displayArtists = query ? results.artists : artists;
@@ -146,6 +201,8 @@ export default function ArtistsPage() {
                   ))}
                 </motion.div>
               )}
+
+              {!query && !isLoading && displayArtists.length > 0 && renderPagination()}
 
               {!isLoading && displayArtists.length === 0 && (
                 <motion.div 

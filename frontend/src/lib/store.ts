@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import type { Song, PlayerState, Playlist } from '@/types';
 import { DEFAULT_SONG } from './default-song';
 import { PlaylistManager, PlaylistState } from './playlist-manager';
+import { useSongsStore } from './data-stores';  // 导入数据存储以记录播放量
 
 interface PlayerStore extends PlayerState {
   // Additional state
