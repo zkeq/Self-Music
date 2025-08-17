@@ -515,6 +515,30 @@ class MockApiClient {
       data: newSongs,
     };
   }
+
+  // Play tracking API
+  async recordPlay(songId: string): Promise<ApiResponse<{ songId: string; playCount: number }>> {
+    await mockDelay();
+    const song = mockSongs.find(s => s.id === songId);
+    
+    if (!song) {
+      return {
+        success: false,
+        error: 'Song not found',
+      };
+    }
+    
+    // Increment play count
+    song.playCount += 1;
+    
+    return {
+      success: true,
+      data: {
+        songId,
+        playCount: song.playCount,
+      },
+    };
+  }
 }
 
 // Export singleton instance for mock API
