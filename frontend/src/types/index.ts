@@ -135,7 +135,7 @@ export interface SearchResult {
 
 export interface RecommendationParams {
   limit?: number;
-  type?: 'hot' | 'new' | 'trending' | 'similar';
+  type?: 'hot' | 'new' | 'trending' | 'similar' | 'random';
   moodId?: string;
   artistId?: string;
   genreId?: string;

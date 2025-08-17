@@ -436,6 +436,9 @@ class MockApiClient {
       case 'trending':
         songs.sort((a, b) => b.playCount - a.playCount);
         break;
+      case 'random':
+        songs.sort(() => Math.random() - 0.5); // Random shuffle
+        break;
       default:
         songs.sort(() => Math.random() - 0.5); // Random shuffle
     }
