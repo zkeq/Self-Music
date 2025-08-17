@@ -226,13 +226,13 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className={cn(
-                          "group flex items-center space-x-3 p-3 rounded-lg transition-all duration-200",
+                          "group flex items-center p-3 rounded-lg transition-all duration-200",
                           index === currentIndex && "bg-primary/10 border border-primary/20",
                           "hover:bg-accent hover:shadow-sm"
                         )}
                       >
                         {/* Cover */}
-                        <div className="relative h-12 w-12 flex-shrink-0">
+                        <div className="relative h-12 w-12 flex-shrink-0 mr-3">
                           {song.coverUrl ? (
                             <img
                               src={song.coverUrl}
@@ -268,10 +268,10 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                           )}
                         </div>
 
-                        {/* Song Info */}
-                        <div className="flex-1 min-w-0 max-w-[calc(100%-120px)]">
+                        {/* Song Info - 使用固定宽度避免挤压 */}
+                        <div className="flex-1 min-w-0 mr-3 overflow-hidden">
                           <p className={cn(
-                            "text-sm font-medium truncate",
+                            "text-sm font-medium truncate max-w-[220px]",
                             index === currentIndex && "text-primary"
                           )}>
                             {song.title}
@@ -280,11 +280,11 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                             {song.artist.name}
                           </p>
                           {song.moods && song.moods.length > 0 && (
-                            <div className="flex gap-1 mt-1 flex-wrap">
+                            <div className="flex gap-1 mt-1 overflow-hidden">
                               {song.moods.slice(0, 2).map((mood) => {
                                 const IconComponent = getIconComponent(mood.icon);
                                 return (
-                                  <Badge key={mood.id} variant="outline" className="h-4 text-xs px-1 flex items-center gap-1">
+                                  <Badge key={mood.id} variant="outline" className="h-4 text-xs px-1 flex items-center gap-1 flex-shrink-0">
                                     <IconComponent className="h-2.5 w-2.5" />
                                     {mood.name}
                                   </Badge>
@@ -294,9 +294,9 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                           )}
                         </div>
 
-                        {/* Duration & Actions */}
+                        {/* Duration & Actions - 固定右侧区域 */}
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
                             {formatDuration(song.duration)}
                           </span>
                           
@@ -305,7 +305,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
