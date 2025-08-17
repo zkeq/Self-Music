@@ -242,7 +242,7 @@ export function LyricsDisplay({
         }}
     >
       {/* Manual scroll indicator */}
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {isUserScrolling && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -253,7 +253,7 @@ export function LyricsDisplay({
             {isTouchScrolling ? '触摸滚动中...' : '手动滚动中...'}
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
       
       <div 
         ref={lyricsContainerRef}
