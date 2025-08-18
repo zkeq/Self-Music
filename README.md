@@ -103,7 +103,7 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
   <img width="2005" height="776" alt="image" src="https://github.com/user-attachments/assets/4da357c8-ba77-4bfb-bc1f-fecd4f122349" />
 
-2. 修改 `jwt secret` 为一串随机字符串 `auth.py`
+2. 修改 `jwt secret` 为一串随机字符串 `main.py`
 
    ![image-20250817131014518](https://img.onmicrosoft.cn/zkeq/20250817131014618.png)
 
