@@ -183,6 +183,27 @@ export default function PlayClient() {
   const handleFullscreenLyrics = () => setIsFullscreenLyrics(true);
   const handleCloseFullscreenLyrics = () => setIsFullscreenLyrics(false);
 
+  // Spacebar toggles play/pause on Play page
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Space only; ignore when focused in editable/inputs/buttons/selects
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName?.toLowerCase();
+        const editable = (target as HTMLElement).isContentEditable;
+        if (editable || ['input', 'textarea', 'select', 'button'].includes(tag)) {
+          return;
+        }
+      }
+      e.preventDefault();
+      handlePlayPause();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying]);
+
   // 默认显示歌曲信息，当没有选择歌曲时
   const displaySong = currentSong || {
     id: '1',
@@ -332,4 +353,3 @@ export default function PlayClient() {
     </div>
   );
 }
-

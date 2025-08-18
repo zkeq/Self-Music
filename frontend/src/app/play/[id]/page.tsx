@@ -125,6 +125,25 @@ export default function PlaySongPage() {
   const handleFullscreenLyrics = () => setIsFullscreenLyrics(true);
   const handleCloseFullscreenLyrics = () => setIsFullscreenLyrics(false);
 
+  // Spacebar toggles play/pause when not typing in inputs
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName?.toLowerCase();
+        const editable = (target as HTMLElement).isContentEditable;
+        if (editable || ['input', 'textarea', 'select', 'button'].includes(tag)) {
+          return;
+        }
+      }
+      e.preventDefault();
+      handlePlayPause();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isPlaying]);
+
   if (isLoading || !song) {
     return (
       <div className="h-full bg-background flex items-center justify-center">
