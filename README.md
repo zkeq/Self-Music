@@ -143,7 +143,8 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
 - 按步骤进行操作即可成功部署
 
-![image-20250731103123137](https://img.onmicrosoft.cn/zkeq/20250731103123356.png)
+<img width="2093" height="1284" alt="image" src="https://github.com/user-attachments/assets/f6a370cc-b9e6-47d7-a7d2-20d83951bbaa" />
+
 
 
 ### 📋 环境要求
