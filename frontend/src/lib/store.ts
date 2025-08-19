@@ -227,8 +227,8 @@ export const usePlayerStore = create<PlayerStore>()(
       setError: (error) => set({ error }),
 
       canPlayNext: () => {
-        const { repeatMode } = get();
-        return PlaylistManager.canPlayNext(repeatMode);
+        const { shuffleMode, repeatMode } = get();
+        return PlaylistManager.canPlayNext(shuffleMode, repeatMode);
       },
 
       canPlayPrevious: () => {

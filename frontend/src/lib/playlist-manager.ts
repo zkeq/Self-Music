@@ -108,6 +108,7 @@ export class PlaylistManager {
     
     const { songs, currentIndex } = playlist;
     
+    // 单曲循环：返回当前歌曲
     if (repeatMode === 'one') {
       return songs[currentIndex] || null;
     }
@@ -115,20 +116,32 @@ export class PlaylistManager {
     let nextIndex: number;
     
     if (shuffleMode) {
-      // 随机播放：选择一个不同的随机歌曲
-      const availableIndices = songs.map((_, i) => i).filter(i => i !== currentIndex);
-      if (availableIndices.length === 0) return songs[currentIndex] || null;
-      nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      // 随机播放：随机选择一首不同的歌曲
+      if (songs.length === 1) {
+        nextIndex = 0;
+      } else {
+        do {
+          nextIndex = Math.floor(Math.random() * songs.length);
+        } while (nextIndex === currentIndex);
+      }
     } else {
+      // 顺序播放
       nextIndex = currentIndex + 1;
+      
+      // 到达末尾时的处理
       if (nextIndex >= songs.length) {
-        nextIndex = 0; // 到达列表末尾时循环到第一首
+        if (repeatMode === 'all') {
+          nextIndex = 0; // 列表循环：回到第一首
+        } else {
+          return null; // 无循环：结束播放
+        }
       }
     }
     
     const nextSong = songs[nextIndex];
     if (nextSong) {
-      const updatedPlaylist = {
+      // 更新播放列表状态
+      const updatedPlaylist: PlaylistState = {
         ...playlist,
         currentIndex: nextIndex,
         currentSongId: nextSong.id,
@@ -147,6 +160,7 @@ export class PlaylistManager {
     
     const { songs, currentIndex } = playlist;
     
+    // 简单地减1，到头了就跳到末尾
     let prevIndex = currentIndex - 1;
     if (prevIndex < 0) {
       prevIndex = songs.length - 1;
@@ -154,7 +168,7 @@ export class PlaylistManager {
     
     const prevSong = songs[prevIndex];
     if (prevSong) {
-      const updatedPlaylist = {
+      const updatedPlaylist: PlaylistState = {
         ...playlist,
         currentIndex: prevIndex,
         currentSongId: prevSong.id,
@@ -195,19 +209,26 @@ export class PlaylistManager {
   }
   
   // 检查是否可以播放下一首
-  static canPlayNext(repeatMode: 'none' | 'all' | 'one' = 'none'): boolean {
+  static canPlayNext(shuffleMode: boolean = false, repeatMode: 'none' | 'all' | 'one' = 'none'): boolean {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
     
-    // 当有歌曲时总是可以播放下一首（包括循环到第一首）
-    return playlist.songs.length > 0;
+    // 单曲循环或列表循环时总是可以播放下一首
+    if (repeatMode === 'one' || repeatMode === 'all') return true;
+    
+    // 随机播放模式：只要有多首歌就可以播放下一首
+    if (shuffleMode) return playlist.songs.length > 1;
+    
+    // 顺序播放模式：只有不是最后一首才能播放下一首
+    return playlist.currentIndex < playlist.songs.length - 1;
   }
-  
+
   // 检查是否可以播放上一首
   static canPlayPrevious(): boolean {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
     
+    // 只要有多首歌就可以播放上一首
     return playlist.songs.length > 1;
   }
   
