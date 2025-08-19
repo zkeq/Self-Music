@@ -60,7 +60,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
 
   const playFromIndex = (index: number) => {
     if (playlist[index]) {
-      setSong(playlist[index]);
+      // 只使用 setPlaylist 来设置歌曲和索引，避免状态冲突
       setPlaylist(playlist, index);
       play();
     }
@@ -231,9 +231,11 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                           "hover:bg-accent hover:shadow-sm"
                         )}
                         onClick={() => {
-                          if (index !== currentIndex) {
-                            playFromIndex(index);
-                          }
+                          // 单击只选中，不播放
+                        }}
+                        onDoubleClick={() => {
+                          // 双击播放歌曲
+                          playFromIndex(index);
                         }}
                       >
                         {/* Cover */}
