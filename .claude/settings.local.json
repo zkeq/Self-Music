@@ -24,7 +24,8 @@
       "Bash(curl:*)",
       "Bash(timeout 30 npm run build)",
       "WebFetch(domain:github.com)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
