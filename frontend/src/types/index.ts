@@ -248,7 +248,7 @@ export interface ImportArtistInfo {
   name: string;
   avatarUrl?: string;
   intro?: string;
-  fanCount?: string;
+  fanCount: string;
 }
 
 export interface ImportBatchRequest {

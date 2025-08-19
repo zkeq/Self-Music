@@ -191,7 +191,7 @@ export function ImportSearchCard({ item, onUpdate, onResearch }: ImportSearchCar
                 name: artistInfo.name,
                 avatarUrl: artistInfo.avatar_url,
                 intro: artistInfo.intro,
-                fanCount: artistInfo.fan_count
+                fanCount: String(artistInfo.fan_count || '0')
               };
             } else {
               console.warn(`艺术家 ${artistName} 没有找到ID`);
@@ -200,7 +200,7 @@ export function ImportSearchCard({ item, onUpdate, onResearch }: ImportSearchCar
                 name: artistName,
                 avatarUrl: undefined,
                 intro: undefined,
-                fanCount: undefined
+                fanCount: '0'
               };
             }
           } catch (error) {
@@ -210,7 +210,7 @@ export function ImportSearchCard({ item, onUpdate, onResearch }: ImportSearchCar
               name: artistName,
               avatarUrl: undefined,
               intro: undefined,
-              fanCount: undefined
+              fanCount: '0'
             };
           }
         })
@@ -272,7 +272,7 @@ export function ImportSearchCard({ item, onUpdate, onResearch }: ImportSearchCar
       if (response.success) {
         onUpdate({
           ...item,
-          existsInDb: response.data?.exists || false
+          existsInDb: response.exists || false
         });
       }
     } catch (error) {
