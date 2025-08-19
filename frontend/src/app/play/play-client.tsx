@@ -85,7 +85,7 @@ export default function PlayClient() {
           if (!cancelled) {
             if (res.success && res.data) {
               // 设置歌单后尝试自动播放（AudioManager 里会处理被拦截的情况）
-              setPlaylistWithInfo(res.data, 0);
+              replacePlaylistAndPlay(res.data.songs, 0);
               // play();
             } else {
               setError(res.error || '无法加载指定的歌单');
