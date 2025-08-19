@@ -21,7 +21,7 @@ export default function PlaySongPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
-  const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('none');
+  const [repeatMode, setRepeatMode] = useState<'none' | 'all' | 'one'>('all');
   const [isMuted, setIsMuted] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [volume, setVolume] = useState(75);

@@ -102,15 +102,14 @@ export class PlaylistManager {
   }
   
   // 切换到下一首歌
-  static getNextSong(shuffleMode: boolean = false, repeatMode: 'none' | 'all' | 'one' = 'none'): Song | null {
+  static getNextSong(
+    shuffleMode: boolean = false,
+    repeatMode: 'none' | 'all' | 'one' = 'all'
+  ): Song | null {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return null;
     
     const { songs, currentIndex } = playlist;
-    
-    if (repeatMode === 'one') {
-      return songs[currentIndex] || null;
-    }
     
     let nextIndex: number;
     
@@ -199,11 +198,13 @@ export class PlaylistManager {
   }
   
   // 检查是否可以播放下一首
-  static canPlayNext(repeatMode: 'none' | 'all' | 'one' = 'none'): boolean {
+  static canPlayNext(
+    repeatMode: 'none' | 'all' | 'one' = 'all'
+  ): boolean {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
-    
-    if (repeatMode === 'one' || repeatMode === 'all') return true;
+
+    if (repeatMode === 'all') return true;
     
     return playlist.currentIndex < playlist.songs.length - 1;
   }

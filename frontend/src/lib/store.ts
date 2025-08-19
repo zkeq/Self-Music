@@ -65,7 +65,7 @@ export const usePlayerStore = create<PlayerStore>()(
       duration: 0,
       playlist: [],
       currentIndex: -1,
-      repeatMode: 'none',
+      repeatMode: 'all',
       shuffleMode: false,
       currentPlaylist: null,
       playbackMode: 'song',
