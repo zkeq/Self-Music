@@ -142,14 +142,8 @@ export function AudioManager() {
         timeUpdateRef.current = null;
       }
       
-      if (repeatMode === 'one') {
-        // 单曲循环：重新播放当前歌曲
-        audio.currentTime = 0;
-        audio.play().catch(console.error);
-      } else {
-        // 其他情况（列表播放、随机播放、列表循环）：让 nextSong 函数处理
-        nextSong();
-      }
+      // 所有播放模式都通过 nextSong 函数统一处理
+      nextSong();
     };
 
     const handleError = (error: Event) => {

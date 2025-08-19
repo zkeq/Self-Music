@@ -108,7 +108,7 @@ export class PlaylistManager {
     
     const { songs, currentIndex } = playlist;
     
-    // 单曲循环：返回当前歌曲
+    // 单曲循环：返回当前歌曲（不更新索引）
     if (repeatMode === 'one') {
       return songs[currentIndex] || null;
     }
@@ -116,24 +116,32 @@ export class PlaylistManager {
     let nextIndex: number;
     
     if (shuffleMode) {
-      // 随机播放：随机选择一首不同的歌曲
+      // 随机播放模式
       if (songs.length === 1) {
-        nextIndex = 0;
+        // 只有一首歌时，根据重复模式决定
+        if (repeatMode === 'all') {
+          nextIndex = 0;
+        } else {
+          return null; // 单次播放，结束
+        }
       } else {
+        // 多首歌时，随机选择不同的歌曲
         do {
           nextIndex = Math.floor(Math.random() * songs.length);
         } while (nextIndex === currentIndex);
       }
     } else {
-      // 顺序播放
+      // 顺序播放模式
       nextIndex = currentIndex + 1;
       
-      // 到达末尾时的处理
+      // 检查是否到达列表末尾
       if (nextIndex >= songs.length) {
         if (repeatMode === 'all') {
-          nextIndex = 0; // 列表循环：回到第一首
+          // 列表循环：回到第一首
+          nextIndex = 0;
         } else {
-          return null; // 无循环：结束播放
+          // 单次播放：播放结束
+          return null;
         }
       }
     }
@@ -213,13 +221,16 @@ export class PlaylistManager {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
     
-    // 单曲循环或列表循环时总是可以播放下一首
-    if (repeatMode === 'one' || repeatMode === 'all') return true;
+    // 单曲循环：总是可以播放（重复当前歌曲）
+    if (repeatMode === 'one') return true;
+    
+    // 列表循环：总是可以播放（列表循环）
+    if (repeatMode === 'all') return true;
     
     // 随机播放模式：只要有多首歌就可以播放下一首
     if (shuffleMode) return playlist.songs.length > 1;
     
-    // 顺序播放模式：只有不是最后一首才能播放下一首
+    // 单次顺序播放：只有不是最后一首才能播放下一首
     return playlist.currentIndex < playlist.songs.length - 1;
   }
 

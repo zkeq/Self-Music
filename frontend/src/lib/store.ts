@@ -155,27 +155,31 @@ export const usePlayerStore = create<PlayerStore>()(
 
       nextSong: () => {
         const { repeatMode, shuffleMode, currentSong, duration } = get();
+        console.log('Store nextSong called with:', { repeatMode, shuffleMode, currentSong: currentSong?.title });
         const nextSong = PlaylistManager.getNextSong(shuffleMode, repeatMode);
         
         if (nextSong) {
           // 获取更新后的播放列表状态
           const updatedPlaylist = PlaylistManager.getCurrentPlaylist();
+          console.log('Updated playlist from manager:', updatedPlaylist?.currentIndex);
           // 如果是同一首歌，保持原有的时长
           const isSameSong = currentSong && currentSong.id === nextSong.id;
           
           set({
             currentSong: nextSong,
-            currentTime: 0,
+            currentTime: 0, // 重置播放时间
             duration: isSameSong ? duration : 0, // 同一首歌保持时长，新歌曲重置为0等待加载
-            isPlaying: true, // 确保新歌曲开始播放
+            isPlaying: true, // 确保继续播放
             // 同步播放列表状态
             ...(updatedPlaylist && {
               playlist: updatedPlaylist.songs,
               currentIndex: updatedPlaylist.currentIndex
             })
           });
+          console.log('Set new song:', nextSong.title, 'at index:', updatedPlaylist?.currentIndex);
         } else {
           // 没有下一首歌时，停止播放
+          console.log('Playlist ended, stopping playback');
           set({ isPlaying: false });
         }
       },
@@ -250,15 +254,14 @@ export const usePlayerStore = create<PlayerStore>()(
       // Enhanced playlist management
       addToPlaylist: (song) => {
         const { playlist } = get();
-        if (!playlist.find(s => s.id === song.id)) {
-          const newPlaylist = [...playlist, song];
-          set({ playlist: newPlaylist });
-          
-          // 同步到 PlaylistManager
-          const currentPlaylist = PlaylistManager.getCurrentPlaylist();
-          if (currentPlaylist) {
-            PlaylistManager.updatePlaylist(newPlaylist, currentPlaylist.currentIndex);
-          }
+        // 允许重复添加歌曲到播放列表
+        const newPlaylist = [...playlist, song];
+        set({ playlist: newPlaylist });
+        
+        // 同步到 PlaylistManager
+        const currentPlaylist = PlaylistManager.getCurrentPlaylist();
+        if (currentPlaylist) {
+          PlaylistManager.updatePlaylist(newPlaylist, currentPlaylist.currentIndex);
         }
       },
 

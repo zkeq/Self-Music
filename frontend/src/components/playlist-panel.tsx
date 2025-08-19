@@ -226,10 +226,15 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className={cn(
-                          "group flex items-center p-3 rounded-lg transition-all duration-200",
+                          "group flex items-center p-3 rounded-lg transition-all duration-200 cursor-pointer",
                           index === currentIndex && "bg-primary/10 border border-primary/20",
                           "hover:bg-accent hover:shadow-sm"
                         )}
+                        onClick={() => {
+                          if (index !== currentIndex) {
+                            playFromIndex(index);
+                          }
+                        }}
                       >
                         {/* Cover */}
                         <div className="relative h-12 w-12 flex-shrink-0 mr-3">
@@ -256,7 +261,16 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-white hover:text-white"
-                                onClick={() => isPlaying ? pause() : play()}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // 防止事件冒泡
+                                  if (index === currentIndex) {
+                                    // 如果是当前歌曲，就播放/暂停
+                                    isPlaying ? pause() : play();
+                                  } else {
+                                    // 如果不是当前歌曲，切换到这首歌并播放
+                                    playFromIndex(index);
+                                  }
+                                }}
                               >
                                 {isPlaying ? (
                                   <Pause className="h-4 w-4" />
@@ -306,6 +320,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()} // 防止事件冒泡
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
