@@ -1,24 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // PWA支持配置
-  headers: async () => {
-    return [
-      {
-        source: '/sw.js',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
-          },
-          {
-            key: 'Service-Worker-Allowed',
-            value: '/',
-          },
-        ],
-      },
-    ];
-  },
   // Turbopack配置 (修复deprecated警告)
   turbopack: {
     rules: {
@@ -48,7 +30,7 @@ const nextConfig: NextConfig = {
     // 在构建过程中忽略ESLint错误
     ignoreDuringBuilds: false,
   },
-  // PWA离线支持
+  // PWA基础配置
   experimental: {
     webVitalsAttribution: ['CLS', 'LCP'],
   },
