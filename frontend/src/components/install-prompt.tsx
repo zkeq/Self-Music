@@ -17,7 +17,7 @@ export function InstallPrompt() {
   useEffect(() => {
     // 检查是否已安装
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isInWebAppiOS = (window.navigator as any).standalone === true;
+    const isInWebAppiOS = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     const isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches;
     
     if (isStandalone || isInWebAppiOS || isInWebAppChrome) {
