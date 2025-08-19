@@ -1,158 +1,102 @@
-# Self-Music 音乐流媒体平台
+# CLAUDE.md
 
-注意：网站设计时完全按照ShadeCN/UI的设计风格来是实现。在此基础上增加的动效效果
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概述
+## Project Overview
 
-Self-Music 是一个现代化的音乐流媒体网站，专注于提供优美的播放体验。项目以播放页面为核心，具备实时歌词同步显示、毛玻璃效果、心情标签分类和歌单功能。
+Self-Music is a modern music streaming platform built with a FastAPI backend and Next.js 15 frontend. The project focuses on providing an elegant music playback experience with real-time lyrics synchronization, glassmorphism effects, mood-based categorization, and playlist management.
 
-## 技术栈
+## Development Commands
 
-### 后端 (FastAPI - 扁平化架构)
-- **框架**: FastAPI (Python 3.11+)
-- **数据库**: SQLite + 原生SQL
-- **音频处理**: mutagen (metadata extraction)
-- **文件服务**: 静态文件服务 + 流媒体支持
+### Frontend (Next.js + TypeScript)
+- **Development**: `cd frontend && pnpm dev` (or `npm run dev`)
+- **Production Build**: `cd frontend && pnpm build` 
+- **Linting**: `cd frontend && pnpm lint`
+- **Type Checking**: TypeScript compilation happens during build - no separate type-check script available
 
-### 前端 (Next.js)
-- **框架**: Next.js 15 + TypeScript
-- **UI库**: ShadCN/UI + Tailwind CSS
-- **动画**: Framer Motion
-- **音频播放**: HTML5 Audio API
-- **状态管理**: Zustand
-- **玻璃态效果**: backdrop-filter CSS
+### Backend (FastAPI + Python)
+- **Install Dependencies**: `cd backend && pip install -r requirements.txt`
+- **Development Server**: `uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+- **Production Server**: `uvicorn backend.main:app --host 0.0.0.0 --port 8000`
 
-## 核心功能
+### Database
+- **Location**: `backend/music.db` (SQLite)
+- **File Storage**: Audio files in `/uploads/`, static assets in `/static/`
 
-1. **音乐播放器** - 核心播放界面，支持播放控制、进度条、音量调节
-2. **歌词同步** - LRC格式歌词解析，实时滚动显示
-3. **毛玻璃效果** - 基于歌曲封面色彩的动态玻璃态背景
-4. **心情标签** - 多维度音乐分类，根据心情播放不同歌曲
-5. **歌单管理** - 支持创建、编辑歌单，歌曲可重复添加
-6. **文件上传** - 支持音频文件上传和元数据提取
+## Architecture Overview
 
-## 项目结构
+### Backend Architecture (Flat Structure)
+- **Single-file API**: `backend/main.py` contains all admin routes, models, and authentication
+- **User Routes**: `backend/user.py` contains public-facing API endpoints (no auth required)
+- **Authentication**: JWT-based with Bearer tokens, default admin: `admin/admin123`
+- **Database**: SQLite with raw SQL queries (no ORM)
+- **File Handling**: Mutagen for audio metadata extraction, static file serving for audio streaming
 
-```
-self-music/
-├── backend/                 # FastAPI后端 (扁平化)
-│   ├── main.py             # 主应用文件，包含所有路由和模型
-│   └── requirements.txt    # Python依赖
-├── frontend/               # Next.js前端
-│   ├── src/
-│   │   ├── app/            # App Router页面
-│   │   ├── components/     # React组件
-│   │   ├── lib/            # 工具函数和hooks
-│   │   └── types/          # TypeScript类型定义
-│   ├── package.json
-│   ├── next.config.js
-│   ├── tailwind.config.ts
-│   └── tsconfig.json
-├── uploads/                # 音频文件存储
-├── static/                 # 静态资源 (封面图片等)
-└── README.md
-```
+### Frontend Architecture (App Router)
+- **State Management**: Zustand stores in `src/lib/store.ts` and `src/lib/data-stores.ts`
+- **Audio Handling**: HTML5 Audio API with custom player controls
+- **UI Framework**: ShadCN/UI components with Tailwind CSS 4
+- **Routing**: Next.js 15 App Router (`src/app/`)
+- **Core Features**: 
+  - Real-time lyrics synchronization (`src/lib/lyrics-parser.ts`)
+  - Playlist management with reordering (`src/lib/playlist-manager.ts`)
+  - Glassmorphism effects based on album artwork colors
+  - Theme switching with next-themes
 
-## API接口设计
+### Key Components Structure
+- **Player Core**: `src/components/player-layout.tsx`, `src/components/bottom-player.tsx`
+- **Audio Management**: `src/components/audio-manager.tsx`
+- **Lyrics System**: `src/components/lyrics-display.tsx`, `src/components/fullscreen-lyrics.tsx`
+- **Data Display**: `src/components/song-card.tsx`, `src/components/artist-card.tsx`, `src/components/playlist-card.tsx`
+- **Admin Interface**: `src/app/admin/` directory with full CRUD operations
 
-### 歌曲管理
-- `GET /api/songs` - 获取歌曲列表
-- `POST /api/songs/upload` - 上传音频文件
-- `GET /api/songs/{id}/stream` - 流式播放音频
-- `GET /api/songs/{id}` - 获取歌曲详情
+## API Integration
 
-### 歌单管理
-- `GET /api/playlists` - 获取歌单列表
-- `POST /api/playlists` - 创建新歌单
-- `PUT /api/playlists/{id}` - 更新歌单
-- `DELETE /api/playlists/{id}` - 删除歌单
+The frontend communicates with the backend through:
+- **Public API**: `src/lib/api.ts` - songs, artists, albums, playlists (no auth)
+- **Admin API**: `src/lib/admin-api.ts` - management operations (JWT required)
+- **Environment Config**: `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000/api`)
 
-### 心情标签
-- `GET /api/moods` - 获取心情标签列表
-- `GET /api/moods/{mood}/songs` - 获取特定心情下的歌曲
+## Development Workflow
 
-### 歌词服务
-- `GET /api/lyrics/{song_id}` - 获取歌曲歌词
+### Code Style
+- **Frontend**: 2-space indentation, kebab-case file names, TypeScript strict mode
+- **Components**: Functional components with hooks, utility-first Tailwind CSS
+- **Imports**: Use `@/` path alias for src directory
+- **Backend**: Python with Pydantic models, clear endpoint separation
 
-## 开发指南
+### Testing Strategy
+- No formal test suite currently implemented
+- **Manual Testing**: Verify core flows (playback, lyrics sync, playlist management)
+- **API Testing**: Use browser dev tools or REST clients for endpoint validation
+- **Database**: Verify SQLite persistence and data integrity
 
-### 后端开发
+### Key Files to Understand
+- **Player State**: `src/lib/store.ts` - central audio player state with Zustand
+- **Data Stores**: `src/lib/data-stores.ts` - API data caching and management
+- **Lyrics Parser**: `src/lib/lyrics-parser.ts` - LRC format parsing and synchronization
+- **API Layer**: `src/lib/api.ts` and `src/lib/admin-api.ts` - backend communication
+- **Main Backend**: `backend/main.py` - all admin routes and authentication logic
+- **User Backend**: `backend/user.py` - public API endpoints
 
-1. **安装依赖**:
-```bash
-cd backend
-pip install -r requirements.txt
-```
+### Build and Deployment
+- **Frontend**: Static build with `pnpm build`, deployable to Vercel or any static host
+- **Backend**: ASGI server with uvicorn, requires Python 3.8+, SQLite database persistence
+- **Environment**: Configure `NEXT_PUBLIC_API_URL` for production backend URL
 
-2. **启动开发服务器**:
-```bash
-python main.py
-```
+## Important Notes
 
-3. **API文档**: 访问 http://localhost:8000/docs
+- **Audio Streaming**: Backend serves audio files via `/api/songs/{id}/stream` endpoint
+- **File Uploads**: Admin interface supports audio file upload to `/uploads/` directory  
+- **Lyrics Format**: Supports LRC format with time-coded lyrics for synchronization
+- **Mood System**: Songs can be tagged with mood categories for filtered playback
+- **Playlist Features**: Support for drag-and-drop reordering and song duplication
+- **Mobile Support**: Responsive design with touch-friendly controls
+- **Theme Support**: Built-in dark/light mode switching
 
-### 前端开发
+## Security Considerations
 
-1. **安装依赖**:
-```bash
-cd frontend
-npm install
-```
-
-2. **启动开发服务器**:
-```bash
-npm run dev
-```
-
-3. **构建生产版本**:
-```bash
-npm run build
-```
-
-4. **类型检查**:
-```bash
-npm run type-check
-```
-
-## 特性实现
-
-### 玻璃态效果实现
-使用CSS的 `backdrop-filter: blur()` 和 `background: rgba()` 实现毛玻璃效果，结合歌曲封面的主色调动态调整背景色彩。
-
-### 歌词同步
-- 支持LRC格式歌词文件
-- 实时解析时间轴信息
-- 滚动显示当前播放歌词
-- 高亮显示当前行
-
-### 心情标签系统
-- 预定义心情标签（快乐、放松、专注等）
-- 歌曲可关联多个心情标签
-- 根据心情筛选播放歌曲
-
-### 响应式设计
-- 支持桌面端和移动端
-- 自适应布局
-- 触摸友好的交互设计
-
-## 部署说明
-
-### 后端部署
-```bash
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### 前端部署
-```bash
-cd frontend
-npm run build
-npm start
-```
-
-## 项目特色
-
-1. **以播放为中心** - 进入网站即显示播放界面，而非传统的专辑展示页
-2. **视觉体验优先** - 毛玻璃效果、动画过渡、色彩搭配
-3. **情感化交互** - 通过心情标签连接音乐与情感
-4. **现代化技术栈** - 使用最新的Web技术构建
+- **JWT Secret**: Change `SECRET_KEY` in `backend/main.py` for production
+- **CORS Policy**: Currently allows all origins - restrict for production
+- **Admin Access**: Default credentials should be changed: `admin/admin123`
+- **File Security**: Validate uploaded audio files and sanitize file paths

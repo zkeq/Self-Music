@@ -100,9 +100,9 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
 1. 将 `backend` 文件夹上传至服务器 `\root` 即可
 
-   ![image-20250817130950435](https://img.onmicrosoft.cn/zkeq/20250817130950511.png)
+  <img width="2005" height="776" alt="image" src="https://github.com/user-attachments/assets/4da357c8-ba77-4bfb-bc1f-fecd4f122349" />
 
-2. 修改 `jwt secret` 为一串随机字符串 `auth.py`
+2. 修改 `jwt secret` 为一串随机字符串 `main.py`
 
    ![image-20250817131014518](https://img.onmicrosoft.cn/zkeq/20250817131014618.png)
 
@@ -142,7 +142,8 @@ Self Music 是一个面向个人与小团队的音乐管理与播放系统。提
 
 - 按步骤进行操作即可成功部署
 
-![image-20250731103123137](https://img.onmicrosoft.cn/zkeq/20250731103123356.png)
+<img width="2093" height="1284" alt="image" src="https://github.com/user-attachments/assets/f6a370cc-b9e6-47d7-a7d2-20d83951bbaa" />
+
 
 
 ### 📋 环境要求
