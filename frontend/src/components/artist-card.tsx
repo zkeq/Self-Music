@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Star } from 'lucide-react';
 import type { Artist } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface ArtistCardProps {
   artist: Artist;
@@ -20,7 +21,7 @@ export function ArtistCard({ artist, onView, formatFollowers }: ArtistCardProps)
       <CardContent className="p-4">
         <div className="relative mb-3">
           <Avatar className="w-16 h-16 mx-auto">
-            <AvatarImage src={artist.avatar || ''} alt={artist.name} className="object-cover" />
+            <AvatarImage src={getOptimizedImageUrl(artist.avatar, 'CARD_SMALL')} alt={artist.name} className="object-cover" />
             <AvatarFallback>
               <Users className="w-8 h-8" />
             </AvatarFallback>

@@ -13,6 +13,7 @@ import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, Trending
 import { usePlayerStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Song, Playlist } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -199,7 +200,7 @@ function PlaylistDetailContent() {
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
                 <Avatar className="w-64 h-64 rounded-2xl shadow-2xl">
-                  <AvatarImage src={playlist.coverUrl} alt={playlist.name} />
+                  <AvatarImage src={getOptimizedImageUrl(playlist.coverUrl, 'ALBUM_COVER')} alt={playlist.name} />
                   <AvatarFallback className="text-6xl">
                     <Music className="w-32 h-32" />
                   </AvatarFallback>

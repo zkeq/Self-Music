@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Play, Music2 } from 'lucide-react';
 import type { Playlist } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -19,7 +20,7 @@ export function PlaylistCard({ playlist, onPlay, formatPlayCount }: PlaylistCard
     >
       <div className="relative">
         <Avatar className="w-full h-36 rounded-lg">
-          <AvatarImage src={playlist.coverUrl} alt={playlist.name} className="object-cover" />
+          <AvatarImage src={getOptimizedImageUrl(playlist.coverUrl, 'CARD_LARGE')} alt={playlist.name} className="object-cover" />
           <AvatarFallback className="rounded-lg">
             <Music2 className="w-12 h-12" />
           </AvatarFallback>

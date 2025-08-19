@@ -8,6 +8,7 @@ import { MiniPlayerControls } from '@/components/player-controls';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, Heart, MoreHorizontal } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 export function BottomPlayer() {
   const pathname = usePathname();
@@ -100,12 +101,23 @@ export function BottomPlayer() {
               <div className="relative w-12 h-12 lg:w-14 lg:h-14 rounded-lg overflow-hidden bg-muted shrink-0">
                 {currentSong.coverUrl ? (
                   <img
-                    src={currentSong.coverUrl}
+                    src={getOptimizedImageUrl(currentSong.coverUrl, 'ICON_MEDIUM')}
                     alt={currentSong.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover lg:hidden"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center lg:hidden">
+                    <span className="text-xs text-muted-foreground">♪</span>
+                  </div>
+                )}
+                {currentSong.coverUrl ? (
+                  <img
+                    src={getOptimizedImageUrl(currentSong.coverUrl, 'ICON_LARGE')}
+                    alt={currentSong.title}
+                    className="w-full h-full object-cover hidden lg:block"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 items-center justify-center hidden lg:flex">
                     <span className="text-xs text-muted-foreground">♪</span>
                   </div>
                 )}

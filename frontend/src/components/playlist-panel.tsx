@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { getIconComponent } from '@/lib/icon-map';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface PlaylistPanelProps {
   className?: string;
@@ -243,7 +244,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                           <div className="relative h-12 w-12 flex-shrink-0 mr-3">
                             {song.coverUrl ? (
                               <img
-                                src={song.coverUrl}
+                                src={getOptimizedImageUrl(song.coverUrl, 'ICON_MEDIUM')}
                                 alt={song.title}
                                 className="h-full w-full object-cover rounded-md"
                               />

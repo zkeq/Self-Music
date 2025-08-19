@@ -13,6 +13,7 @@ import { useMoodsStore } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
 import type { Song } from '@/types';
 import { getIconComponent } from '@/lib/icon-map';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -219,7 +220,7 @@ export default function MoodDetailPage() {
                       </div>
                       
                       <Avatar className="w-12 h-12 rounded-md mr-4">
-                        <AvatarImage src={song.coverUrl} alt={song.title} />
+                        <AvatarImage src={getOptimizedImageUrl(song.coverUrl, 'ICON_MEDIUM')} alt={song.title} />
                         <AvatarFallback>
                           <Music2 className="w-6 h-6" />
                         </AvatarFallback>

@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Music2, Heart, Clock } from 'lucide-react';
 import type { Song } from '@/types';
 import { getIconComponent } from '@/lib/icon-map';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface SearchResultsProps {
   songs: Song[];
@@ -45,7 +46,7 @@ export function SearchResults({
           >
             <div className="w-12 flex items-center justify-center">
               <Avatar className="w-10 h-10 rounded-md">
-                <AvatarImage src={song.coverUrl} alt={song.title} />
+                <AvatarImage src={getOptimizedImageUrl(song.coverUrl, 'CARD_SMALL')} alt={song.title} />
                 <AvatarFallback>
                   <Music2 className="w-5 h-5" />
                 </AvatarFallback>

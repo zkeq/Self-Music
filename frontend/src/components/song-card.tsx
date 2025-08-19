@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Play, Heart, Music2, TrendingUp, ListPlus } from 'lucide-react';
 import type { Song } from '@/types';
 import { getAllArtistNames } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface SongCardProps {
   song: Song;
@@ -25,7 +26,7 @@ export function SongCard({ song, onPlay, onLike, onAddToPlaylist, formatPlayCoun
         <div className="flex items-center space-x-3">
           <div className="relative">
             <Avatar className="w-14 h-14 rounded-md">
-              <AvatarImage src={song.coverUrl} alt={song.title} className="object-cover" />
+              <AvatarImage src={getOptimizedImageUrl(song.coverUrl, 'ICON_LARGE')} alt={song.title} className="object-cover" />
               <AvatarFallback className="rounded-md">
                 <Music2 className="w-7 h-7" />
               </AvatarFallback>
