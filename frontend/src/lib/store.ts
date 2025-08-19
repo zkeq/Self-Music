@@ -2,8 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { Song, PlayerState, Playlist } from '@/types';
 import { DEFAULT_SONG } from './default-song';
-import { PlaylistManager, PlaylistState } from './playlist-manager';
-import { useSongsStore } from './data-stores';  // 导入数据存储以记录播放量
+import { PlaylistManager } from './playlist-manager';
 
 interface PlayerStore extends PlayerState {
   // Additional state
@@ -205,10 +204,30 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       toggleRepeat: () => {
-        const { repeatMode } = get();
+        const { repeatMode, isPlaying } = get();
         const modes: PlayerState['repeatMode'][] = ['none', 'all', 'one'];
         const currentIndex = modes.indexOf(repeatMode);
         const nextMode = modes[(currentIndex + 1) % modes.length];
+
+        if (nextMode === 'all') {
+          const playlistState = PlaylistManager.getCurrentPlaylist();
+          if (playlistState) {
+            const atEnd = playlistState.currentIndex >= playlistState.songs.length - 1;
+            if (atEnd && !isPlaying) {
+              const updated = PlaylistManager.updatePlaylist(playlistState.songs, 0);
+              set({
+                repeatMode: nextMode,
+                playlist: updated.songs,
+                currentIndex: updated.currentIndex,
+                currentSong: updated.songs[0] || null,
+                currentTime: 0,
+                duration: 0,
+              });
+              return;
+            }
+          }
+        }
+
         set({ repeatMode: nextMode });
       },
 

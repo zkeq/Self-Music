@@ -102,34 +102,46 @@ export class PlaylistManager {
   }
   
   // 切换到下一首歌
-  static getNextSong(shuffleMode: boolean = false, repeatMode: 'none' | 'all' | 'one' = 'none'): Song | null {
+  static getNextSong(
+    shuffleMode: boolean = false,
+    repeatMode: 'none' | 'all' | 'one' = 'none'
+  ): Song | null {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return null;
-    
+
+    const mode = repeatMode ?? 'none';
     const { songs, currentIndex } = playlist;
-    
-    if (repeatMode === 'one') {
+
+    // 单曲循环直接返回当前歌曲
+    if (mode === 'one') {
       return songs[currentIndex] || null;
     }
-    
-    let nextIndex: number;
-    
+
+    let nextIndex = currentIndex;
+
     if (shuffleMode) {
       // 随机播放：选择一个不同的随机歌曲
-      const availableIndices = songs.map((_, i) => i).filter(i => i !== currentIndex);
-      if (availableIndices.length === 0) return songs[currentIndex] || null;
-      nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+      const available = songs.map((_, i) => i).filter(i => i !== currentIndex);
+      if (available.length === 0) {
+        if (mode === 'all') {
+          nextIndex = currentIndex;
+        } else {
+          return null;
+        }
+      } else {
+        nextIndex = available[Math.floor(Math.random() * available.length)];
+      }
     } else {
       nextIndex = currentIndex + 1;
       if (nextIndex >= songs.length) {
-        if (repeatMode === 'all') {
+        if (mode === 'all') {
           nextIndex = 0;
         } else {
           return null; // 播放列表结束
         }
       }
     }
-    
+
     const nextSong = songs[nextIndex];
     if (nextSong) {
       const updatedPlaylist = {
@@ -140,7 +152,7 @@ export class PlaylistManager {
       };
       this.saveCurrentPlaylist(updatedPlaylist);
     }
-    
+
     return nextSong;
   }
   
@@ -202,9 +214,10 @@ export class PlaylistManager {
   static canPlayNext(repeatMode: 'none' | 'all' | 'one' = 'none'): boolean {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
-    
-    if (repeatMode === 'one' || repeatMode === 'all') return true;
-    
+
+    const mode = repeatMode ?? 'none';
+    if (mode === 'one' || mode === 'all') return true;
+
     return playlist.currentIndex < playlist.songs.length - 1;
   }
   
