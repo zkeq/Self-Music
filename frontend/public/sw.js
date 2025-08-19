@@ -5,14 +5,14 @@ const COVER_CACHE_NAME = 'cover-images-v1';
 // 音乐文件匹配模式
 const MUSIC_FILE_PATTERNS = [
   /\/api\/songs\/\d+\/stream/,  // 后端音乐流接口
-  /\.(mp3|wav|flac|aac|ogg|m4a)$/i,  // 音乐文件扩展名
+  /\.(mp3|wav|flac|aac|ogg|m4a)(\?.*)?$/i,  // 音乐文件扩展名（支持URL参数）
 ];
 
 // 封面图片匹配模式
 const COVER_IMAGE_PATTERNS = [
   /\/api\/albums\/\d+\/cover/,  // 专辑封面接口
   /\/api\/artists\/\d+\/cover/,  // 艺人头像接口
-  /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i,  // 所有图片文件
+  /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i,  // 所有图片文件（支持URL参数）
 ];
 
 // 检查是否是音乐文件请求
