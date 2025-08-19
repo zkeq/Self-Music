@@ -28,23 +28,23 @@ export function optimizeImageUrl(url: string | undefined | null, size: string): 
  */
 export const IMAGE_SIZES = {
   // 小图标 (32x32)
-  ICON_SMALL: '32y32',
+  ICON_SMALL: '64y64',
   // 中等图标 (48x48) - 底部播放器小图
-  ICON_MEDIUM: '48y48',
+  ICON_MEDIUM: '96y96',
   // 大图标 (56x56) - 歌曲卡片、底部播放器大图
-  ICON_LARGE: '56y56',
+  ICON_LARGE: '112y112',
   // 小卡片 (64x64) - 管理页面表格
-  CARD_SMALL: '64y64',
+  CARD_SMALL: '128y128',
   // 中等卡片 (130x130) - 默认卡片尺寸
-  CARD_MEDIUM: '130y130',
+  CARD_MEDIUM: '260y260',
   // 大卡片 (144x144) - 播放列表卡片
-  CARD_LARGE: '144y144',
+  CARD_LARGE: '288y288',
   // 专辑封面 (200x200) - 专辑页面
-  ALBUM_COVER: '200y200',
+  ALBUM_COVER: '400y400',
   // 播放页面 (300x300) - 全屏播放
-  PLAYER_COVER: '300y300',
+  PLAYER_COVER: '600y600',
   // 高清封面 (500x500) - 详情页面
-  COVER_HD: '500y500',
+  COVER_HD: '1000y1000',
 } as const;
 
 /**

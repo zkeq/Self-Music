@@ -22,6 +22,7 @@ import {
 import { usePlayerStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Artist, Song, Album } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);

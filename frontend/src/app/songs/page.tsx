@@ -27,6 +27,7 @@ import {
   useSearchStore 
 } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import type { Song } from '@/types';
 
@@ -474,7 +475,7 @@ export default function SongsPage() {
                               
                               <div className="flex items-center flex-1 min-w-0">
                                 <img 
-                                  src={song.coverUrl || '/placeholder-cover.jpg'} 
+                                  src={getOptimizedImageUrl(song.coverUrl, 'CARD_SMALL')} 
                                   alt={song.title}
                                   className="w-10 h-10 rounded mr-3 object-cover"
                                 />
@@ -530,7 +531,7 @@ export default function SongsPage() {
                                 
                                 <div className="flex items-center flex-1 min-w-0">
                                   <img 
-                                    src={song.coverUrl || '/placeholder-cover.jpg'} 
+                                    src={getOptimizedImageUrl(song.coverUrl, 'CARD_SMALL')} 
                                     alt={song.title}
                                     className="w-10 h-10 rounded mr-3 object-cover"
                                   />
