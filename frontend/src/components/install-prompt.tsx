@@ -88,23 +88,23 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-4 shadow-2xl border border-white/10">
+      <div className="bg-card border border-border rounded-lg p-4 shadow-lg">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center space-x-2">
-            <Download className="w-5 h-5 text-white" />
-            <h3 className="text-white font-semibold text-sm">
+            <Download className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-sm text-foreground">
               安装 Self-Music
             </h3>
           </div>
           <button
             onClick={handleDismiss}
-            className="text-white/80 hover:text-white transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
         
-        <p className="text-white/90 text-xs mb-4 leading-relaxed">
+        <p className="text-muted-foreground text-xs mb-4 leading-relaxed">
           将 Self-Music 安装到您的设备上，享受更快的访问速度和离线播放功能。
         </p>
         
@@ -112,7 +112,7 @@ export function InstallPrompt() {
           <Button
             onClick={handleInstallClick}
             size="sm"
-            className="flex-1 bg-white text-purple-600 hover:bg-white/90 font-medium"
+            className="flex-1"
           >
             立即安装
           </Button>
@@ -120,13 +120,12 @@ export function InstallPrompt() {
             onClick={handleDismiss}
             size="sm"
             variant="outline"
-            className="border-white/30 text-white hover:bg-white/10"
           >
             稍后
           </Button>
         </div>
         
-        <div className="mt-3 text-xs text-white/70">
+        <div className="mt-3 text-xs text-muted-foreground">
           💡 安装后可离线播放已缓存的音乐
         </div>
       </div>
