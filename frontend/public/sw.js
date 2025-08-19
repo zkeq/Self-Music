@@ -1,6 +1,14 @@
-const CACHE_NAME = 'music-cache-v1';
+const CACHE_NAME = 'self-music-v1';
 const MUSIC_CACHE_NAME = 'music-files-v1';
 const COVER_CACHE_NAME = 'cover-images-v1';
+
+// 核心应用文件 - 需要预缓存以支持离线访问
+const CORE_CACHE_URLS = [
+  '/',
+  '/offline',
+  '/manifest.json',
+  '/icon.png'
+];
 
 // 音乐文件匹配模式
 const MUSIC_FILE_PATTERNS = [
@@ -15,6 +23,12 @@ const COVER_IMAGE_PATTERNS = [
   /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i,  // 所有图片文件（支持URL参数）
 ];
 
+// 静态资源匹配模式
+const STATIC_RESOURCE_PATTERNS = [
+  /\/_next\/static\//,  // Next.js 静态资源
+  /\.(js|css|woff|woff2|ttf|eot)(\?.*)?$/i,  // JavaScript、CSS、字体文件
+];
+
 // 检查是否是音乐文件请求
 function isMusicFile(url) {
   return MUSIC_FILE_PATTERNS.some(pattern => pattern.test(url));
@@ -25,11 +39,29 @@ function isCoverImage(url) {
   return COVER_IMAGE_PATTERNS.some(pattern => pattern.test(url));
 }
 
+// 检查是否是静态资源
+function isStaticResource(url) {
+  return STATIC_RESOURCE_PATTERNS.some(pattern => pattern.test(url));
+}
+
+// 检查是否是API请求
+function isApiRequest(url) {
+  return url.includes('/api/');
+}
+
 // Service Worker 安装事件
 self.addEventListener('install', (event) => {
   console.log('Service Worker 安装中...');
-  // 强制激活新的 Service Worker
-  self.skipWaiting();
+  
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('预缓存核心文件...');
+      return cache.addAll(CORE_CACHE_URLS);
+    }).then(() => {
+      // 强制激活新的 Service Worker
+      return self.skipWaiting();
+    })
+  );
 });
 
 // Service Worker 激活事件
@@ -57,6 +89,7 @@ self.addEventListener('activate', (event) => {
 // 拦截网络请求
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
+  const urlObj = new URL(url);
   
   // 只处理 GET 请求
   if (event.request.method !== 'GET') {
@@ -70,17 +103,28 @@ self.addEventListener('fetch', (event) => {
   // 检查是否是封面图片
   else if (isCoverImage(url)) {
     event.respondWith(handleCoverImageRequest(event.request));
-  } 
+  }
+  // 检查是否是静态资源
+  else if (isStaticResource(url)) {
+    event.respondWith(handleStaticResourceRequest(event.request));
+  }
+  // 检查是否是HTML页面请求
+  else if (!isApiRequest(url) && (urlObj.pathname.endsWith('/') || urlObj.pathname.match(/\.(html)$/))) {
+    event.respondWith(handlePageRequest(event.request));
+  }
+  // API请求 - 网络优先，失败时返回离线提示
+  else if (isApiRequest(url)) {
+    event.respondWith(handleApiRequest(event.request));
+  }
+  // 其他请求 - 网络优先
   else {
-    // 对于非音乐文件和封面图片，使用网络优先策略（确保静态资源是最新的）
-    event.respondWith(handleNonMusicRequest(event.request));
+    event.respondWith(handleOtherRequest(event.request));
   }
 });
 
 // 处理音乐文件请求 - 缓存优先策略
 async function handleMusicFileRequest(request) {
   try {
-    // 首先检查缓存
     const cache = await caches.open(MUSIC_CACHE_NAME);
     const cachedResponse = await cache.match(request);
     
@@ -89,13 +133,10 @@ async function handleMusicFileRequest(request) {
       return cachedResponse;
     }
     
-    // 缓存中没有，从网络获取
     console.log('从网络获取音乐文件:', request.url);
     const networkResponse = await fetch(request);
     
-    // 只缓存成功的响应
     if (networkResponse.ok) {
-      // 克隆响应用于缓存
       const responseToCache = networkResponse.clone();
       await cache.put(request, responseToCache);
       console.log('音乐文件已缓存:', request.url);
@@ -104,10 +145,10 @@ async function handleMusicFileRequest(request) {
     return networkResponse;
   } catch (error) {
     console.error('音乐文件请求失败:', error);
-    // 如果网络失败，尝试返回缓存的版本
     const cache = await caches.open(MUSIC_CACHE_NAME);
     const cachedResponse = await cache.match(request);
     if (cachedResponse) {
+      console.log('网络失败，从缓存返回音乐文件:', request.url);
       return cachedResponse;
     }
     throw error;
@@ -117,7 +158,6 @@ async function handleMusicFileRequest(request) {
 // 处理封面图片请求 - 缓存优先策略
 async function handleCoverImageRequest(request) {
   try {
-    // 首先检查缓存
     const cache = await caches.open(COVER_CACHE_NAME);
     const cachedResponse = await cache.match(request);
     
@@ -126,13 +166,10 @@ async function handleCoverImageRequest(request) {
       return cachedResponse;
     }
     
-    // 缓存中没有，从网络获取
     console.log('从网络获取封面图片:', request.url);
     const networkResponse = await fetch(request);
     
-    // 只缓存成功的响应
     if (networkResponse.ok) {
-      // 克隆响应用于缓存
       const responseToCache = networkResponse.clone();
       await cache.put(request, responseToCache);
       console.log('封面图片已缓存:', request.url);
@@ -141,7 +178,6 @@ async function handleCoverImageRequest(request) {
     return networkResponse;
   } catch (error) {
     console.error('封面图片请求失败:', error);
-    // 如果网络失败，尝试返回缓存的版本
     const cache = await caches.open(COVER_CACHE_NAME);
     const cachedResponse = await cache.match(request);
     if (cachedResponse) {
@@ -152,12 +188,109 @@ async function handleCoverImageRequest(request) {
   }
 }
 
-// 处理非音乐文件请求 - 网络优先策略
-async function handleNonMusicRequest(request) {
+// 处理静态资源请求 - 缓存优先策略
+async function handleStaticResourceRequest(request) {
   try {
-    // 对于静态资源，直接从网络获取以确保是最新的
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
     const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      const responseToCache = networkResponse.clone();
+      await cache.put(request, responseToCache);
+    }
+    
     return networkResponse;
+  } catch (error) {
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    throw error;
+  }
+}
+
+// 处理页面请求 - 缓存优先，失败时返回离线页面
+async function handlePageRequest(request) {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      const responseToCache = networkResponse.clone();
+      await cache.put(request, responseToCache);
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('页面请求失败，返回离线页面:', request.url);
+    const cache = await caches.open(CACHE_NAME);
+    const offlinePage = await cache.match('/offline');
+    if (offlinePage) {
+      return offlinePage;
+    }
+    
+    // 如果连离线页面都没有缓存，返回基础的离线HTML
+    return new Response(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Self-Music - 离线模式</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: sans-serif; text-align: center; padding: 2rem; background: #000; color: #fff; }
+          h1 { color: #666; }
+          p { color: #999; }
+          button { padding: 0.5rem 1rem; background: #333; color: #fff; border: none; border-radius: 0.25rem; cursor: pointer; }
+          button:hover { background: #555; }
+        </style>
+      </head>
+      <body>
+        <h1>离线模式</h1>
+        <p>您当前处于离线状态。请检查网络连接后重试。</p>
+        <p>已缓存的音乐仍可正常播放。</p>
+        <button onclick="location.reload()">重新连接</button>
+      </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
+    });
+  }
+}
+
+// 处理API请求 - 网络优先，失败时返回错误信息
+async function handleApiRequest(request) {
+  try {
+    return await fetch(request);
+  } catch (error) {
+    console.log('API请求失败:', request.url);
+    return new Response(JSON.stringify({
+      error: 'offline',
+      message: '当前处于离线状态，无法获取数据'
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 处理其他请求 - 网络优先
+async function handleOtherRequest(request) {
+  try {
+    return await fetch(request);
   } catch (error) {
     console.error('网络请求失败:', error);
     throw error;
@@ -194,6 +327,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'CLEAR_ALL_CACHE') {
     event.waitUntil(
       Promise.all([
+        caches.delete(CACHE_NAME),
         caches.delete(MUSIC_CACHE_NAME),
         caches.delete(COVER_CACHE_NAME)
       ]).then(() => {
@@ -216,25 +350,31 @@ self.addEventListener('message', (event) => {
 // 获取缓存统计信息
 async function getCacheStats() {
   try {
+    const appCache = await caches.open(CACHE_NAME);
     const musicCache = await caches.open(MUSIC_CACHE_NAME);
     const coverCache = await caches.open(COVER_CACHE_NAME);
     
+    const appKeys = await appCache.keys();
     const musicKeys = await musicCache.keys();
     const coverKeys = await coverCache.keys();
     
     return {
+      appCacheSize: appKeys.length,
       musicCacheSize: musicKeys.length,
       coverCacheSize: coverKeys.length,
-      totalCacheSize: musicKeys.length + coverKeys.length,
+      totalCacheSize: appKeys.length + musicKeys.length + coverKeys.length,
+      appEntries: appKeys.map(req => req.url),
       musicEntries: musicKeys.map(req => req.url),
       coverEntries: coverKeys.map(req => req.url)
     };
   } catch (error) {
     console.error('获取缓存统计失败:', error);
     return { 
+      appCacheSize: 0,
       musicCacheSize: 0, 
       coverCacheSize: 0,
       totalCacheSize: 0,
+      appEntries: [],
       musicEntries: [],
       coverEntries: []
     };
