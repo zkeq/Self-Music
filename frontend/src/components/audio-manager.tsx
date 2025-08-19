@@ -141,14 +141,14 @@ export function AudioManager() {
         cancelAnimationFrame(timeUpdateRef.current);
         timeUpdateRef.current = null;
       }
-      
-      if (repeatMode === 'one') {
-        // 单曲循环：重新播放当前歌曲
-        audio.currentTime = 0;
-        audio.play().catch(console.error);
-      } else {
-        // 其他情况（列表播放、随机播放、列表循环）：让 nextSong 函数处理
-        nextSong();
+
+      switch (repeatMode) {
+        case 'one':
+          audio.currentTime = 0;
+          audio.play().catch(console.error);
+          break;
+        default:
+          nextSong();
       }
     };
 
@@ -186,7 +186,7 @@ export function AudioManager() {
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('seeked', handleSeeked);
     };
-  }, [setCurrentTime, setDuration, pause, nextSong, currentSong, recordPlay]);  // 添加currentSong和recordPlay依赖
+  }, [setCurrentTime, setDuration, pause, nextSong, currentSong, recordPlay, repeatMode]); // ensure repeat mode updates
 
   // 处理歌曲切换
   useEffect(() => {
