@@ -17,6 +17,7 @@ import {
   Heart
 } from 'lucide-react';
 import { ImportDetailedInfo } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface MusicInfoDisplayProps {
   detailedInfo: ImportDetailedInfo;
@@ -144,7 +145,7 @@ export function MusicInfoDisplay({ detailedInfo }: MusicInfoDisplayProps) {
                 <div className="w-24 h-24 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                   {album.coverUrl ? (
                     <img 
-                      src={album.coverUrl} 
+                      src={getOptimizedImageUrl(album.coverUrl, 'CARD_MEDIUM')} 
                       alt={album.title}
                       className="w-full h-full rounded-lg object-cover"
                     />

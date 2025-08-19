@@ -10,6 +10,7 @@ import { extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables
 
 import { Song, getAllArtistNames, getPrimaryArtist } from '@/types/index';
 import { getIconComponent } from '@/lib/icon-map';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 interface AlbumCoverProps {
   song: Song;
@@ -116,7 +117,7 @@ export function AlbumCover({ song, className, size = 'lg' }: AlbumCoverProps) {
         sizeClasses[size]
       )}>
         <AvatarImage 
-          src={song.coverUrl} 
+          src={getOptimizedImageUrl(song.coverUrl, 'PLAYER_COVER')} 
           alt={`${song.title} - ${getAllArtistNames(song)}`}
           className="object-cover"
         />
