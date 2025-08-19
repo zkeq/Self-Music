@@ -122,11 +122,7 @@ export class PlaylistManager {
     } else {
       nextIndex = currentIndex + 1;
       if (nextIndex >= songs.length) {
-        if (repeatMode === 'all') {
-          nextIndex = 0;
-        } else {
-          return null; // 播放列表结束
-        }
+        nextIndex = 0; // 到达列表末尾时循环到第一首
       }
     }
     
@@ -203,9 +199,8 @@ export class PlaylistManager {
     const playlist = this.getCurrentPlaylist();
     if (!playlist || playlist.songs.length === 0) return false;
     
-    if (repeatMode === 'one' || repeatMode === 'all') return true;
-    
-    return playlist.currentIndex < playlist.songs.length - 1;
+    // 当有歌曲时总是可以播放下一首（包括循环到第一首）
+    return playlist.songs.length > 0;
   }
   
   // 检查是否可以播放上一首

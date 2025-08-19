@@ -22,7 +22,8 @@
       "Bash(python3:*)",
       "Bash(python:*)",
       "Bash(curl:*)",
-      "Bash(timeout 30 npm run build)"
+      "Bash(timeout 30 npm run build)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
