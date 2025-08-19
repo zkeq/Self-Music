@@ -1,0 +1,19 @@
+{
+  "name": "Self-Music",
+  "short_name": "Self-Music",
+  "description": "现代化的音乐流媒体网站，专注于提供优美的播放体验",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "categories": ["music", "entertainment"],
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

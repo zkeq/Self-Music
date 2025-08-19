@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AudioManager } from "@/components/audio-manager";
 import { BottomPlayer } from "@/components/bottom-player";
 import { PageWrapper } from "@/components/page-wrapper";
+import { PWAProvider } from "@/components/pwa-provider";
+import { InstallPrompt } from "@/components/install-prompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,6 +22,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Self-Music - 音乐流媒体平台",
   description: "现代化的音乐流媒体网站，专注于提供优美的播放体验",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Self-Music",
+  },
+  openGraph: {
+    title: "Self-Music - 音乐流媒体平台",
+    description: "现代化的音乐流媒体网站，专注于提供优美的播放体验",
+    type: "website",
+  },
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({
@@ -29,6 +44,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Self-Music" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -38,6 +63,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          {/* PWA Service Worker Registration */}
+          <PWAProvider />
+          
           {/* 全局音频管理器 */}
           <AudioManager />
           
@@ -48,6 +76,9 @@ export default function RootLayout({
           
           {/* 底部播放器 */}
           <BottomPlayer />
+          
+          {/* PWA 安装提示 */}
+          <InstallPrompt />
         </ThemeProvider>
       </body>
     </html>
