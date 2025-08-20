@@ -23,10 +23,13 @@ export function AmbientGlow({
 }: AmbientGlowProps) {
   const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
   
+  // Initialize with default palette to ensure immediate rendering
+  const currentPalette = colorPalette || getDefaultColorPalette();
+  
   // Memoize CSS variables to prevent recalculation
   const cssVars = useMemo(() => {
-    return colorPalette ? createColorCSSVariables(colorPalette) : {};
-  }, [colorPalette]);
+    return createColorCSSVariables(currentPalette);
+  }, [currentPalette]);
 
   // Debounce color extraction for performance
   const extractColors = useCallback(async (url: string) => {
@@ -53,11 +56,6 @@ export function AmbientGlow({
       setColorPalette(defaultPalette);
     }
   }, [imageUrl, extractColors]);
-
-  // Don't render until we have a color palette to avoid hydration mismatch
-  if (!colorPalette) {
-    return null;
-  }
 
   const intensityConfig = {
     low: { blur: 'blur-2xl', opacity: 'opacity-20', scale: 'scale-150' },

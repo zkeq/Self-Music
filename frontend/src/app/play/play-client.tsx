@@ -281,7 +281,7 @@ export default function PlayClient() {
     <div className="h-full bg-background relative overflow-hidden lg:flex">
       {/* Dynamic Ambient Glow Background */}
       <AmbientGlow 
-        imageUrl={displaySong.coverUrl} 
+        imageUrl={currentSong?.coverUrl || displaySong.coverUrl} 
         intensity="medium"
         className="fixed inset-0 z-0" 
       />

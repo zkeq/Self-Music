@@ -199,9 +199,9 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
  */
 export function getDefaultColorPalette(): ColorPalette {
   return {
-    dominant: createExtractedColor({ r: 139, g: 92, b: 246 }), // More vibrant purple-blue
-    accent: createExtractedColor({ r: 236, g: 72, b: 153 }), // Pink accent
-    muted: createExtractedColor({ r: 71, g: 85, b: 105 }) // Slate gray
+    dominant: createExtractedColor({ r: 30, g: 41, b: 59 }), // 深色主题友好的深蓝灰色
+    accent: createExtractedColor({ r: 59, g: 130, b: 246 }), // 温和的蓝色
+    muted: createExtractedColor({ r: 71, g: 85, b: 105 }) // 保持原有的 slate gray
   };
 }
 
