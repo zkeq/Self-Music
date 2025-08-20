@@ -13,6 +13,7 @@ export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     // 检查是否已安装
@@ -30,10 +31,24 @@ export function InstallPrompt() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
+      // 如果用户已经关闭过，不再显示
+      if (isDismissed) return;
+      
       // 延迟显示安装提示，避免打断用户体验
-      setTimeout(() => {
+      const showTimer = setTimeout(() => {
         setShowInstallPrompt(true);
+        
+        // 15秒后自动关闭
+        const autoHideTimer = setTimeout(() => {
+          setShowInstallPrompt(false);
+          setIsDismissed(true);
+        }, 15000);
+        
+        // 清理定时器
+        return () => clearTimeout(autoHideTimer);
       }, 10000); // 10秒后显示
+      
+      return () => clearTimeout(showTimer);
     };
 
     // 监听应用安装事件
@@ -50,7 +65,7 @@ export function InstallPrompt() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isDismissed]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -72,17 +87,12 @@ export function InstallPrompt() {
 
   const handleDismiss = () => {
     setShowInstallPrompt(false);
-    
-    // 24小时后再次显示
-    setTimeout(() => {
-      if (!isInstalled && deferredPrompt) {
-        setShowInstallPrompt(true);
-      }
-    }, 24 * 60 * 60 * 1000);
+    setIsDismissed(true);
+    // 不再设置重新显示的定时器
   };
 
-  // 如果已安装或没有安装提示，不显示组件
-  if (isInstalled || !showInstallPrompt || !deferredPrompt) {
+  // 如果已安装、已关闭过或没有安装提示，不显示组件
+  if (isInstalled || isDismissed || !showInstallPrompt || !deferredPrompt) {
     return null;
   }
 
