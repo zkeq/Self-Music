@@ -105,7 +105,7 @@ export function InstallPrompt() {
         </div>
         
         <p className="text-muted-foreground text-xs mb-4 leading-relaxed">
-          将 Self-Music 安装到您的设备上，享受更快的访问速度和离线播放功能。
+          将 Self-Music 安装到您的设备上，享受更快的访问速度和离线播放功能。安装后即使离线也能播放已缓存的音乐。
         </p>
         
         <div className="flex space-x-2">
@@ -126,7 +126,7 @@ export function InstallPrompt() {
         </div>
         
         <div className="mt-3 text-xs text-muted-foreground">
-          💡 安装后可离线播放已缓存的音乐
+          💡 安装后自动缓存音乐，实现真正的离线播放
         </div>
       </div>
     </div>

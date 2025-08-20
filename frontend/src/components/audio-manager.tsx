@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/lib/store';
 import { useSongsStore } from '@/lib/data-stores';  // 导入歌曲存储以记录播放量
+import { cacheManager } from '@/lib/cache-manager';
 
 export function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -194,9 +195,18 @@ export function AudioManager() {
     
     // 使用提供的audioUrl或fileUrl，或构建默认URL
     const audioUrl = currentSong.audioUrl || 
-                    `http://localhost:8000/api/songs/${currentSong.id}/stream`;
+                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/songs/${currentSong.id}/stream`.replace('/api/api/', '/api/');
     
     console.log('Loading new song:', currentSong.title, 'URL:', audioUrl);
+    
+    // Cache the current song resources for offline playback
+    cacheManager.preloadSong({
+      id: currentSong.id,
+      audioUrl: audioUrl,
+      coverUrl: currentSong.coverUrl
+    }).catch(error => {
+      console.log('Failed to cache song resources:', error);
+    });
     
     // 检查是否是新的音频源
     if (audio.src !== audioUrl) {
