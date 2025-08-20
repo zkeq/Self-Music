@@ -18,6 +18,17 @@ export function PWAProvider() {
     // 只有在PWA模式下才注册Service Worker
     if (checkIfInstalled()) {
       setShouldRegister(true);
+    } else if ('serviceWorker' in navigator) {
+      // 如果不是PWA模式，尝试卸载现有的Service Worker（但保留缓存）
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister().then(success => {
+            if (success) {
+              console.log('Service Worker unregistered for non-PWA mode, cache preserved');
+            }
+          });
+        });
+      });
     }
 
     // 监听PWA安装事件
