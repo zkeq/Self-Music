@@ -28,27 +28,6 @@ export function PWAProvider() {
 
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // 如果不是PWA模式，尝试卸载现有的Service Worker
-    if (!checkIfInstalled() && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
-          registration.unregister().then(success => {
-            if (success) {
-              console.log('Service Worker unregistered for non-PWA mode');
-              // 清理所有缓存
-              if ('caches' in window) {
-                caches.keys().then(names => {
-                  names.forEach(name => {
-                    caches.delete(name);
-                  });
-                });
-              }
-            }
-          });
-        });
-      });
-    }
-
     return () => {
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
