@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { MiniPlayerControls } from '@/components/player-controls';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,22 +71,26 @@ export function BottomPlayer() {
         )}
       >
         {/* 进度条 */}
-        <div className="w-full h-1 bg-muted relative overflow-hidden">
-          <motion.div
-            className="h-full bg-primary"
-            style={{ width: `${progress}%` }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.1 }}
-          />
-          {/* 隐藏的可交互slider */}
-          <Slider
-            value={[currentTime]}
-            max={duration}
-            step={1}
-            onValueChange={handleSeek}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
+        <div 
+          className="w-full h-3 bg-muted relative overflow-hidden cursor-pointer flex items-center"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+            const newTime = percentage * duration;
+            handleSeek([newTime]);
+          }}
+        >
+          {/* 视觉进度条 */}
+          <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-muted">
+            <motion.div
+              className="h-full bg-primary"
+              style={{ width: `${progress}%` }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.1 }}
+            />
+          </div>
         </div>
 
         <div className="p-3 lg:p-4">
