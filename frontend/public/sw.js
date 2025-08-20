@@ -56,7 +56,7 @@ function isApiRequest(url) {
 }
 
 function isStaticAsset(url) {
-  return url.match(/\.(js|css|html|ico|svg)$/i) || url.includes('/_next/');
+  return url.match(/\.(js|css|html|ico|svg)$/i) || url.includes('/_next/') || url === '/';
 }
 
 function addTimestamp(response) {
