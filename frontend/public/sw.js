@@ -40,12 +40,15 @@ const ESSENTIAL_CACHE_URLS = [
 
 // Utility functions
 function isAudioRequest(url) {
-  return url.includes('/api/songs/') && url.includes('/stream');
+  // Check by file extension for audio files (including query parameters)
+  return url.match(/\.(mp3|m4a|wav|ogg|webm|flac|aac)(\?.*)?$/i) || 
+         (url.includes('/api/songs/') && url.includes('/stream'));
 }
 
 function isCoverRequest(url) {
+  // Include the full URL with query parameters for image caching
   return url.includes('/api/') && (url.includes('cover') || url.includes('image')) ||
-         url.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+         url.match(/\.(jpg|jpeg|png|webp|gif|svg|ico)(\?.*)?$/i);
 }
 
 function isApiRequest(url) {
@@ -123,39 +126,51 @@ async function staleWhileRevalidate(request, cacheName, maxAge = null) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
   
-  // Always attempt to fetch in background
-  const fetchPromise = fetch(request).then(response => {
-    if (response.ok) {
-      const responseToCache = addTimestamp(response.clone());
-      cache.put(request, responseToCache);
-    }
-    return response;
-  }).catch(error => {
-    console.log('Background fetch failed:', request.url, error);
-  });
-  
   // Return cached version if available and not too old
   if (cachedResponse && (!maxAge || !isExpired(cachedResponse, maxAge))) {
-    // Don't wait for background fetch
-    fetchPromise.catch(() => {}); 
+    // Attempt to revalidate in background (don't await)
+    fetch(request).then(response => {
+      if (response.ok) {
+        const responseToCache = addTimestamp(response.clone());
+        cache.put(request, responseToCache);
+      }
+    }).catch(error => {
+      console.log('Background revalidation failed:', request.url, error);
+    });
+    
     return cachedResponse;
   }
   
-  // Wait for network if no cache or cache is expired
+  // No valid cache, try network
   try {
-    return await fetchPromise;
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const responseToCache = addTimestamp(networkResponse.clone());
+      cache.put(request, responseToCache);
+    }
+    return networkResponse;
   } catch (error) {
+    // Network failed, check for stale cache
     if (cachedResponse) {
       console.log('Network failed, serving stale cache:', request.url);
       return cachedResponse;
     }
     
-    // Return offline page for navigation requests
+    // For navigation requests, return offline page
     if (request.mode === 'navigate') {
       const offlineCache = await caches.open(CACHES.offline);
-      return await offlineCache.match('/offline') || new Response('Offline', { status: 200 });
+      const offlinePage = await offlineCache.match('/offline');
+      if (offlinePage) {
+        return offlinePage;
+      }
+      // If offline page not cached, return a basic offline response
+      return new Response('<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' }
+      });
     }
     
+    // For other requests, throw to be handled by outer try-catch
     throw error;
   }
 }
