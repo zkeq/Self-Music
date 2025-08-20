@@ -1,13 +1,64 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function PWAProvider() {
+  const [shouldRegister, setShouldRegister] = useState(false);
+
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    // 检查是否已安装为PWA
+    const checkIfInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isInWebAppiOS = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+      const isInWebAppChrome = window.matchMedia('(display-mode: standalone)').matches;
+      
+      return isStandalone || isInWebAppiOS || isInWebAppChrome;
+    };
+
+    // 只有在PWA模式下才注册Service Worker
+    if (checkIfInstalled()) {
+      setShouldRegister(true);
+    }
+
+    // 监听PWA安装事件
+    const handleAppInstalled = () => {
+      console.log('PWA installed, registering Service Worker...');
+      setShouldRegister(true);
+    };
+
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // 如果不是PWA模式，尝试卸载现有的Service Worker
+    if (!checkIfInstalled() && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister().then(success => {
+            if (success) {
+              console.log('Service Worker unregistered for non-PWA mode');
+              // 清理所有缓存
+              if ('caches' in window) {
+                caches.keys().then(names => {
+                  names.forEach(name => {
+                    caches.delete(name);
+                  });
+                });
+              }
+            }
+          });
+        });
+      });
+    }
+
+    return () => {
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (shouldRegister && 'serviceWorker' in navigator) {
       registerServiceWorker();
     }
-  }, []);
+  }, [shouldRegister]);
 
   const registerServiceWorker = async () => {
     try {
