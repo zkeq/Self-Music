@@ -405,6 +405,12 @@ async def login(user_data: UserLogin):
 def get_current_time():
     return datetime.now().isoformat()
 
+def ensure_https_url(url: str) -> str:
+    """Convert HTTP URLs to HTTPS to prevent mixed content issues"""
+    if url and url.startswith('http://'):
+        return url.replace('http://', 'https://', 1)
+    return url
+
 def parse_json_field(field_value: str) -> List[str]:
     if not field_value:
         return []
@@ -433,8 +439,8 @@ def get_song_artists(cursor, song_id: str) -> List[Dict]:
             "id": row[0],
             "name": row[1],
             "bio": row[2],
-            "avatar": row[3],
-            "coverUrl": row[4],
+            "avatar": ensure_https_url(row[3]),
+            "coverUrl": ensure_https_url(row[4]),
             "followers": row[5],
             "songCount": row[6],
             "albumCount": row[7],
@@ -464,8 +470,8 @@ def get_album_artists(cursor, album_id: str) -> List[Dict]:
             "id": row[0],
             "name": row[1],
             "bio": row[2],
-            "avatar": row[3],
-            "coverUrl": row[4],
+            "avatar": ensure_https_url(row[3]),
+            "coverUrl": ensure_https_url(row[4]),
             "followers": row[5],
             "songCount": row[6],
             "albumCount": row[7],
@@ -530,8 +536,8 @@ async def get_artists(username: str = Depends(verify_token)):
             "id": row[0],
             "name": row[1],
             "bio": row[2],
-            "avatar": row[3],
-            "coverUrl": row[4],
+            "avatar": ensure_https_url(row[3]),
+            "coverUrl": ensure_https_url(row[4]),
             "followers": row[5],
             "songCount": row[6],
             "albumCount": row[7],
@@ -634,7 +640,7 @@ async def get_albums(username: str = Depends(verify_token)):
             "artistId": row[2],
             "artistName": primary_artist['name'] if primary_artist else row[11],
             "artists": album_artists,  # All artists
-            "coverUrl": row[3],
+            "coverUrl": ensure_https_url(row[3]),
             "releaseDate": row[4],
             "songCount": row[5],
             "duration": row[6],
@@ -792,7 +798,7 @@ async def get_songs(username: str = Depends(verify_token)):
             "albumTitle": row[15],
             "duration": row[4],
             "audioUrl": row[5],
-            "coverUrl": row[6],
+            "coverUrl": ensure_https_url(row[6]),
             "lyrics": row[7],
             "moodIds": parse_json_field(row[8]),
             "playCount": row[9],
@@ -947,7 +953,7 @@ async def get_moods(username: str = Depends(verify_token)):
             "description": row[2],
             "icon": row[3],
             "color": row[4],
-            "coverUrl": row[5],
+            "coverUrl": ensure_https_url(row[5]),
             "songCount": row[6],
             "createdAt": row[7],
             "updatedAt": row[8]
@@ -1035,7 +1041,7 @@ async def get_playlists(username: str = Depends(verify_token)):
             "id": row[0],
             "name": row[1],
             "description": row[2],
-            "coverUrl": row[3],
+            "coverUrl": ensure_https_url(row[3]),
             "songIds": parse_json_field(row[4]),
             "songCount": row[5],
             "playCount": row[6],
@@ -1275,7 +1281,7 @@ async def batch_import(request: ImportBatchRequest, username: str = Depends(veri
                         ''', (
                             artist_id, artist_info.name, 
                             artist_info.intro[:500] if artist_info.intro else None,  # 限制简介长度
-                            artist_info.avatarUrl, artist_info.avatarUrl, 
+                            ensure_https_url(artist_info.avatarUrl), ensure_https_url(artist_info.avatarUrl), 
                             int(artist_info.fanCount.replace(',', '')) if artist_info.fanCount and artist_info.fanCount.replace(',', '').isdigit() else 0,
                             0, 0, "[]", False, now, now
                         ))
@@ -1303,7 +1309,7 @@ async def batch_import(request: ImportBatchRequest, username: str = Depends(veri
                             INSERT INTO albums (id, title, artistId, coverUrl, releaseDate, songCount, duration, genre, description, createdAt, updatedAt)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ''', (
-                            album_id, album_info.title, primary_artist_id, album_info.coverUrl,
+                            album_id, album_info.title, primary_artist_id, ensure_https_url(album_info.coverUrl),
                             album_info.releaseDate, 0, 0, None, album_info.description, now, now
                         ))
                         
@@ -1323,7 +1329,7 @@ async def batch_import(request: ImportBatchRequest, username: str = Depends(veri
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     song_id, song_info.name, primary_artist_id, album_id, song_info.duration,
-                    audio_url, song_info.img, lyrics, "[]", 0, False, None, now, now
+                    audio_url, ensure_https_url(song_info.img), lyrics, "[]", 0, False, None, now, now
                 ))
                 
                 # 创建歌曲-艺术家关联
