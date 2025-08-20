@@ -132,6 +132,7 @@ async function staleWhileRevalidate(request, cacheName, maxAge = null) {
     return response;
   }).catch(error => {
     console.log('Background fetch failed:', request.url, error);
+    throw error;
   });
   
   // Return cached version if available and not too old
