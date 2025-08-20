@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "@/styles/performance.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -8,16 +7,6 @@ import { BottomPlayer } from "@/components/bottom-player";
 import { PageWrapper } from "@/components/page-wrapper";
 import { PWAProvider } from "@/components/pwa-provider";
 import { InstallPrompt } from "@/components/install-prompt";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Self-Music - 音乐流媒体平台",
@@ -56,7 +45,7 @@ export default function RootLayout({
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased font-sans"
       >
         <ThemeProvider
           attribute="class"
