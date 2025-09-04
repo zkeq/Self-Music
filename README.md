@@ -1,6 +1,6 @@
 # 🎵 Self Music - 私人音乐系统
 
-- 预览地址：https://music.icodeq.com
+- 预览地址：https://music.icodeq.com  哈哈哈
 
 ![屏幕截图(616)](https://img.onmicrosoft.cn/zkeq/20250817125324565.png)
 
