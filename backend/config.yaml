@@ -6,5 +6,5 @@ jwt_secret: "a_very_random_and_secure_secret_key_change_me"
 # If the user exists, the password will be updated on startup.
 # If the user does not exist, a new admin user will be created.
 admin:
-  username: "admin"
-  password: "admin123"
+  username: "lixiaoxin"
+  password: "lixia0xin"
