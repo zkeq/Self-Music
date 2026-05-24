@@ -4,17 +4,20 @@ import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/lib/store';
 import { useSongsStore } from '@/lib/data-stores';  // 导入歌曲存储以记录播放量
 import { cacheManager } from '@/lib/cache-manager';
+import { estimateRoomPlaybackTime, getEstimatedServerNowMs, useRoomStore } from '@/lib/room-store';
 
 export function AudioManager() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeUpdateRef = useRef<number | null>(null);
   const defaultTitleRef = useRef<string | null>(null);
+  const lastHardSeekRef = useRef(0);
+  const syncFrameRef = useRef<number | null>(null);
+  const lastPlaybackRateRef = useRef(1);
 
   const {
     currentSong,
     isPlaying,
     volume,
-    currentTime,
     repeatMode,
     shouldSeek,
     setCurrentTime,
@@ -22,6 +25,10 @@ export function AudioManager() {
     pause,
     nextSong,
   } = usePlayerStore();
+
+  const room = useRoomStore((state) => state.room);
+  const roomMemberId = useRoomStore((state) => state.memberId);
+  const roomNextSong = useRoomStore((state) => state.nextSong);
 
   const { recordPlay } = useSongsStore();  // 获取播放量记录方法
   const hasRecordedPlay = useRef<Set<string>>(new Set());  // 跟踪已记录播放量的歌曲
@@ -105,14 +112,16 @@ export function AudioManager() {
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
+      if (!room) {
+        setCurrentTime(audio.currentTime);
+      }
     };
 
     const handlePlay = () => {
       console.log('Audio play event');
       
       // 记录播放量（仅为真实歌曲，且每首歌曲只记录一次）
-      if (currentSong && currentSong.id !== 'demo-song-1' && !hasRecordedPlay.current.has(currentSong.id)) {
+      if (!room && currentSong && currentSong.id !== 'demo-song-1' && !hasRecordedPlay.current.has(currentSong.id)) {
         console.log('Recording play for song:', currentSong.title);
         recordPlay(currentSong.id);
         hasRecordedPlay.current.add(currentSong.id);
@@ -121,7 +130,9 @@ export function AudioManager() {
       // 开始定期更新时间
       const updateTime = () => {
         if (!audio.paused && !audio.ended) {
-          setCurrentTime(audio.currentTime);
+          if (!room) {
+            setCurrentTime(audio.currentTime);
+          }
           timeUpdateRef.current = requestAnimationFrame(updateTime);
         }
       };
@@ -143,6 +154,14 @@ export function AudioManager() {
         timeUpdateRef.current = null;
       }
       
+      if (room) {
+        const hostId = room.members.find((member) => member.isHost)?.id;
+        if (hostId && hostId === roomMemberId) {
+          void roomNextSong();
+        }
+        return;
+      }
+
       // 所有播放模式都通过 nextSong 函数统一处理
       nextSong();
     };
@@ -154,7 +173,9 @@ export function AudioManager() {
     };
 
     const handleSeeked = () => {
-      setCurrentTime(audio.currentTime);
+      if (!room) {
+        setCurrentTime(audio.currentTime);
+      }
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -181,7 +202,7 @@ export function AudioManager() {
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('seeked', handleSeeked);
     };
-  }, [setCurrentTime, setDuration, pause, nextSong, currentSong, recordPlay]);  // 添加currentSong和recordPlay依赖
+  }, [setCurrentTime, setDuration, pause, nextSong, currentSong, recordPlay, repeatMode, room, roomMemberId, roomNextSong]);  // 添加房间依赖以保持主控同步
 
   // 处理歌曲切换
   useEffect(() => {
@@ -253,6 +274,69 @@ export function AudioManager() {
     if (!audio) return;
     audio.volume = volume;
   }, [volume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!room || !currentSong) {
+      if (audio.playbackRate !== 1) {
+        audio.playbackRate = 1;
+      }
+      lastPlaybackRateRef.current = 1;
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncToRoom = () => {
+      if (cancelled) return;
+
+      const activeAudio = audioRef.current;
+      if (!activeAudio || !room || !currentSong || !room.isPlaying || activeAudio.readyState < 1) {
+        syncFrameRef.current = requestAnimationFrame(syncToRoom);
+        return;
+      }
+
+      const targetTime = estimateRoomPlaybackTime(room, getEstimatedServerNowMs());
+      const drift = targetTime - activeAudio.currentTime;
+      const absDrift = Math.abs(drift);
+      const now = Date.now();
+
+      if (absDrift > 0.18 && now - lastHardSeekRef.current > 700) {
+        activeAudio.currentTime = Math.max(0, targetTime);
+        lastHardSeekRef.current = now;
+        if (activeAudio.playbackRate !== 1) {
+          activeAudio.playbackRate = 1;
+        }
+        lastPlaybackRateRef.current = 1;
+      } else if (absDrift > 0.02) {
+        const nextRate = Math.max(0.995, Math.min(1.005, 1 + drift * 0.02));
+        if (Math.abs(nextRate - lastPlaybackRateRef.current) > 0.0005) {
+          activeAudio.playbackRate = nextRate;
+          lastPlaybackRateRef.current = nextRate;
+        }
+      } else if (lastPlaybackRateRef.current !== 1) {
+        activeAudio.playbackRate = 1;
+        lastPlaybackRateRef.current = 1;
+      }
+
+      syncFrameRef.current = requestAnimationFrame(syncToRoom);
+    };
+
+    syncFrameRef.current = requestAnimationFrame(syncToRoom);
+
+    return () => {
+      cancelled = true;
+      if (syncFrameRef.current) {
+        cancelAnimationFrame(syncFrameRef.current);
+        syncFrameRef.current = null;
+      }
+      if (audio.playbackRate !== 1) {
+        audio.playbackRate = 1;
+      }
+      lastPlaybackRateRef.current = 1;
+    };
+  }, [room, currentSong]);
 
   // 处理用户主动的时间跳转请求
   useEffect(() => {

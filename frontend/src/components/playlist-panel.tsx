@@ -27,6 +27,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { getIconComponent } from '@/lib/icon-map';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { useRoomStore } from '@/lib/room-store';
 
 interface PlaylistPanelProps {
   className?: string;
@@ -34,13 +35,21 @@ interface PlaylistPanelProps {
 
 export function PlaylistPanel({ className }: PlaylistPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const room = useRoomStore((state) => state.room);
+  const replacePlaylist = useRoomStore((state) => state.replacePlaylist);
+  const playSongAt = useRoomStore((state) => state.playSongAt);
+  const toggleRoomPlay = useRoomStore((state) => state.togglePlay);
+  const removeSong = useRoomStore((state) => state.removeSong);
+  const moveRoomSong = useRoomStore((state) => state.moveSong);
+  const clearRoomPlaylist = useRoomStore((state) => state.clearPlaylist);
+  const toggleRoomShuffle = useRoomStore((state) => state.toggleShuffle);
+  const toggleRoomRepeat = useRoomStore((state) => state.toggleRepeat);
   const {
     playlist,
     currentIndex,
     isPlaying,
     shuffleMode,
     repeatMode,
-    setSong,
     setPlaylist,
     play,
     pause,
@@ -51,6 +60,7 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
     toggleShuffle,
     toggleRepeat,
   } = usePlayerStore();
+  const isRoomActive = !!room;
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -58,9 +68,21 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const shuffleArray = (songs: typeof playlist) => {
+    const next = [...songs];
+    for (let i = next.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [next[i], next[j]] = [next[j], next[i]];
+    }
+    return next;
+  };
 
   const playFromIndex = (index: number) => {
     if (playlist[index]) {
+      if (isRoomActive) {
+        void playSongAt(index);
+        return;
+      }
       // 只使用 setPlaylist 来设置歌曲和索引，避免状态冲突
       setPlaylist(playlist, index);
       play();
@@ -70,18 +92,30 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
   const handleRemove = (index: number) => {
     const song = playlist[index];
     if (song) {
+      if (isRoomActive) {
+        void removeSong(song.id);
+        return;
+      }
       removeFromPlaylist(song.id);
     }
   };
 
   const handleMoveUp = (index: number) => {
     if (index > 0) {
+      if (isRoomActive) {
+        void moveRoomSong(index, index - 1);
+        return;
+      }
       moveSongInPlaylist(index, index - 1);
     }
   };
 
   const handleMoveDown = (index: number) => {
     if (index < playlist.length - 1) {
+      if (isRoomActive) {
+        void moveRoomSong(index, index + 1);
+        return;
+      }
       moveSongInPlaylist(index, index + 1);
     }
   };
@@ -139,7 +173,13 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={toggleShuffle}
+                    onClick={() => {
+                      if (isRoomActive) {
+                        void toggleRoomShuffle();
+                        return;
+                      }
+                      toggleShuffle();
+                    }}
                     className={cn(
                       "h-8",
                       shuffleMode && "bg-primary/10 text-primary"
@@ -153,7 +193,13 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={toggleRepeat}
+                    onClick={() => {
+                      if (isRoomActive) {
+                        void toggleRoomRepeat();
+                        return;
+                      }
+                      toggleRepeat();
+                    }}
                     className={cn(
                       "h-8 min-w-8",
                       repeatMode !== 'none' && "bg-primary/10 text-primary"
@@ -176,7 +222,16 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={shufflePlaylist}
+                    onClick={() => {
+                      if (isRoomActive) {
+                        const shuffled = shuffleArray(playlist);
+                        const currentSongId = playlist[currentIndex]?.id;
+                        const nextIndex = Math.max(0, shuffled.findIndex((song) => song.id === currentSongId));
+                        void replacePlaylist(shuffled, nextIndex >= 0 ? nextIndex : 0);
+                        return;
+                      }
+                      shufflePlaylist();
+                    }}
                     className="h-8"
                     disabled={playlist.length <= 1}
                     title="重新排列播放列表"
@@ -188,7 +243,13 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={clearPlaylist}
+                    onClick={() => {
+                      if (isRoomActive) {
+                        void clearRoomPlaylist();
+                        return;
+                      }
+                      clearPlaylist();
+                    }}
                     className="h-8 text-destructive hover:text-destructive"
                     disabled={playlist.length === 0}
                     title="清空播放列表"
@@ -269,7 +330,15 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                                     e.stopPropagation(); // 防止事件冒泡
                                     if (index === currentIndex) {
                                       // 如果是当前歌曲，就播放/暂停
-                                      isPlaying ? pause() : play();
+                                      if (isRoomActive) {
+                                        void toggleRoomPlay();
+                                        return;
+                                      }
+                                    if (isPlaying) {
+                                      pause();
+                                    } else {
+                                      play();
+                                    }
                                     } else {
                                       // 如果不是当前歌曲，切换到这首歌并播放
                                       playFromIndex(index);

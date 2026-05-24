@@ -14,6 +14,7 @@ import {
   Volume2,
   VolumeX,
   Heart,
+  Users,
 } from 'lucide-react';
 
 interface PlayerControlsProps {
@@ -34,6 +35,9 @@ interface PlayerControlsProps {
   onLike: () => void;
   onVolumeChange: (value: number[]) => void;
   onSeek: (value: number[]) => void;
+  onRoomToggle?: () => void;
+  isRoomOpen?: boolean;
+  roomMemberCount?: number;
   // Mobile-only fullscreen lyrics toggle
   onFullscreen?: () => void;
   className?: string;
@@ -57,6 +61,9 @@ export function PlayerControls({
   onLike,
   onVolumeChange,
   onSeek,
+  onRoomToggle,
+  isRoomOpen,
+  roomMemberCount,
   onFullscreen,
   className,
 }: PlayerControlsProps) {
@@ -159,7 +166,7 @@ export function PlayerControls({
             repeatMode === 'all' ? "列表循环" :
             "单曲循环"
           }
-        >
+          >
           <div className="flex items-center">
             <Repeat className="h-4 w-4" />
             {repeatMode === 'one' && (
@@ -167,6 +174,27 @@ export function PlayerControls({
             )}
           </div>
         </Button>
+
+        {onRoomToggle && (
+          <Button
+            variant={isRoomOpen ? 'default' : 'ghost'}
+            size="icon"
+            onClick={onRoomToggle}
+            className={cn(
+              "relative transition-all duration-200 hover:scale-110",
+              isRoomOpen && "bg-primary text-primary-foreground"
+            )}
+            title="房间协同"
+            aria-label="房间协同"
+          >
+            <Users className="h-4 w-4" />
+            {!!roomMemberCount && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-background text-[10px] leading-4 text-foreground shadow">
+                {roomMemberCount}
+              </span>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Secondary Controls */}

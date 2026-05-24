@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, Union
+import asyncio
 import sqlite3
 import json
 import os
 import mimetypes
 import uuid
-from datetime import datetime
+import random
+import string
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -1760,3 +1763,865 @@ async def get_all_periods():
         "success": True,
         "data": periods
     }
+
+# Room collaboration models
+class RoomCreateRequest(BaseModel):
+    name: Optional[str] = "听歌房间"
+    nickname: Optional[str] = None
+    memberId: Optional[str] = None
+    playlist: List[Dict[str, Any]] = []
+    currentIndex: int = 0
+    currentTime: float = 0
+    isPlaying: bool = False
+    repeatMode: str = "none"
+    shuffleMode: bool = False
+
+
+class RoomJoinRequest(BaseModel):
+    nickname: Optional[str] = None
+    memberId: Optional[str] = None
+
+
+class RoomActionRequest(BaseModel):
+    type: str
+    payload: Dict[str, Any] = {}
+    memberId: Optional[str] = None
+    nickname: Optional[str] = None
+
+
+class RoomMessageCreateRequest(BaseModel):
+    content: str
+    memberId: Optional[str] = None
+    nickname: Optional[str] = None
+
+
+ROOM_COLORS = [
+    "#60a5fa",
+    "#34d399",
+    "#f472b6",
+    "#f59e0b",
+    "#a78bfa",
+    "#f87171",
+]
+
+room_connections: Dict[str, Dict[str, WebSocket]] = {}
+
+
+def utc_now_iso() -> str:
+    return datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
+
+
+def parse_room_datetime(value: Optional[str]) -> datetime:
+    if not value:
+        return datetime.utcnow()
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def generate_room_code() -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(random.choices(alphabet, k=6))
+
+
+def pick_room_color(seed: str) -> str:
+    if not seed:
+        return ROOM_COLORS[0]
+    return ROOM_COLORS[sum(ord(char) for char in seed) % len(ROOM_COLORS)]
+
+
+def get_room_member(cursor, room_code: str, member_id: str) -> Optional[Dict[str, Any]]:
+    cursor.execute(
+        "SELECT * FROM room_members WHERE roomCode = ? AND id = ?",
+        (room_code, member_id),
+    )
+    row = cursor.fetchone()
+    if not row:
+      return None
+    return {
+        "id": row[0],
+        "roomCode": row[1],
+        "nickname": row[2],
+        "color": row[3],
+        "isHost": bool(row[4]),
+        "isActive": bool(row[5]),
+        "joinedAt": row[6],
+        "lastSeenAt": row[7],
+    }
+
+
+def upsert_room_member(
+    cursor,
+    room_code: str,
+    member_id: Optional[str],
+    nickname: str,
+    is_host: bool = False,
+    active: bool = True,
+) -> Dict[str, Any]:
+    now = utc_now_iso()
+    member_id = member_id or str(uuid.uuid4())
+    existing = get_room_member(cursor, room_code, member_id)
+    color = pick_room_color(member_id + nickname)
+    if existing:
+        cursor.execute(
+            """
+            UPDATE room_members
+            SET nickname = ?, color = ?, isHost = ?, isActive = ?, lastSeenAt = ?
+            WHERE id = ? AND roomCode = ?
+            """,
+            (nickname, color, int(is_host or existing["isHost"]), int(active), now, member_id, room_code),
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO room_members (id, roomCode, nickname, color, isHost, isActive, joinedAt, lastSeenAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (member_id, room_code, nickname, color, int(is_host), int(active), now, now),
+        )
+
+    return {
+        "id": member_id,
+        "roomCode": room_code,
+        "nickname": nickname,
+        "color": color,
+        "isHost": bool(is_host or (existing["isHost"] if existing else False)),
+        "isActive": active,
+        "joinedAt": existing["joinedAt"] if existing else now,
+        "lastSeenAt": now,
+    }
+
+
+def get_room_row(cursor, room_code: str):
+    cursor.execute("SELECT * FROM rooms WHERE code = ?", (room_code,))
+    return cursor.fetchone()
+
+
+def get_room_members(cursor, room_code: str) -> List[Dict[str, Any]]:
+    cursor.execute(
+        """
+        SELECT * FROM room_members
+        WHERE roomCode = ?
+        ORDER BY isHost DESC, isActive DESC, joinedAt ASC
+        """,
+        (room_code,),
+    )
+    rows = cursor.fetchall()
+    return [
+        {
+            "id": row[0],
+            "roomCode": row[1],
+            "nickname": row[2],
+            "color": row[3],
+            "isHost": bool(row[4]),
+            "isActive": bool(row[5]),
+            "joinedAt": row[6],
+            "lastSeenAt": row[7],
+        }
+        for row in rows
+    ]
+
+
+def get_room_messages(cursor, room_code: str, limit: int = 50) -> List[Dict[str, Any]]:
+    cursor.execute(
+        """
+        SELECT * FROM room_messages
+        WHERE roomCode = ?
+        ORDER BY createdAt ASC
+        LIMIT ?
+        """,
+        (room_code, limit),
+    )
+    rows = cursor.fetchall()
+    return [
+        {
+            "id": row[0],
+            "roomCode": row[1],
+            "memberId": row[2],
+            "nickname": row[3],
+            "content": row[4],
+            "createdAt": row[5],
+        }
+        for row in rows
+    ]
+
+
+def room_snapshot_from_row(cursor, row) -> Dict[str, Any]:
+    playlist = parse_json_field(row[2]) if row[2] else []
+    current_index = row[4] if row[4] is not None else -1
+    if not playlist:
+        current_index = -1
+    else:
+        current_index = max(0, min(current_index, len(playlist) - 1))
+
+    current_song = playlist[current_index] if current_index >= 0 and current_index < len(playlist) else None
+    base_time = float(row[5] or 0)
+    updated_at = row[16] or row[15] or utc_now_iso()
+    last_action_at = row[17] or updated_at
+
+    duration = row[6] or (current_song.get("duration", 0) if current_song else 0)
+
+    return {
+        "code": row[0],
+        "name": row[1],
+        "playlist": playlist,
+        "currentSongId": row[3],
+        "currentIndex": current_index,
+        "currentTime": round(max(0, base_time), 2),
+        "duration": duration,
+        "isPlaying": bool(row[7]),
+        "repeatMode": row[8] or "none",
+        "shuffleMode": bool(row[9]),
+        "version": row[10] or 0,
+        "createdAt": row[15],
+        "updatedAt": row[16],
+        "lastActionAt": row[17],
+        "serverTime": utc_now_iso(),
+        "members": get_room_members(cursor, row[0]),
+        "messages": get_room_messages(cursor, row[0]),
+    }
+
+
+def create_room_payload_from_state(room: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "code": room["code"],
+        "name": room["name"],
+        "playlist": room["playlist"],
+        "currentSongId": room["currentSongId"],
+        "currentIndex": room["currentIndex"],
+        "currentTime": room["currentTime"],
+        "duration": room["duration"],
+        "isPlaying": room["isPlaying"],
+        "repeatMode": room["repeatMode"],
+        "shuffleMode": room["shuffleMode"],
+        "version": room["version"],
+        "createdAt": room["createdAt"],
+        "updatedAt": room["updatedAt"],
+        "lastActionAt": room["lastActionAt"],
+        "serverTime": room["serverTime"],
+        "members": room["members"],
+        "messages": room["messages"],
+    }
+
+
+def save_room_snapshot(cursor, room: Dict[str, Any], action: str, member_id: Optional[str], nickname: Optional[str]) -> Dict[str, Any]:
+    now = utc_now_iso()
+    next_version = int(room["version"] or 0) + 1
+    playlist_json = json.dumps(room["playlist"] or [])
+    cursor.execute(
+        """
+        UPDATE rooms
+        SET playlist = ?, currentSongId = ?, currentIndex = ?, currentTime = ?, duration = ?,
+            isPlaying = ?, repeatMode = ?, shuffleMode = ?, version = ?, lastAction = ?,
+            lastActionBy = ?, updatedAt = ?, lastActionAt = ?
+        WHERE code = ?
+        """,
+        (
+            playlist_json,
+            room["currentSongId"],
+            room["currentIndex"],
+            room["currentTime"],
+            room["duration"],
+            int(room["isPlaying"]),
+            room["repeatMode"],
+            int(room["shuffleMode"]),
+            next_version,
+            action,
+            nickname,
+            now,
+            now,
+            room["code"],
+        ),
+    )
+    room["version"] = next_version
+    room["updatedAt"] = now
+    room["serverTime"] = now
+    room["lastActionAt"] = now
+    return room
+
+
+async def broadcast_room_state(room_code: str, payload: Dict[str, Any]):
+    connections = room_connections.get(room_code, {})
+    dead_members: List[str] = []
+
+    for member_id, websocket in list(connections.items()):
+        try:
+            await websocket.send_json(payload)
+        except Exception:
+            dead_members.append(member_id)
+
+    for member_id in dead_members:
+        connections.pop(member_id, None)
+
+    if not connections and room_code in room_connections:
+        room_connections.pop(room_code, None)
+
+
+def choose_next_index(room: Dict[str, Any], shuffle: bool = False) -> Optional[int]:
+    playlist = room["playlist"]
+    if not playlist:
+        return None
+
+    current_index = room["currentIndex"] if room["currentIndex"] >= 0 else 0
+    repeat_mode = room["repeatMode"]
+
+    if repeat_mode == "one":
+        return current_index
+
+    if shuffle:
+        if len(playlist) == 1:
+            return 0 if repeat_mode == "all" else None
+
+        candidate = current_index
+        while candidate == current_index:
+            candidate = random.randint(0, len(playlist) - 1)
+        return candidate
+
+    next_index = current_index + 1
+    if next_index >= len(playlist):
+        if repeat_mode == "all":
+            return 0
+        return None
+
+    return next_index
+
+
+def choose_previous_index(room: Dict[str, Any], shuffle: bool = False) -> Optional[int]:
+    playlist = room["playlist"]
+    if not playlist:
+        return None
+
+    current_index = room["currentIndex"] if room["currentIndex"] >= 0 else 0
+    repeat_mode = room["repeatMode"]
+
+    if repeat_mode == "one":
+        return current_index
+
+    if shuffle:
+        if len(playlist) == 1:
+            return 0
+
+        candidate = current_index
+        while candidate == current_index:
+            candidate = random.randint(0, len(playlist) - 1)
+        return candidate
+
+    prev_index = current_index - 1
+    if prev_index < 0:
+        return len(playlist) - 1
+
+    return prev_index
+
+
+async def sync_room_cursor_state(
+    room_code: str,
+    action: str,
+    action_payload: Dict[str, Any],
+    member_id: Optional[str],
+    nickname: Optional[str],
+) -> Dict[str, Any]:
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        room_row = get_room_row(cursor, room_code)
+        if not room_row:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        room = room_snapshot_from_row(cursor, room_row)
+        room["code"] = room_row[0]
+        room["name"] = room_row[1]
+        room["playlist"] = parse_json_field(room_row[2]) if room_row[2] else []
+        room["currentSongId"] = room_row[3]
+        room["currentIndex"] = room_row[4] if room_row[4] is not None else -1
+        room["currentTime"] = float(room_row[5] or 0)
+        room["duration"] = float(room_row[6] or 0)
+        room["isPlaying"] = bool(room_row[7])
+        room["repeatMode"] = room_row[8] or "none"
+        room["shuffleMode"] = bool(room_row[9])
+        room["version"] = room_row[10] or 0
+        room["createdAt"] = room_row[15]
+        room["updatedAt"] = room_row[16]
+        room["lastActionAt"] = room_row[17]
+
+        now = utc_now_iso()
+        playlist = room["playlist"]
+        current_index = room["currentIndex"]
+        current_song = playlist[current_index] if current_index >= 0 and current_index < len(playlist) else None
+
+        if action == "play_pause":
+            live_time = room["currentTime"]
+            if room["isPlaying"]:
+                live_time = room["currentTime"] + max(
+                    0,
+                    (datetime.utcnow() - parse_room_datetime(room["lastActionAt"] or room["updatedAt"])).total_seconds(),
+                )
+                room["isPlaying"] = False
+                room["currentTime"] = round(live_time, 2)
+            else:
+                room["isPlaying"] = True
+                room["currentTime"] = round(live_time, 2)
+            room["duration"] = current_song.get("duration", 0) if current_song else 0
+        elif action == "seek":
+            room["currentTime"] = round(float(action_payload.get("time", room["currentTime"]) or 0), 2)
+            room["isPlaying"] = bool(room_row[7])
+        elif action == "toggle_shuffle":
+            room["shuffleMode"] = not room["shuffleMode"]
+        elif action == "toggle_repeat":
+            modes = ["none", "all", "one"]
+            current_mode = room["repeatMode"] if room["repeatMode"] in modes else "none"
+            room["repeatMode"] = modes[(modes.index(current_mode) + 1) % len(modes)]
+        elif action == "next_song":
+            next_index = choose_next_index(room, room["shuffleMode"])
+            if next_index is None:
+                room["isPlaying"] = False
+            else:
+                room["currentIndex"] = next_index
+                room["currentSongId"] = playlist[next_index]["id"]
+                room["currentTime"] = 0
+                room["duration"] = playlist[next_index].get("duration", 0)
+                room["isPlaying"] = True
+        elif action == "previous_song":
+            prev_index = choose_previous_index(room, room["shuffleMode"])
+            if prev_index is not None:
+                room["currentIndex"] = prev_index
+                room["currentSongId"] = playlist[prev_index]["id"]
+                room["currentTime"] = 0
+                room["duration"] = playlist[prev_index].get("duration", 0)
+                room["isPlaying"] = True
+        elif action == "play_song":
+            target_index = int(action_payload.get("index", room["currentIndex"] if room["currentIndex"] >= 0 else 0))
+            if playlist:
+                target_index = max(0, min(target_index, len(playlist) - 1))
+                room["currentIndex"] = target_index
+                room["currentSongId"] = playlist[target_index]["id"]
+                room["currentTime"] = 0
+                room["duration"] = playlist[target_index].get("duration", 0)
+                room["isPlaying"] = True
+        elif action == "replace_playlist":
+            new_playlist = action_payload.get("songs", [])
+            current_index = int(action_payload.get("currentIndex", 0))
+            if not new_playlist:
+                room["playlist"] = []
+                room["currentIndex"] = -1
+                room["currentSongId"] = None
+                room["currentTime"] = 0
+                room["duration"] = 0
+                room["isPlaying"] = False
+            else:
+                current_index = max(0, min(current_index, len(new_playlist) - 1))
+                current_song = new_playlist[current_index]
+                room["playlist"] = new_playlist
+                room["currentIndex"] = current_index
+                room["currentSongId"] = current_song.get("id")
+                room["currentTime"] = float(action_payload.get("currentTime", 0) or 0)
+                room["duration"] = current_song.get("duration", 0)
+                room["isPlaying"] = bool(action_payload.get("isPlaying", room["isPlaying"]))
+                room["repeatMode"] = action_payload.get("repeatMode", room["repeatMode"])
+                room["shuffleMode"] = bool(action_payload.get("shuffleMode", room["shuffleMode"]))
+        elif action == "add_song":
+            song = action_payload.get("song")
+            if song:
+                room["playlist"] = [*playlist, song]
+                if room["currentIndex"] < 0:
+                    room["currentIndex"] = 0
+                    room["currentSongId"] = song.get("id")
+                    room["duration"] = song.get("duration", 0)
+        elif action == "remove_song":
+            song_id = action_payload.get("songId")
+            if song_id:
+                current_playlist = list(playlist)
+                removed_index = next((idx for idx, item in enumerate(current_playlist) if item.get("id") == song_id), -1)
+                current_playlist = [item for item in current_playlist if item.get("id") != song_id]
+                room["playlist"] = current_playlist
+                if not current_playlist:
+                    room["currentIndex"] = -1
+                    room["currentSongId"] = None
+                    room["currentTime"] = 0
+                    room["duration"] = 0
+                    room["isPlaying"] = False
+                elif removed_index >= 0:
+                    next_index = min(max(0, removed_index), len(current_playlist) - 1)
+                    room["currentIndex"] = next_index
+                    room["currentSongId"] = current_playlist[next_index].get("id")
+                    room["duration"] = current_playlist[next_index].get("duration", 0)
+                    room["currentTime"] = 0
+        elif action == "move_song":
+            from_index = int(action_payload.get("fromIndex", -1))
+            to_index = int(action_payload.get("toIndex", -1))
+            if 0 <= from_index < len(playlist) and 0 <= to_index < len(playlist) and from_index != to_index:
+                new_playlist = list(playlist)
+                moved_song = new_playlist.pop(from_index)
+                new_playlist.insert(to_index, moved_song)
+                room["playlist"] = new_playlist
+                if room["currentIndex"] == from_index:
+                    room["currentIndex"] = to_index
+                elif from_index < room["currentIndex"] <= to_index:
+                    room["currentIndex"] -= 1
+                elif to_index <= room["currentIndex"] < from_index:
+                    room["currentIndex"] += 1
+                if 0 <= room["currentIndex"] < len(new_playlist):
+                    room["currentSongId"] = new_playlist[room["currentIndex"]].get("id")
+        elif action == "clear_playlist":
+            room["playlist"] = []
+            room["currentIndex"] = -1
+            room["currentSongId"] = None
+            room["currentTime"] = 0
+            room["duration"] = 0
+            room["isPlaying"] = False
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported room action")
+
+        room["serverTime"] = now
+        room["updatedAt"] = now
+        save_room_snapshot(cursor, room, action, member_id, nickname)
+        cursor.execute(
+            "UPDATE room_members SET isActive = 1, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+            (now, room_code, member_id),
+        )
+        conn.commit()
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+        return snapshot
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@router.post("/api/rooms")
+async def create_room(room: RoomCreateRequest):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        member_id = room.memberId or str(uuid.uuid4())
+        nickname = room.nickname or "Guest"
+        code = generate_room_code()
+        cursor.execute("SELECT code FROM rooms WHERE code = ?", (code,))
+        while cursor.fetchone():
+            code = generate_room_code()
+            cursor.execute("SELECT code FROM rooms WHERE code = ?", (code,))
+
+        playlist = room.playlist or []
+        current_index = max(-1, min(room.currentIndex, len(playlist) - 1)) if playlist else -1
+        current_song = playlist[current_index] if current_index >= 0 and current_index < len(playlist) else None
+        now = utc_now_iso()
+
+        cursor.execute(
+            """
+            INSERT INTO rooms (
+                code, name, playlist, currentSongId, currentIndex, currentTime, duration,
+                isPlaying, repeatMode, shuffleMode, version, hostMemberId, hostNickname,
+                lastAction, lastActionBy, createdAt, updatedAt, lastActionAt
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                code,
+                room.name or "听歌房间",
+                json.dumps(playlist),
+                current_song.get("id") if current_song else None,
+                current_index,
+                room.currentTime,
+                current_song.get("duration", 0) if current_song else 0,
+                int(room.isPlaying),
+                room.repeatMode or "none",
+                int(room.shuffleMode),
+                0,
+                member_id,
+                nickname,
+                "create_room",
+                nickname,
+                now,
+                now,
+                now,
+            ),
+        )
+        upsert_room_member(cursor, code, member_id, nickname, is_host=True, active=True)
+        conn.commit()
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, code))
+        return {"success": True, "data": {"room": snapshot, "memberId": member_id}}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/api/rooms/{room_code}/join")
+async def join_room(room_code: str, payload: RoomJoinRequest):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT code FROM rooms WHERE code = ?", (room_code,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        member_id = payload.memberId or str(uuid.uuid4())
+        nickname = payload.nickname or "Guest"
+        upsert_room_member(cursor, room_code, member_id, nickname, is_host=False, active=True)
+        now = utc_now_iso()
+        cursor.execute(
+            "UPDATE room_members SET isActive = 1, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+            (now, room_code, member_id),
+        )
+        conn.commit()
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+        await broadcast_room_state(room_code, {"type": "snapshot", "room": snapshot})
+        return {"success": True, "data": {"room": snapshot, "memberId": member_id}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.get("/api/rooms/{room_code}")
+async def get_room(room_code: str):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            raise HTTPException(status_code=404, detail="Room not found")
+        snapshot = room_snapshot_from_row(cursor, row)
+        return {"success": True, "data": snapshot}
+    finally:
+        conn.close()
+
+
+@router.get("/api/rooms/{room_code}/clock")
+async def get_room_clock(room_code: str):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        snapshot = room_snapshot_from_row(cursor, row)
+        return {
+            "success": True,
+            "data": {
+                "roomCode": snapshot["code"],
+                "serverTime": snapshot["serverTime"],
+                "updatedAt": snapshot["updatedAt"],
+                "lastActionAt": snapshot["lastActionAt"],
+                "version": snapshot["version"],
+                "currentTime": snapshot["currentTime"],
+                "duration": snapshot["duration"],
+                "isPlaying": snapshot["isPlaying"],
+                "currentIndex": snapshot["currentIndex"],
+                "currentSongId": snapshot["currentSongId"],
+            },
+        }
+    finally:
+        conn.close()
+
+
+@router.get("/api/rooms/{room_code}/messages")
+async def get_room_messages_endpoint(room_code: str):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT code FROM rooms WHERE code = ?", (room_code,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Room not found")
+        messages = get_room_messages(cursor, room_code, 100)
+        return {"success": True, "data": messages}
+    finally:
+        conn.close()
+
+
+@router.post("/api/rooms/{room_code}/messages")
+async def create_room_message(room_code: str, payload: RoomMessageCreateRequest):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        member = upsert_room_member(
+            cursor,
+            room_code,
+            payload.memberId,
+            payload.nickname or "Guest",
+            is_host=False,
+            active=True,
+        )
+        now = utc_now_iso()
+        message_id = str(uuid.uuid4())
+        cursor.execute(
+            """
+            INSERT INTO room_messages (id, roomCode, memberId, nickname, content, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (message_id, room_code, member["id"], member["nickname"], payload.content.strip(), now),
+        )
+        cursor.execute(
+            "UPDATE room_members SET isActive = 1, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+            (now, room_code, member["id"]),
+        )
+        conn.commit()
+
+        message = {
+            "id": message_id,
+            "roomCode": room_code,
+            "memberId": member["id"],
+            "nickname": member["nickname"],
+            "content": payload.content.strip(),
+            "createdAt": now,
+        }
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+        await broadcast_room_state(room_code, {"type": "message", "room": snapshot, "message": message})
+        return {"success": True, "data": message}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/api/rooms/{room_code}/action")
+async def room_action(room_code: str, payload: RoomActionRequest):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        member = upsert_room_member(
+            cursor,
+            room_code,
+            payload.memberId,
+            payload.nickname or "Guest",
+            is_host=False,
+            active=True,
+        )
+
+        # Persist the latest member heartbeat
+        now = utc_now_iso()
+        cursor.execute(
+            "UPDATE room_members SET isActive = 1, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+            (now, room_code, member["id"]),
+        )
+        conn.commit()
+
+        snapshot = await sync_room_cursor_state(
+            room_code,
+            payload.type,
+            payload.payload,
+            member["id"],
+            member["nickname"],
+        )
+
+        await broadcast_room_state(room_code, {"type": "snapshot", "room": snapshot})
+        return {"success": True, "data": snapshot}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/api/rooms/{room_code}/leave")
+async def leave_room(room_code: str, payload: RoomJoinRequest):
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        member_id = payload.memberId
+        if member_id:
+            now = utc_now_iso()
+            cursor.execute(
+                "UPDATE room_members SET isActive = 0, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+                (now, room_code, member_id),
+            )
+        conn.commit()
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+        await broadcast_room_state(room_code, {"type": "snapshot", "room": snapshot})
+        return {"success": True, "message": "Left room successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.websocket("/api/rooms/{room_code}/ws")
+async def room_websocket(websocket: WebSocket, room_code: str):
+    await websocket.accept()
+    member_id = websocket.query_params.get("memberId") or str(uuid.uuid4())
+    nickname = websocket.query_params.get("nickname") or "Guest"
+
+    conn = sqlite3.connect("music.db")
+    cursor = conn.cursor()
+
+    try:
+        row = get_room_row(cursor, room_code)
+        if not row:
+            await websocket.send_json({"type": "error", "message": "Room not found"})
+            await websocket.close(code=4404)
+            return
+
+        member = upsert_room_member(cursor, room_code, member_id, nickname, is_host=False, active=True)
+        now = utc_now_iso()
+        cursor.execute(
+            "UPDATE room_members SET isActive = 1, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+            (now, room_code, member["id"]),
+        )
+        conn.commit()
+
+        room_connections.setdefault(room_code, {})[member["id"]] = websocket
+        snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+        await websocket.send_json({"type": "snapshot", "room": snapshot, "memberId": member["id"]})
+
+        while True:
+            message = await websocket.receive_text()
+            if message == "ping":
+                await websocket.send_json({"type": "pong", "serverTime": utc_now_iso()})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        try:
+            if room_code in room_connections:
+                for active_member_id, socket in list(room_connections[room_code].items()):
+                    if socket is websocket:
+                        room_connections[room_code].pop(active_member_id, None)
+                        now = utc_now_iso()
+                        cursor.execute(
+                            "UPDATE room_members SET isActive = 0, lastSeenAt = ? WHERE roomCode = ? AND id = ?",
+                            (now, room_code, active_member_id),
+                        )
+                        conn.commit()
+                        break
+
+                if not room_connections[room_code]:
+                    room_connections.pop(room_code, None)
+
+                snapshot = room_snapshot_from_row(cursor, get_room_row(cursor, room_code))
+                await broadcast_room_state(room_code, {"type": "snapshot", "room": snapshot})
+        except Exception:
+            pass
+        conn.close()

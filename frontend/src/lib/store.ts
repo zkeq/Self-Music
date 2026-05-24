@@ -13,6 +13,7 @@ interface PlayerStore extends PlayerState {
   isLoading: boolean;
   error: string | null;
   shouldSeek: number | null; // 用于触发音频跳转
+  isRoomMode: boolean;
   
   // Actions
   setSong: (song: Song) => void;
@@ -34,6 +35,7 @@ interface PlayerStore extends PlayerState {
   playFromMood: (mood: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setRoomMode: (enabled: boolean) => void;
   
   // Enhanced playlist management
   addToPlaylist: (song: Song) => void;
@@ -73,6 +75,7 @@ export const usePlayerStore = create<PlayerStore>()(
       isLoading: false,
       error: null,
       shouldSeek: null,
+      isRoomMode: false,
 
       // Actions
       setSong: (song) => {
@@ -91,7 +94,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       setPlaylist: (songs, currentIndex = 0) => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
         const validIndex = Math.max(0, Math.min(currentIndex, songs.length - 1));
         const newSong = songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
@@ -107,7 +110,9 @@ export const usePlayerStore = create<PlayerStore>()(
         });
         
         // 同步更新 PlaylistManager
-        PlaylistManager.updatePlaylist(songs, validIndex, newSong?.id);
+        if (!isRoomMode) {
+          PlaylistManager.updatePlaylist(songs, validIndex, newSong?.id);
+        }
       },
 
       setPlaylistWithInfo: (playlist, currentIndex = 0) => {
@@ -157,7 +162,10 @@ export const usePlayerStore = create<PlayerStore>()(
       setDuration: (duration) => set({ duration }),
 
       nextSong: () => {
-        const { repeatMode, shuffleMode, currentSong, duration } = get();
+        const { repeatMode, shuffleMode, currentSong, duration, isRoomMode } = get();
+        if (isRoomMode) {
+          return;
+        }
         const nextSong = PlaylistManager.getNextSong(shuffleMode, repeatMode);
         
         if (nextSong) {
@@ -177,6 +185,9 @@ export const usePlayerStore = create<PlayerStore>()(
               currentIndex: updatedPlaylist.currentIndex
             })
           });
+          if (isRoomMode) {
+            return;
+          }
         } else {
           // 没有下一首歌时，停止播放
           console.log('Playlist ended, stopping playback');
@@ -185,7 +196,10 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       previousSong: () => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
+        if (isRoomMode) {
+          return;
+        }
         const prevSong = PlaylistManager.getPreviousSong();
         
         if (prevSong) {
@@ -205,6 +219,9 @@ export const usePlayerStore = create<PlayerStore>()(
               currentIndex: updatedPlaylist.currentIndex
             })
           });
+          if (isRoomMode) {
+            return;
+          }
         }
       },
 
@@ -253,20 +270,20 @@ export const usePlayerStore = create<PlayerStore>()(
 
       // Enhanced playlist management
       addToPlaylist: (song) => {
-        const { playlist } = get();
+        const { playlist, isRoomMode } = get();
         // 允许重复添加歌曲到播放列表
         const newPlaylist = [...playlist, song];
         set({ playlist: newPlaylist });
         
         // 同步到 PlaylistManager
         const currentPlaylist = PlaylistManager.getCurrentPlaylist();
-        if (currentPlaylist) {
+        if (currentPlaylist && !isRoomMode) {
           PlaylistManager.updatePlaylist(newPlaylist, currentPlaylist.currentIndex);
         }
       },
 
       removeFromPlaylist: (songId) => {
-        const { playlist, currentIndex } = get();
+        const { playlist, currentIndex, isRoomMode } = get();
         const newPlaylist = playlist.filter(s => s.id !== songId);
         
         // Adjust currentIndex if necessary
@@ -282,7 +299,9 @@ export const usePlayerStore = create<PlayerStore>()(
         });
         
         // 同步到 PlaylistManager
-        PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
+        if (!isRoomMode) {
+          PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
+        }
       },
 
       clearPlaylist: () => {
@@ -292,10 +311,15 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong: null,
           isPlaying: false 
         });
-        PlaylistManager.clearCurrentPlaylist();
+        if (!get().isRoomMode) {
+          PlaylistManager.clearCurrentPlaylist();
+        }
       },
 
       shufflePlaylist: () => {
+        if (get().isRoomMode) {
+          return;
+        }
         const shuffledPlaylistState = PlaylistManager.shufflePlaylist();
         if (shuffledPlaylistState) {
           set({
@@ -308,7 +332,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       moveSongInPlaylist: (fromIndex, toIndex) => {
-        const { playlist, currentIndex } = get();
+        const { playlist, currentIndex, isRoomMode } = get();
         if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || 
             fromIndex >= playlist.length || toIndex >= playlist.length) return;
         
@@ -333,7 +357,9 @@ export const usePlayerStore = create<PlayerStore>()(
         });
         
         // 同步到 PlaylistManager
-        PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
+        if (!isRoomMode) {
+          PlaylistManager.updatePlaylist(newPlaylist, newCurrentIndex);
+        }
       },
 
       loadDefaultSong: () => {
@@ -404,6 +430,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       loadPlaylistFromStorage: () => {
+        if (get().isRoomMode) return;
         const storedPlaylist = PlaylistManager.getCurrentPlaylist();
         
         if (storedPlaylist) {
@@ -417,7 +444,10 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       jumpToSong: (songId) => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
+        if (isRoomMode) {
+          return;
+        }
         const song = PlaylistManager.jumpToSong(songId);
         
         if (song) {
@@ -438,12 +468,14 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       replacePlaylistAndPlay: (songs, songIndex = 0) => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
         const validIndex = Math.max(0, Math.min(songIndex, songs.length - 1));
         const newSong = songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
         const isSameSong = currentSong && newSong && currentSong.id === newSong.id;
-        const playlistState = PlaylistManager.updatePlaylist(songs, validIndex);
+        if (!isRoomMode) {
+          PlaylistManager.updatePlaylist(songs, validIndex);
+        }
         
         set({
           playlist: songs,
@@ -454,6 +486,10 @@ export const usePlayerStore = create<PlayerStore>()(
           playbackMode: 'playlist',
           isPlaying: true, // Auto-play when replacing playlist
         });
+      },
+
+      setRoomMode: (enabled) => {
+        set({ isRoomMode: enabled });
       },
     }),
     {

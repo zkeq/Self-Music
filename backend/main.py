@@ -387,6 +387,59 @@ def init_db():
             FOREIGN KEY (momentId) REFERENCES music_moments (id) ON DELETE CASCADE
         )
     ''')
+
+    # Rooms table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS rooms (
+            code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            playlist TEXT NOT NULL DEFAULT '[]',
+            currentSongId TEXT,
+            currentIndex INTEGER DEFAULT 0,
+            currentTime REAL DEFAULT 0,
+            duration REAL DEFAULT 0,
+            isPlaying BOOLEAN DEFAULT FALSE,
+            repeatMode TEXT DEFAULT 'none',
+            shuffleMode BOOLEAN DEFAULT FALSE,
+            version INTEGER DEFAULT 0,
+            hostMemberId TEXT,
+            hostNickname TEXT,
+            lastAction TEXT,
+            lastActionBy TEXT,
+            createdAt TEXT,
+            updatedAt TEXT,
+            lastActionAt TEXT
+        )
+    ''')
+
+    # Room members table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS room_members (
+            id TEXT PRIMARY KEY,
+            roomCode TEXT NOT NULL,
+            nickname TEXT NOT NULL,
+            color TEXT,
+            isHost BOOLEAN DEFAULT FALSE,
+            isActive BOOLEAN DEFAULT TRUE,
+            joinedAt TEXT,
+            lastSeenAt TEXT,
+            FOREIGN KEY (roomCode) REFERENCES rooms (code) ON DELETE CASCADE
+        )
+    ''')
+
+    # Room chat messages table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS room_messages (
+            id TEXT PRIMARY KEY,
+            roomCode TEXT NOT NULL,
+            memberId TEXT NOT NULL,
+            nickname TEXT NOT NULL,
+            content TEXT NOT NULL,
+            createdAt TEXT,
+            FOREIGN KEY (roomCode) REFERENCES rooms (code) ON DELETE CASCADE,
+            FOREIGN KEY (memberId) REFERENCES room_members (id) ON DELETE CASCADE
+        )
+    ''')
     
     # Update or Insert default admin user based on config
     admin_config = config.get('admin', {})

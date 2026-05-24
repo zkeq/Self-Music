@@ -21,15 +21,31 @@ import { LightSongMoments } from '@/components/light-song-moments';
 import { QuickShareDialog } from '@/components/quick-share-dialog';
 import { momentsAPI } from '@/lib/moments-api';
 import type { MusicMoment } from '@/types';
+import { useRoomStore } from '@/lib/room-store';
+import { RoomPanel } from '@/components/room-panel';
 
 export default function PlayClient() {
   const [isModern, setIsModern] = useState(true);
+  const [isRoomPanelOpen, setIsRoomPanelOpen] = useState(false);
+
+  const searchParams = useSearchParams();
+  const roomParam = searchParams?.get('room');
+  const room = useRoomStore((state) => state.room);
+  const roomCode = useRoomStore((state) => state.roomCode);
+  const joinRoom = useRoomStore((state) => state.joinRoom);
+  const toggleRoomPlay = useRoomStore((state) => state.togglePlay);
+  const nextRoomSong = useRoomStore((state) => state.nextSong);
+  const previousRoomSong = useRoomStore((state) => state.previousSong);
+  const seekRoomTo = useRoomStore((state) => state.seekTo);
+  const toggleRoomShuffle = useRoomStore((state) => state.toggleShuffle);
+  const toggleRoomRepeat = useRoomStore((state) => state.toggleRepeat);
 
   useEffect(() => {
     setIsModern(isModernBrowser());
   }, []);
-  // 自动加载默认歌曲
-  useDefaultSongLoader();
+
+  // 自动加载默认歌曲，仅在没有房间时进行
+  useDefaultSongLoader(!roomParam);
 
   const {
     currentSong,
@@ -37,18 +53,13 @@ export default function PlayClient() {
     volume,
     currentTime,
     duration,
-    playlist,
-    currentIndex,
     repeatMode,
     shuffleMode,
-    isLoading,
-    error,
     play,
     pause,
     nextSong,
     previousSong,
     setVolume,
-    setCurrentTime,
     toggleRepeat,
     toggleShuffle,
     seekTo,
@@ -57,29 +68,43 @@ export default function PlayClient() {
     initializePlaylist,
     setLoading,
     setError,
-    setSong,
-    setPlaylistWithInfo,
     replacePlaylistAndPlay,
   } = usePlayerStore();
-
   const [isFullscreenLyrics, setIsFullscreenLyrics] = useState(false);
   const [currentMoment, setCurrentMoment] = useState<MusicMoment | null>(null);
   const [isMomentVisible, setIsMomentVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const searchParams = useSearchParams();
   const handledParamsRef = useRef(false);
+  const handledRoomRef = useRef<string | null>(null);
+  const isRoomActive = !!roomCode && !!room;
 
   // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
   useEffect(() => {
+    if (roomParam) return;
     initializePlaylist();
-  }, [initializePlaylist]);
+  }, [initializePlaylist, roomParam]);
 
   // 检查管理员状态
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     setIsAdmin(!!token);
   }, []);
+
+  useEffect(() => {
+    if (!roomParam) return;
+    if (room?.code === roomParam) return;
+    if (handledRoomRef.current === roomParam) return;
+
+    handledRoomRef.current = roomParam;
+    void joinRoom(roomParam);
+  }, [roomParam, room?.code, joinRoom]);
+
+  useEffect(() => {
+    if (roomParam && room?.code === roomParam) {
+      setIsRoomPanelOpen(true);
+    }
+  }, [roomParam, room?.code]);
 
   // 获取当前歌曲的朋友圈
   const fetchCurrentMoment = async () => {
@@ -106,6 +131,7 @@ export default function PlayClient() {
 
   // 处理通过链接参数指定的播放内容：?playlist=ID 或 ?music=ID / ?song=ID
   useEffect(() => {
+    if (roomParam) return;
     // 确保仅处理一次，且在路由参数变更时可再次处理
     if (!searchParams) return;
 
@@ -172,7 +198,7 @@ export default function PlayClient() {
       try {
         // 尝试解析 LRC 格式的歌词
         return parseLRC(currentSong.lyrics);
-      } catch (error) {
+      } catch {
         console.warn('Failed to parse lyrics as LRC, treating as plain text');
         // 如果不是 LRC 格式，按行分割并为每行分配时间戳
         const lines = currentSong.lyrics.split('\n').filter(line => line.trim());
@@ -194,6 +220,10 @@ export default function PlayClient() {
   }, [currentSong]);
 
   const handlePlayPause = () => {
+    if (isRoomActive) {
+      void toggleRoomPlay();
+      return;
+    }
     if (isPlaying) {
       pause();
     } else {
@@ -202,17 +232,37 @@ export default function PlayClient() {
   };
 
   const handlePrevious = () => {
+    if (isRoomActive) {
+      void previousRoomSong();
+      return;
+    }
     if (canPlayPrevious()) {
       previousSong();
     }
   };
   const handleNext = () => {
+    if (isRoomActive) {
+      void nextRoomSong();
+      return;
+    }
     if (canPlayNext()) {
       nextSong();
     }
   };
-  const handleShuffle = () => toggleShuffle();
-  const handleRepeat = () => toggleRepeat();
+  const handleShuffle = () => {
+    if (isRoomActive) {
+      void toggleRoomShuffle();
+      return;
+    }
+    toggleShuffle();
+  };
+  const handleRepeat = () => {
+    if (isRoomActive) {
+      void toggleRoomRepeat();
+      return;
+    }
+    toggleRepeat();
+  };
   const handleMute = () => setVolume(volume === 0 ? 0.75 : 0);
   const handleLike = () => {
     if (isAdmin) {
@@ -224,9 +274,17 @@ export default function PlayClient() {
   const handleVolumeChange = (value: number[]) => setVolume(value[0] / 100);
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
+    if (isRoomActive) {
+      void seekRoomTo(newTime);
+      return;
+    }
     seekTo(newTime);
   };
   const handleLyricClick = (time: number) => {
+    if (isRoomActive) {
+      void seekRoomTo(time);
+      return;
+    }
     seekTo(time);
   };
   const handleFullscreenLyrics = () => setIsFullscreenLyrics(true);
@@ -338,6 +396,7 @@ export default function PlayClient() {
       
       {/* Sidebar - Mobile: Fixed overlay, Desktop: Takes layout space */}
       <Sidebar />
+      <RoomPanel isOpen={isRoomPanelOpen} onOpenChange={setIsRoomPanelOpen} />
 
       {/* Main Content - Full width on mobile, flex-1 on desktop */}
       <div className="flex-1 flex flex-col relative z-10">
@@ -382,6 +441,9 @@ export default function PlayClient() {
                 onLike={handleLike}
                 onVolumeChange={handleVolumeChange}
                 onSeek={handleSeek}
+                onRoomToggle={() => setIsRoomPanelOpen((value) => !value)}
+                isRoomOpen={isRoomPanelOpen}
+                roomMemberCount={room?.members.length || 0}
                 onFullscreen={handleFullscreenLyrics}
                 className="w-full max-w-md"
               />

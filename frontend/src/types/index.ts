@@ -69,6 +69,51 @@ export interface Playlist {
   updatedAt: string;
 }
 
+export interface RoomMember {
+  id: string;
+  nickname: string;
+  color?: string;
+  isHost: boolean;
+  isActive: boolean;
+  joinedAt: string;
+  lastSeenAt: string;
+}
+
+export interface RoomMessage {
+  id: string;
+  roomCode: string;
+  memberId: string;
+  nickname: string;
+  content: string;
+  createdAt: string;
+  isSystem?: boolean;
+}
+
+export interface RoomSnapshot {
+  code: string;
+  name: string;
+  playlist: Song[];
+  currentSongId: string | null;
+  currentIndex: number;
+  currentTime: number;
+  duration: number;
+  isPlaying: boolean;
+  repeatMode: 'none' | 'one' | 'all';
+  shuffleMode: boolean;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  lastActionAt?: string;
+  serverTime: string;
+  members: RoomMember[];
+  messages: RoomMessage[];
+}
+
+export interface RoomCreateResponse {
+  room: RoomSnapshot;
+  memberId: string;
+}
+
 export interface LyricLine {
   time: number;
   text: string;
