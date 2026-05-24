@@ -76,6 +76,7 @@ export default function PlayClient() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const handledParamsRef = useRef(false);
+  const handledRoomPlaylistRef = useRef<string | null>(null);
   const handledRoomRef = useRef<string | null>(null);
   const isRoomActive = !!roomCode && !!room;
 
@@ -131,18 +132,24 @@ export default function PlayClient() {
 
   // 处理通过链接参数指定的播放内容：?playlist=ID 或 ?music=ID / ?song=ID
   useEffect(() => {
-    if (roomParam) return;
     // 确保仅处理一次，且在路由参数变更时可再次处理
     if (!searchParams) return;
 
     const playlistId = searchParams.get('playlist');
     const songId = searchParams.get('music') || searchParams.get('song');
+    const roomPlaylistKey = roomParam ? `${roomParam}:${playlistId || songId || ''}` : null;
 
     if (!playlistId && !songId) return;
 
+    if (roomParam) {
+      if (!isRoomActive || room?.code !== roomParam) return;
+      if (handledRoomPlaylistRef.current === roomPlaylistKey) return;
+      handledRoomPlaylistRef.current = roomPlaylistKey;
+    }
+
     // 避免重复处理相同参数
-    if (handledParamsRef.current) return;
-    handledParamsRef.current = true;
+    if (!roomParam && handledParamsRef.current) return;
+    if (!roomParam) handledParamsRef.current = true;
 
     let cancelled = false;
     (async () => {
@@ -153,8 +160,12 @@ export default function PlayClient() {
           const res = await api.getPlaylist(playlistId);
           if (!cancelled) {
             if (res.success && res.data) {
-              // 设置歌单后尝试自动播放（AudioManager 里会处理被拦截的情况）
-              replacePlaylistAndPlay(res.data.songs, 0);
+              if (roomParam && isRoomActive) {
+                await useRoomStore.getState().replacePlaylist(res.data.songs, 0);
+              } else {
+                // 设置歌单后尝试自动播放（AudioManager 里会处理被拦截的情况）
+                replacePlaylistAndPlay(res.data.songs, 0);
+              }
               // play();
             } else {
               setError(res.error || '无法加载指定的歌单');
@@ -164,8 +175,12 @@ export default function PlayClient() {
           const res = await api.getSong(songId);
           if (!cancelled) {
             if (res.success && res.data) {
-              // 用单曲替换当前播放列表，形成仅包含此歌曲的临时歌单
-              replacePlaylistAndPlay([res.data], 0);
+              if (roomParam && isRoomActive) {
+                await useRoomStore.getState().replacePlaylist([res.data], 0);
+              } else {
+                // 用单曲替换当前播放列表，形成仅包含此歌曲的临时歌单
+                replacePlaylistAndPlay([res.data], 0);
+              }
             } else {
               setError(res.error || '无法加载指定的歌曲');
             }
@@ -181,8 +196,7 @@ export default function PlayClient() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, roomParam, room?.code, isRoomActive, replacePlaylistAndPlay, setError, setLoading]);
 
   // 动态歌词数据 - 使用真实的歌词解析
   const currentLyrics = useMemo(() => {

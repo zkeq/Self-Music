@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import "@/styles/performance.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -7,6 +8,7 @@ import { BottomPlayer } from "@/components/bottom-player";
 import { PageWrapper } from "@/components/page-wrapper";
 import { PWAProvider } from "@/components/pwa-provider";
 import { InstallPrompt } from "@/components/install-prompt";
+import { RoomPresenceManager } from "@/components/room-presence-manager";
 
 export const metadata: Metadata = {
   title: "Self-Music - 音乐流媒体平台",
@@ -58,6 +60,11 @@ export default function RootLayout({
           
           {/* 全局音频管理器 */}
           <AudioManager />
+
+          {/* 全局房间状态，让歌单页等非播放页也能继续向房间发同步动作 */}
+          <Suspense fallback={null}>
+            <RoomPresenceManager />
+          </Suspense>
           
           {/* 页面内容 - 智能底部内边距管理 */}
           <PageWrapper>

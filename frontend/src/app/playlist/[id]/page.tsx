@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -11,8 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, TrendingUp, Share2, Check } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
+import { getStoredActiveRoomCode, useRoomStore } from '@/lib/room-store';
 import { api } from '@/lib/api';
-import type { Song, Playlist } from '@/types';
+import type { Playlist, Song } from '@/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const formatDuration = (seconds: number) => {
@@ -43,7 +44,6 @@ const formatPlayCount = (count: number) => {
 
 function PlaylistDetailContent() {
   const params = useParams();
-  const router = useRouter();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +51,24 @@ function PlaylistDetailContent() {
   const [copied, setCopied] = useState(false); // playlist-level copied
   const [copiedSongId, setCopiedSongId] = useState<string | null>(null); // song-level copied feedback
   const { replacePlaylistAndPlay } = usePlayerStore();
+  const room = useRoomStore((state) => state.room);
+  const joinRoom = useRoomStore((state) => state.joinRoom);
+  const replaceRoomPlaylist = useRoomStore((state) => state.replacePlaylist);
+
+  const replacePlaylistInContext = async (songs: Song[], songIndex: number) => {
+    const storedRoomCode = getStoredActiveRoomCode();
+    const activeRoomCode = useRoomStore.getState().roomCode || storedRoomCode;
+
+    if (activeRoomCode) {
+      if (!useRoomStore.getState().roomCode) {
+        await joinRoom(activeRoomCode);
+      }
+      await replaceRoomPlaylist(songs, songIndex);
+      return;
+    }
+
+    replacePlaylistAndPlay(songs, songIndex);
+  };
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -86,27 +104,30 @@ function PlaylistDetailContent() {
 
   const handlePlaySong = (songIndex: number) => {
     if (playlist && playlist.songs && playlist.songs.length > 0) {
-      replacePlaylistAndPlay(playlist.songs, songIndex);
+      void replacePlaylistInContext(playlist.songs, songIndex);
     }
   };
 
   const handlePlayAll = () => {
     if (playlist && playlist.songs && playlist.songs.length > 0) {
-      replacePlaylistAndPlay(playlist.songs, 0);
+      void replacePlaylistInContext(playlist.songs, 0);
     }
   };
 
   const handleShuffle = () => {
     if (playlist && playlist.songs && playlist.songs.length > 0) {
       const randomIndex = Math.floor(Math.random() * playlist.songs.length);
-      replacePlaylistAndPlay(playlist.songs, randomIndex);
+      void replacePlaylistInContext(playlist.songs, randomIndex);
     }
   };
 
   const handleSharePlaylist = async () => {
     if (!playlist) return;
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = `${origin}/play?playlist=${encodeURIComponent(playlist.id)}`;
+    const url = `${origin}/play?${new URLSearchParams({
+      ...(room?.code ? { room: room.code } : {}),
+      playlist: playlist.id,
+    }).toString()}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -306,7 +327,10 @@ function PlaylistDetailContent() {
                           onClick={async (e) => {
                             e.stopPropagation();
                             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                            const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
+                            const url = `${origin}/play?${new URLSearchParams({
+                              ...(room?.code ? { room: room.code } : {}),
+                              music: song.id,
+                            }).toString()}`;
                             try {
                               await navigator.clipboard.writeText(url);
                               setCopiedSongId(song.id);

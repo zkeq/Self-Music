@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
+import { useRoomStore } from '@/lib/room-store';
 import { Button } from '@/components/ui/button';
 import { MiniPlayerControls } from '@/components/player-controls';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,12 @@ import { getOptimizedImageUrl } from '@/lib/image-utils';
 export function BottomPlayer() {
   const pathname = usePathname();
   const router = useRouter();
+  const roomCode = useRoomStore((state) => state.roomCode);
+  const room = useRoomStore((state) => state.room);
+  const toggleRoomPlay = useRoomStore((state) => state.togglePlay);
+  const nextRoomSong = useRoomStore((state) => state.nextSong);
+  const previousRoomSong = useRoomStore((state) => state.previousSong);
+  const seekRoomTo = useRoomStore((state) => state.seekTo);
   
   const {
     currentSong,
@@ -22,9 +29,9 @@ export function BottomPlayer() {
     pause,
     nextSong,
     previousSong,
-    setCurrentTime,
     seekTo,
   } = usePlayerStore();
+  const isRoomActive = !!roomCode && !!room;
 
   // 在播放页面不显示底部播放器
   const isPlayPage = pathname === '/play' || pathname?.startsWith('/play/');
@@ -33,6 +40,11 @@ export function BottomPlayer() {
   if (!currentSong || isPlayPage) return null;
 
   const handlePlayPause = () => {
+    if (isRoomActive) {
+      void toggleRoomPlay();
+      return;
+    }
+
     if (isPlaying) {
       pause();
     } else {
@@ -41,11 +53,15 @@ export function BottomPlayer() {
   };
 
   const handleExpandToFullPlayer = () => {
-    router.push('/play');
+    router.push(roomCode ? `/play?room=${encodeURIComponent(roomCode)}` : '/play');
   };
 
   const handleSeek = (value: number[]) => {
     const newTime = value[0];
+    if (isRoomActive) {
+      void seekRoomTo(newTime);
+      return;
+    }
     seekTo(newTime);
   };
 
@@ -146,8 +162,20 @@ export function BottomPlayer() {
               <MiniPlayerControls
                 isPlaying={isPlaying}
                 onPlayPause={handlePlayPause}
-                onPrevious={previousSong}
-                onNext={nextSong}
+                onPrevious={() => {
+                  if (isRoomActive) {
+                    void previousRoomSong();
+                    return;
+                  }
+                  previousSong();
+                }}
+                onNext={() => {
+                  if (isRoomActive) {
+                    void nextRoomSong();
+                    return;
+                  }
+                  nextSong();
+                }}
               />
             </div>
 

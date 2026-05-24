@@ -44,6 +44,7 @@ interface RoomStoreActions {
 
 const NICKNAME_KEY = 'self_music_room_nickname';
 const MEMBER_ID_KEY = 'self_music_room_member_id';
+const ACTIVE_ROOM_CODE_KEY = 'self_music_active_room_code';
 
 let roomSocket: WebSocket | null = null;
 let pendingReconnect: ReturnType<typeof setTimeout> | null = null;
@@ -66,6 +67,11 @@ function getLocalStorageValue(key: string): string | null {
 function setLocalStorageValue(key: string, value: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(key, value);
+}
+
+function removeLocalStorageValue(key: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(key);
 }
 
 function updateRoomUrl(roomCode: string | null) {
@@ -102,6 +108,10 @@ function ensureIdentity(nickname?: string) {
 function persistIdentity(nickname: string, memberId: string) {
   setLocalStorageValue(NICKNAME_KEY, nickname);
   setLocalStorageValue(MEMBER_ID_KEY, memberId);
+}
+
+export function getStoredActiveRoomCode() {
+  return getLocalStorageValue(ACTIVE_ROOM_CODE_KEY);
 }
 
 function recordServerClockOffsetFromTime(serverTime: string | undefined, receivedAtMs = Date.now()) {
@@ -402,6 +412,7 @@ export const useRoomStore = create<RoomStoreState & RoomStoreActions>()((set, ge
 
     const { room, memberId } = response.data;
     persistIdentity(identity.nickname, memberId || identity.memberId);
+    setLocalStorageValue(ACTIVE_ROOM_CODE_KEY, room.code);
     updateRoomUrl(room.code);
     const clockState = getClockState(Date.now());
     set({
@@ -438,6 +449,7 @@ export const useRoomStore = create<RoomStoreState & RoomStoreActions>()((set, ge
 
     const { room, memberId } = response.data;
     persistIdentity(identity.nickname, memberId || identity.memberId);
+    setLocalStorageValue(ACTIVE_ROOM_CODE_KEY, room.code);
     updateRoomUrl(room.code);
     const clockState = getClockState(Date.now());
     set({
@@ -487,6 +499,7 @@ export const useRoomStore = create<RoomStoreState & RoomStoreActions>()((set, ge
       error: null,
       isSending: false,
     });
+    removeLocalStorageValue(ACTIVE_ROOM_CODE_KEY);
     updateRoomUrl(null);
     usePlayerStore.setState({ isRoomMode: false });
     resetServerClockOffset();
