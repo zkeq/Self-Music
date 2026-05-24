@@ -34,7 +34,7 @@ export default function MoodDetailPage() {
     isLoading 
   } = useMoodsStore();
   
-  const { setSong, play, setPlaylist } = usePlayerStore();
+  const { replacePlaylistAndPlay } = usePlayerStore();
 
   useEffect(() => {
     if (moodId) {
@@ -44,15 +44,13 @@ export default function MoodDetailPage() {
   }, [moodId, fetchMood, fetchMoodSongs]);
 
   const handlePlaySong = (song: Song) => {
-    setSong(song);
-    setTimeout(() => play(), 100);
+    replacePlaylistAndPlay([song], 0);
   };
 
   const handlePlayMood = () => {
     if (currentMood && moodSongs.length > 0) {
       // 设置整个心情的歌曲列表为播放列表
-      setPlaylist(moodSongs, 0);
-      play();
+      replacePlaylistAndPlay(moodSongs, 0);
     }
   };
 

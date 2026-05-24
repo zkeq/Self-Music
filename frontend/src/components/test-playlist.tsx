@@ -77,7 +77,7 @@ export function TestPlaylist() {
     isPlaying,
     currentIndex,
     addToPlaylist,
-    setSong,
+    replacePlaylistAndPlay,
     clearPlaylist,
     shufflePlaylist,
   } = usePlayerStore();
@@ -87,12 +87,12 @@ export function TestPlaylist() {
   };
 
   const playSong = (song: Song) => {
-    setSong(song);
+    replacePlaylistAndPlay([song], 0);
   };
 
   const playFromPlaylist = (index: number) => {
     if (playlist[index]) {
-      setSong(playlist[index]);
+      replacePlaylistAndPlay(playlist, index);
     }
   };
 

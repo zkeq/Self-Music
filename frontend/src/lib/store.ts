@@ -4,6 +4,7 @@ import type { Song, PlayerState, Playlist } from '@/types';
 import { DEFAULT_SONG } from './default-song';
 import { PlaylistManager, PlaylistState } from './playlist-manager';
 import { useSongsStore } from './data-stores';  // 导入数据存储以记录播放量
+import { hasStoredActiveRoom, replaceActiveRoomPlaylist } from './room-context';
 
 interface PlayerStore extends PlayerState {
   // Additional state
@@ -99,7 +100,14 @@ export const usePlayerStore = create<PlayerStore>()(
         const newSong = songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
         const isSameSong = currentSong && newSong && currentSong.id === newSong.id;
+        const isRoomContextActive = isRoomMode || hasStoredActiveRoom();
         
+        if (isRoomContextActive) {
+          void replaceActiveRoomPlaylist(songs, validIndex, { isPlaying: false });
+        } else {
+          PlaylistManager.updatePlaylist(songs, validIndex, newSong?.id);
+        }
+
         set({
           playlist: songs,
           currentIndex: validIndex,
@@ -108,19 +116,19 @@ export const usePlayerStore = create<PlayerStore>()(
           duration: isSameSong ? duration : 0, // 同一首歌保持时长，新歌曲重置为0等待加载
           playbackMode: 'playlist',
         });
-        
-        // 同步更新 PlaylistManager
-        if (!isRoomMode) {
-          PlaylistManager.updatePlaylist(songs, validIndex, newSong?.id);
-        }
       },
 
       setPlaylistWithInfo: (playlist, currentIndex = 0) => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
         const validIndex = Math.max(0, Math.min(currentIndex, playlist.songs.length - 1));
         const newSong = playlist.songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
         const isSameSong = currentSong && newSong && currentSong.id === newSong.id;
+        const isRoomContextActive = isRoomMode || hasStoredActiveRoom();
+
+        if (isRoomContextActive) {
+          void replaceActiveRoomPlaylist(playlist.songs, validIndex, { isPlaying: false });
+        }
         
         set({
           playlist: playlist.songs,
@@ -135,11 +143,16 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       setMoodPlaylist: (mood, songs, currentIndex = 0) => {
-        const { currentSong, duration } = get();
+        const { currentSong, duration, isRoomMode } = get();
         const validIndex = Math.max(0, Math.min(currentIndex, songs.length - 1));
         const newSong = songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
         const isSameSong = currentSong && newSong && currentSong.id === newSong.id;
+        const isRoomContextActive = isRoomMode || hasStoredActiveRoom();
+
+        if (isRoomContextActive) {
+          void replaceActiveRoomPlaylist(songs, validIndex, { isPlaying: false });
+        }
         
         set({
           playlist: songs,
@@ -376,6 +389,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
       // New playlist manager integration methods
       initializePlaylist: async () => {
+        if (hasStoredActiveRoom()) {
+          set({ isLoading: false });
+          return;
+        }
         set({ isLoading: true });
         
         try {
@@ -430,7 +447,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       loadPlaylistFromStorage: () => {
-        if (get().isRoomMode) return;
+        if (get().isRoomMode || hasStoredActiveRoom()) return;
         const storedPlaylist = PlaylistManager.getCurrentPlaylist();
         
         if (storedPlaylist) {
@@ -473,7 +490,11 @@ export const usePlayerStore = create<PlayerStore>()(
         const newSong = songs[validIndex] || null;
         // 如果是同一首歌，保持原有的时长
         const isSameSong = currentSong && newSong && currentSong.id === newSong.id;
-        if (!isRoomMode) {
+        const isRoomContextActive = isRoomMode || hasStoredActiveRoom();
+
+        if (isRoomContextActive) {
+          void replaceActiveRoomPlaylist(songs, validIndex, { isPlaying: true });
+        } else {
           PlaylistManager.updatePlaylist(songs, validIndex);
         }
         

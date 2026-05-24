@@ -27,6 +27,7 @@ import {
   useSearchStore 
 } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
+import { getStoredActiveRoomCode } from '@/lib/room-context';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import type { Song } from '@/types';
@@ -98,7 +99,7 @@ export default function SongsPage() {
     isLoading: searchLoading 
   } = useSearchStore();
   
-  const { setSong, play, replacePlaylistAndPlay, currentSong } = usePlayerStore();
+  const { replacePlaylistAndPlay, currentSong } = usePlayerStore();
   const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
 
   // Load songs data when page, pageSize or sortBy changes
@@ -152,8 +153,7 @@ export default function SongsPage() {
       replacePlaylistAndPlay(currentSongList, songIndex);
     } else {
       // 如果找不到歌曲或列表为空，则单独播放这首歌
-      setSong(song);
-      setTimeout(() => play(), 100);
+      replacePlaylistAndPlay([song], 0);
     }
   };
 
@@ -165,7 +165,11 @@ export default function SongsPage() {
   const handleShareSong = async (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
+    const roomCode = getStoredActiveRoomCode();
+    const url = `${origin}/play?${new URLSearchParams({
+      ...(roomCode ? { room: roomCode } : {}),
+      music: song.id,
+    }).toString()}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedSongId(song.id);

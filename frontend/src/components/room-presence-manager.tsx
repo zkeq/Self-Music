@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getStoredActiveRoomCode, useRoomStore } from '@/lib/room-store';
+import { getStoredActiveRoomCode } from '@/lib/room-context';
+import { useRoomStore } from '@/lib/room-store';
 
 export function RoomPresenceManager() {
   const searchParams = useSearchParams();

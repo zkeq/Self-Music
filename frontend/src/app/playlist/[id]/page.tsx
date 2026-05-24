@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Play, Heart, MoreHorizontal, Music, Clock, Shuffle, ArrowLeft, TrendingUp, Share2, Check } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
-import { getStoredActiveRoomCode, useRoomStore } from '@/lib/room-store';
+import { getStoredActiveRoomCode } from '@/lib/room-context';
+import { useRoomStore } from '@/lib/room-store';
 import { api } from '@/lib/api';
 import type { Playlist, Song } from '@/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
@@ -124,8 +125,9 @@ function PlaylistDetailContent() {
   const handleSharePlaylist = async () => {
     if (!playlist) return;
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const activeRoomCode = room?.code || getStoredActiveRoomCode();
     const url = `${origin}/play?${new URLSearchParams({
-      ...(room?.code ? { room: room.code } : {}),
+      ...(activeRoomCode ? { room: activeRoomCode } : {}),
       playlist: playlist.id,
     }).toString()}`;
     try {
@@ -327,8 +329,9 @@ function PlaylistDetailContent() {
                           onClick={async (e) => {
                             e.stopPropagation();
                             const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                            const activeRoomCode = room?.code || getStoredActiveRoomCode();
                             const url = `${origin}/play?${new URLSearchParams({
-                              ...(room?.code ? { room: room.code } : {}),
+                              ...(activeRoomCode ? { room: activeRoomCode } : {}),
                               music: song.id,
                             }).toString()}`;
                             try {

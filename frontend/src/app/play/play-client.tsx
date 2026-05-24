@@ -21,6 +21,7 @@ import { LightSongMoments } from '@/components/light-song-moments';
 import { QuickShareDialog } from '@/components/quick-share-dialog';
 import { momentsAPI } from '@/lib/moments-api';
 import type { MusicMoment } from '@/types';
+import { hasStoredActiveRoom } from '@/lib/room-context';
 import { useRoomStore } from '@/lib/room-store';
 import { RoomPanel } from '@/components/room-panel';
 
@@ -82,7 +83,7 @@ export default function PlayClient() {
 
   // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
   useEffect(() => {
-    if (roomParam) return;
+    if (roomParam || hasStoredActiveRoom()) return;
     initializePlaylist();
   }, [initializePlaylist, roomParam]);
 
