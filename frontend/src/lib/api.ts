@@ -14,6 +14,23 @@ import { mockApi } from './mock-api';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 const USE_MOCK_API = false;
 
+interface SyncRoomState {
+  isPlaying: boolean;
+  currentTime: number;
+  songId: string | null;
+  executeAtMs: number;
+  version: number;
+  updatedAtMs: number;
+  actor: string;
+}
+
+interface SyncRoom {
+  id: string;
+  hostName: string;
+  members: string[];
+  state: SyncRoomState;
+}
+
 // Real API Client Configuration
 class RealApiClient {
   private baseURL: string;
@@ -179,6 +196,35 @@ class RealApiClient {
   // Play tracking API
   async recordPlay(songId: string): Promise<ApiResponse<{ songId: string; playCount: number }>> {
     return this.request(`/songs/${songId}/play`, { method: 'POST' });
+  }
+
+  async getSyncTime(): Promise<ApiResponse<{ serverTimeMs: number }>> {
+    return this.request('/sync/time');
+  }
+
+  async createSyncRoom(hostName: string): Promise<ApiResponse<SyncRoom>> {
+    return this.request('/sync/rooms', {
+      method: 'POST',
+      body: JSON.stringify({ hostName }),
+    });
+  }
+
+  async joinSyncRoom(roomId: string, userName: string): Promise<ApiResponse<SyncRoom>> {
+    return this.request(`/sync/rooms/${roomId}/join`, {
+      method: 'POST',
+      body: JSON.stringify({ userName }),
+    });
+  }
+
+  async getSyncRoom(roomId: string): Promise<ApiResponse<SyncRoom>> {
+    return this.request(`/sync/rooms/${roomId}`);
+  }
+
+  async updateSyncRoomAction(roomId: string, payload: Partial<SyncRoomState> & { actor: string; version: number }): Promise<ApiResponse<SyncRoom>> {
+    return this.request(`/sync/rooms/${roomId}/action`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 }
 

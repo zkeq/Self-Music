@@ -67,8 +67,14 @@ export default function PlayClient() {
   const [isMomentVisible, setIsMomentVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [syncName, setSyncName] = useState('listener');
+  const [syncRoomId, setSyncRoomId] = useState('');
+  const [syncVersion, setSyncVersion] = useState(1);
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
+  const [syncInfo, setSyncInfo] = useState('未加入房间');
   const searchParams = useSearchParams();
   const handledParamsRef = useRef(false);
+  const latestAppliedVersionRef = useRef(0);
 
   // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
   useEffect(() => {
@@ -326,6 +332,81 @@ export default function PlayClient() {
 
   const displayLyrics = currentSong ? currentLyrics : defaultLyrics;
 
+  const syncClock = async () => {
+    const start = Date.now();
+    const res = await api.getSyncTime();
+    const end = Date.now();
+    if (res.success && res.data) {
+      const rtt = end - start;
+      const approxServerNow = res.data.serverTimeMs + Math.floor(rtt / 2);
+      setClockOffsetMs(approxServerNow - end);
+    }
+  };
+
+  const createRoom = async () => {
+    await syncClock();
+    const res = await api.createSyncRoom(syncName);
+    if (res.success && res.data) {
+      setSyncRoomId(res.data.id);
+      setSyncVersion(res.data.state.version);
+      setSyncInfo(`房间已创建：${res.data.id}`);
+    }
+  };
+
+  const joinRoom = async () => {
+    await syncClock();
+    const res = await api.joinSyncRoom(syncRoomId, syncName);
+    if (res.success && res.data) {
+      setSyncVersion(res.data.state.version);
+      setSyncInfo(`已加入房间：${syncRoomId}`);
+    }
+  };
+
+  const broadcastState = async (targetPlaying: boolean) => {
+    if (!syncRoomId) return;
+    const executeAtMs = Date.now() + clockOffsetMs + 1200;
+    const res = await api.updateSyncRoomAction(syncRoomId, {
+      actor: syncName,
+      isPlaying: targetPlaying,
+      currentTime,
+      songId: currentSong?.id || null,
+      executeAtMs,
+      version: syncVersion,
+    });
+    if (res.success && res.data) {
+      setSyncVersion(res.data.state.version);
+      setSyncInfo(`已广播 ${targetPlaying ? '播放' : '暂停'} 指令`);
+    }
+  };
+
+  useEffect(() => {
+    if (!syncRoomId) return;
+    const timer = setInterval(async () => {
+      const res = await api.getSyncRoom(syncRoomId);
+      if (!res.success || !res.data) return;
+      const room = res.data;
+      setSyncVersion(room.state.version);
+      if (room.state.version <= latestAppliedVersionRef.current) return;
+      latestAppliedVersionRef.current = room.state.version;
+      const delay = Math.max(0, room.state.executeAtMs - (Date.now() + clockOffsetMs));
+      window.setTimeout(async () => {
+        if (room.state.songId && room.state.songId !== currentSong?.id) {
+          const songRes = await api.getSong(room.state.songId);
+          if (songRes.success && songRes.data) {
+            setSong(songRes.data);
+          }
+        }
+        seekTo(room.state.currentTime);
+        if (room.state.isPlaying) {
+          play();
+        } else {
+          pause();
+        }
+      }, delay);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [syncRoomId, currentSong?.id, clockOffsetMs, pause, play, seekTo, setSong]);
+
   return (
     <div className="h-full bg-background relative lg:flex lg:overflow-hidden">
       {/* Dynamic Ambient Glow Background */}
@@ -344,6 +425,21 @@ export default function PlayClient() {
         {/* Theme Toggle */}
         <div className="absolute top-4 right-4 z-30">
           <ThemeToggle />
+        </div>
+        <div className="absolute top-4 left-4 z-30 bg-background/80 backdrop-blur rounded-md p-2 text-xs space-y-2 w-64">
+          <div className="font-medium">一起听（时间对齐）</div>
+          <input className="w-full text-black px-2 py-1 rounded" value={syncName} onChange={(e) => setSyncName(e.target.value)} placeholder="你的昵称" />
+          <input className="w-full text-black px-2 py-1 rounded" value={syncRoomId} onChange={(e) => setSyncRoomId(e.target.value)} placeholder="房间ID" />
+          <div className="flex gap-2">
+            <button className="px-2 py-1 rounded bg-blue-500 text-white" onClick={createRoom}>新建</button>
+            <button className="px-2 py-1 rounded bg-emerald-500 text-white" onClick={joinRoom}>加入</button>
+            <button className="px-2 py-1 rounded bg-purple-500 text-white" onClick={syncClock}>校时</button>
+          </div>
+          <div className="flex gap-2">
+            <button className="px-2 py-1 rounded bg-pink-500 text-white" onClick={() => broadcastState(true)}>同步播放</button>
+            <button className="px-2 py-1 rounded bg-gray-500 text-white" onClick={() => broadcastState(false)}>同步暂停</button>
+          </div>
+          <div>{syncInfo}</div>
         </div>
 
         {/* Player Layout - 移动端可滚动 */}

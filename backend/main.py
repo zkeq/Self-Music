@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from threading import Lock
 import sqlite3
 import json
 import jwt
@@ -44,6 +45,9 @@ app.add_middleware(
 
 # Include user routes (no authentication required)
 app.include_router(user_router)
+
+sync_rooms: Dict[str, Dict[str, Any]] = {}
+sync_rooms_lock = Lock()
 
 # Database Models
 class Artist(BaseModel):
@@ -200,6 +204,23 @@ class CheckExistsRequest(BaseModel):
 
 class PlaylistReorder(BaseModel):
     songIds: List[str]
+
+
+class SyncRoomCreateRequest(BaseModel):
+    hostName: str = "Host"
+
+
+class SyncRoomJoinRequest(BaseModel):
+    userName: str = "Guest"
+
+
+class SyncRoomActionRequest(BaseModel):
+    actor: str = "anonymous"
+    isPlaying: bool
+    currentTime: float
+    songId: Optional[str] = None
+    executeAtMs: int
+    version: int
 
 # Music Moments models
 class MomentComment(BaseModel):
@@ -1844,6 +1865,73 @@ async def delete_comment(moment_id: str, comment_id: str, user: dict = Depends(v
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
+@app.get("/api/sync/time")
+async def get_sync_time():
+    return {"serverTimeMs": int(datetime.utcnow().timestamp() * 1000)}
+
+@app.post("/api/sync/rooms")
+async def create_sync_room(payload: SyncRoomCreateRequest):
+    room_id = uuid.uuid4().hex[:8]
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    room = {
+        "id": room_id,
+        "hostName": payload.hostName,
+        "members": [payload.hostName],
+        "state": {
+            "isPlaying": False,
+            "currentTime": 0,
+            "songId": None,
+            "executeAtMs": now_ms + 2000,
+            "version": 1,
+            "updatedAtMs": now_ms,
+            "actor": payload.hostName
+        }
+    }
+    with sync_rooms_lock:
+        sync_rooms[room_id] = room
+    return room
+
+@app.post("/api/sync/rooms/{room_id}/join")
+async def join_sync_room(room_id: str, payload: SyncRoomJoinRequest):
+    with sync_rooms_lock:
+        room = sync_rooms.get(room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+        if payload.userName not in room["members"]:
+            room["members"].append(payload.userName)
+        return room
+
+@app.get("/api/sync/rooms/{room_id}")
+async def get_sync_room(room_id: str):
+    with sync_rooms_lock:
+        room = sync_rooms.get(room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+        return room
+
+@app.post("/api/sync/rooms/{room_id}/action")
+async def update_sync_action(room_id: str, payload: SyncRoomActionRequest):
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    with sync_rooms_lock:
+        room = sync_rooms.get(room_id)
+        if not room:
+            raise HTTPException(status_code=404, detail="Room not found")
+
+        current_version = room["state"]["version"]
+        if payload.version < current_version:
+            raise HTTPException(status_code=409, detail="Room state is outdated")
+
+        room["state"] = {
+            "isPlaying": payload.isPlaying,
+            "currentTime": payload.currentTime,
+            "songId": payload.songId,
+            "executeAtMs": payload.executeAtMs,
+            "version": current_version + 1,
+            "updatedAtMs": now_ms,
+            "actor": payload.actor
+        }
+        return room
 
 init_db()
 if __name__ == "__main__":
