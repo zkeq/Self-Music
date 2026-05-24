@@ -20,6 +20,25 @@ import {
 // Mock API delay for realistic experience
 const mockDelay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, ms));
 
+interface SyncRoomState {
+  isPlaying: boolean;
+  currentTime: number;
+  songId: string | null;
+  executeAtMs: number;
+  version: number;
+  updatedAtMs: number;
+  actor: string;
+}
+
+interface SyncRoom {
+  id: string;
+  hostName: string;
+  members: string[];
+  state: SyncRoomState;
+}
+
+const mockSyncRooms = new Map<string, SyncRoom>();
+
 // Mock API Client
 class MockApiClient {
   // Artists API
@@ -542,6 +561,74 @@ class MockApiClient {
       },
     };
   }
+
+  async getSyncTime(): Promise<ApiResponse<{ serverTimeMs: number }>> {
+    await mockDelay(100);
+    return {
+      success: true,
+      data: { serverTimeMs: Date.now() },
+    };
+  }
+
+  async createSyncRoom(hostName: string): Promise<ApiResponse<SyncRoom>> {
+    await mockDelay();
+    const id = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const now = Date.now();
+    const room: SyncRoom = {
+      id,
+      hostName,
+      members: [hostName],
+      state: {
+        isPlaying: false,
+        currentTime: 0,
+        songId: null,
+        executeAtMs: now,
+        version: 0,
+        updatedAtMs: now,
+        actor: hostName,
+      },
+    };
+    mockSyncRooms.set(id, room);
+    return { success: true, data: room };
+  }
+
+  async joinSyncRoom(roomId: string, userName: string): Promise<ApiResponse<SyncRoom>> {
+    await mockDelay();
+    const room = mockSyncRooms.get(roomId);
+    if (!room) return { success: false, error: 'Room not found' };
+    if (!room.members.includes(userName)) {
+      room.members.push(userName);
+    }
+    return { success: true, data: room };
+  }
+
+  async getSyncRoom(roomId: string): Promise<ApiResponse<SyncRoom>> {
+    await mockDelay(120);
+    const room = mockSyncRooms.get(roomId);
+    if (!room) return { success: false, error: 'Room not found' };
+    return { success: true, data: room };
+  }
+
+  async updateSyncRoomAction(
+    roomId: string,
+    payload: Partial<SyncRoomState> & { actor: string; version: number }
+  ): Promise<ApiResponse<SyncRoom>> {
+    await mockDelay();
+    const room = mockSyncRooms.get(roomId);
+    if (!room) return { success: false, error: 'Room not found' };
+    if (payload.version !== room.state.version) {
+      return { success: false, error: 'Version conflict' };
+    }
+
+    room.state = {
+      ...room.state,
+      ...payload,
+      actor: payload.actor,
+      version: room.state.version + 1,
+      updatedAtMs: Date.now(),
+    };
+    return { success: true, data: room };
+  }
 }
 
 // Export singleton instance for mock API
@@ -575,4 +662,9 @@ export const {
   getHotSongs: mockGetHotSongs,
   getNewSongs: mockGetNewSongs,
   recordPlay: mockRecordPlay,
+  getSyncTime: mockGetSyncTime,
+  createSyncRoom: mockCreateSyncRoom,
+  joinSyncRoom: mockJoinSyncRoom,
+  getSyncRoom: mockGetSyncRoom,
+  updateSyncRoomAction: mockUpdateSyncRoomAction,
 } = mockApi;
