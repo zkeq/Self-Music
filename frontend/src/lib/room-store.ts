@@ -166,7 +166,7 @@ function startPlaybackTicker() {
       return;
     }
 
-    if (Math.abs((player.currentTime || 0) - nextCurrentTime) > 0.02) {
+    if (Math.abs((player.currentTime || 0) - nextCurrentTime) > 0.01) {
       usePlayerStore.setState({
         currentTime: nextCurrentTime,
         duration: room.duration || player.duration,

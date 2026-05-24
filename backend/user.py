@@ -13,6 +13,11 @@ import string
 from datetime import datetime, timezone
 
 router = APIRouter()
+ROOM_TIME_PRECISION = 4
+
+
+def normalize_room_time(value: float) -> float:
+    return round(max(0, float(value or 0)), ROOM_TIME_PRECISION)
 
 # Helper functions
 def parse_json_field(field_value: str) -> List[str]:
@@ -1968,7 +1973,7 @@ def room_snapshot_from_row(cursor, row) -> Dict[str, Any]:
         "playlist": playlist,
         "currentSongId": row[3],
         "currentIndex": current_index,
-        "currentTime": round(max(0, base_time), 2),
+        "currentTime": normalize_room_time(base_time),
         "duration": duration,
         "isPlaying": bool(row[7]),
         "repeatMode": row[8] or "none",
@@ -2158,13 +2163,13 @@ async def sync_room_cursor_state(
                     (datetime.utcnow() - parse_room_datetime(room["lastActionAt"] or room["updatedAt"])).total_seconds(),
                 )
                 room["isPlaying"] = False
-                room["currentTime"] = round(live_time, 2)
+                room["currentTime"] = normalize_room_time(live_time)
             else:
                 room["isPlaying"] = True
-                room["currentTime"] = round(live_time, 2)
+                room["currentTime"] = normalize_room_time(live_time)
             room["duration"] = current_song.get("duration", 0) if current_song else 0
         elif action == "seek":
-            room["currentTime"] = round(float(action_payload.get("time", room["currentTime"]) or 0), 2)
+            room["currentTime"] = normalize_room_time(action_payload.get("time", room["currentTime"]) or 0)
             room["isPlaying"] = bool(room_row[7])
         elif action == "toggle_shuffle":
             room["shuffleMode"] = not room["shuffleMode"]
@@ -2215,7 +2220,7 @@ async def sync_room_cursor_state(
                 room["playlist"] = new_playlist
                 room["currentIndex"] = current_index
                 room["currentSongId"] = current_song.get("id")
-                room["currentTime"] = float(action_payload.get("currentTime", 0) or 0)
+                room["currentTime"] = normalize_room_time(action_payload.get("currentTime", 0) or 0)
                 room["duration"] = current_song.get("duration", 0)
                 room["isPlaying"] = bool(action_payload.get("isPlaying", room["isPlaying"]))
                 room["repeatMode"] = action_payload.get("repeatMode", room["repeatMode"])
@@ -2323,7 +2328,7 @@ async def create_room(room: RoomCreateRequest):
                 json.dumps(playlist),
                 current_song.get("id") if current_song else None,
                 current_index,
-                room.currentTime,
+                normalize_room_time(room.currentTime),
                 current_song.get("duration", 0) if current_song else 0,
                 int(room.isPlaying),
                 room.repeatMode or "none",
