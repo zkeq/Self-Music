@@ -14,17 +14,18 @@ interface AmbientGlowProps {
   enableColorExtraction?: boolean; // New prop to disable expensive color extraction
 }
 
-export function AmbientGlow({ 
-  imageUrl, 
-  className, 
+export function AmbientGlow({
+  imageUrl,
+  className,
   intensity = 'medium',
   animated = true,
   enableColorExtraction = true
 }: AmbientGlowProps) {
-  const [colorPalette, setColorPalette] = useState<ColorPalette | null>(null);
-  
-  // Initialize with default palette to ensure immediate rendering
-  const currentPalette = colorPalette || getDefaultColorPalette();
+  // Initialize with default palette immediately to prevent white background
+  const [colorPalette, setColorPalette] = useState<ColorPalette>(getDefaultColorPalette());
+
+  // Use current palette (always has a value now)
+  const currentPalette = colorPalette;
   
   // Memoize CSS variables to prevent recalculation
   const cssVars = useMemo(() => {
@@ -42,19 +43,19 @@ export function AmbientGlow({
     try {
       const palette = await extractColorsFromImage(url);
       setColorPalette(palette);
-    } catch {
-      const defaultPalette = getDefaultColorPalette();
-      setColorPalette(defaultPalette);
+    } catch (error) {
+      console.warn('Failed to extract colors from image, using default palette:', error);
+      // Keep current palette on error instead of switching to default
+      // This prevents visual flashing when switching songs
     }
   }, [enableColorExtraction]);
 
   useEffect(() => {
     if (imageUrl) {
+      // Start extraction immediately when imageUrl changes
       extractColors(imageUrl);
-    } else {
-      const defaultPalette = getDefaultColorPalette();
-      setColorPalette(defaultPalette);
     }
+    // Don't reset to default when imageUrl is empty - keep current colors
   }, [imageUrl, extractColors]);
 
   const intensityConfig = {
@@ -69,9 +70,11 @@ export function AmbientGlow({
   const safariAnimationStyles = getSafariOptimizedAnimation();
 
   return (
-    <div 
+    <motion.div
       className={cn("absolute inset-0 overflow-hidden pointer-events-none -z-10", className)}
       style={cssVars}
+      animate={cssVars}
+      transition={{ duration: 0.8, ease: "easeInOut" }}
     >
       {/* Main ambient glow - optimized with will-change */}
       <motion.div
@@ -161,7 +164,7 @@ export function AmbientGlow({
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

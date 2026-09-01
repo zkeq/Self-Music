@@ -17,37 +17,52 @@ export interface ColorPalette {
 }
 
 /**
- * Extract dominant colors from an image
+ * Extract dominant colors from an image with timeout
  */
-export function extractColorsFromImage(imageUrl: string): Promise<ColorPalette> {
+export function extractColorsFromImage(imageUrl: string, timeoutMs: number = 5000): Promise<ColorPalette> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    
+
+    // Add timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      img.src = ''; // Cancel image loading
+      reject(new Error('Color extraction timeout'));
+    }, timeoutMs);
+
     img.onload = () => {
+      clearTimeout(timeout);
       try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+
         if (!ctx) {
           reject(new Error('Could not get canvas context'));
           return;
         }
-        
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
+
+        // Use smaller canvas for faster processing
+        const maxSize = 200;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const colors = extractDominantColors(imageData.data);
-        
+
         resolve(colors);
       } catch (error) {
         reject(error);
       }
     };
-    
-    img.onerror = () => reject(new Error('Failed to load image'));
+
+    img.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load image'));
+    };
+
     img.src = imageUrl;
   });
 }
