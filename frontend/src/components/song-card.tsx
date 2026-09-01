@@ -3,10 +3,12 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Play, Heart, Music2, TrendingUp, ListPlus } from 'lucide-react';
+import { Play, Heart, Music2, TrendingUp, ListPlus, Check, Link2 } from 'lucide-react';
 import type { Song } from '@/types';
 import { getAllArtistNames } from '@/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
+import { useState } from 'react';
 
 interface SongCardProps {
   song: Song;
@@ -17,6 +19,18 @@ interface SongCardProps {
 }
 
 export function SongCard({ song, onPlay, onLike, onAddToPlaylist, formatPlayCount }: SongCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = getSongShareUrl(song.id);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-all duration-300 group"
@@ -48,6 +62,20 @@ export function SongCard({ song, onPlay, onLike, onAddToPlaylist, formatPlayCoun
           </div>
           
           <div className="flex items-center space-x-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              title={copied ? '已复制链接' : '复制播放链接'}
+              aria-label="复制播放链接"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Link2 className="w-4 h-4" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="sm"

@@ -14,6 +14,7 @@ import { usePlayerStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Song, Playlist } from '@/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, getPlaylistShareUrl, copyShareLink } from '@/lib/share-utils';
 
 const formatDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -105,14 +106,11 @@ function PlaylistDetailContent() {
 
   const handleSharePlaylist = async () => {
     if (!playlist) return;
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = `${origin}/play?playlist=${encodeURIComponent(playlist.id)}`;
-    try {
-      await navigator.clipboard.writeText(url);
+    const url = getPlaylistShareUrl(playlist.id);
+    const success = await copyShareLink(url);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error('Failed to copy link:', e);
     }
   };
 
@@ -305,18 +303,15 @@ function PlaylistDetailContent() {
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
-                            const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                            const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
-                            try {
-                              await navigator.clipboard.writeText(url);
+                            const url = getSongShareUrl(song.id);
+                            const success = await copyShareLink(url);
+                            if (success) {
                               setCopiedSongId(song.id);
                               setTimeout(() => setCopiedSongId(null), 2000);
-                            } catch (err) {
-                              console.error('Failed to copy song link:', err);
                             }
                           }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
-                          title="分享歌曲"
+                          title={copiedSongId === song.id ? '已复制链接' : '分享歌曲'}
                           aria-label="分享歌曲"
                         >
                           {copiedSongId === song.id ? (
