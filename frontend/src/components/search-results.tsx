@@ -4,10 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Music2, Heart, Clock } from 'lucide-react';
+import { Music2, Heart, Clock, Link2, Check } from 'lucide-react';
 import type { Song } from '@/types';
 import { getIconComponent } from '@/lib/icon-map';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
+import { useState } from 'react';
 
 interface SearchResultsProps {
   songs: Song[];
@@ -24,6 +26,18 @@ export function SearchResults({
   formatPlayCount, 
   formatDuration 
 }: SearchResultsProps) {
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
+
+  const handleShareSong = async (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = getSongShareUrl(songId);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedSongId(songId);
+      setTimeout(() => setCopiedSongId(null), 2000);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center px-4 py-2 text-sm text-muted-foreground border-b">
@@ -78,7 +92,19 @@ export function SearchResults({
             <div className="w-16 text-right text-sm text-muted-foreground">
               {formatDuration(song.duration)}
             </div>
-            <div className="w-16 flex items-center justify-center">
+            <div className="w-16 flex items-center justify-center space-x-1">
+              <button
+                onClick={(e) => handleShareSong(song.id, e)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                title={copiedSongId === song.id ? '已复制链接' : '复制播放链接'}
+                aria-label="复制播放链接"
+              >
+                {copiedSongId === song.id ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <Link2 className="w-4 h-4" />
+                )}
+              </button>
               <Button
                 variant="ghost"
                 size="sm"

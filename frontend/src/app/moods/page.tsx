@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
-import { Music2 } from 'lucide-react';
+import { Music2, Link2, Check } from 'lucide-react';
 import { useMoodsStore } from '@/lib/data-stores';
 import { getIconComponent } from '@/lib/icon-map';
+import { getMoodShareUrl, copyShareLink } from '@/lib/share-utils';
 
 export default function MoodsPage() {
   const router = useRouter();
@@ -22,6 +23,18 @@ export default function MoodsPage() {
   useEffect(() => {
     fetchMoods();
   }, [fetchMoods]);
+
+  const [copiedMoodId, setCopiedMoodId] = useState<string | null>(null);
+
+  const handleShareMood = async (moodId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = getMoodShareUrl(moodId);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedMoodId(moodId);
+      setTimeout(() => setCopiedMoodId(null), 2000);
+    }
+  };
 
   const handleMoodClick = (moodId: string) => {
     router.push(`/mood/${moodId}`);
@@ -94,7 +107,21 @@ export default function MoodsPage() {
                         <div className="p-4">
                           <div className="flex items-start justify-between mb-1">
                             <h3 className="text-base font-semibold truncate">{mood.name}</h3>
-                            <Badge variant="secondary" className="text-xs ml-2">{mood.songCount}</Badge>
+                            <div className="flex items-center shrink-0 ml-2">
+                              <button
+                                onClick={(e) => handleShareMood(mood.id, e)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity mr-1"
+                                title={copiedMoodId === mood.id ? '已复制链接' : '复制心情链接'}
+                                aria-label="复制心情链接"
+                              >
+                                {copiedMoodId === mood.id ? (
+                                  <Check className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <Link2 className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                                )}
+                              </button>
+                              <Badge variant="secondary" className="text-xs">{mood.songCount}</Badge>
+                            </div>
                           </div>
                           
                           <p className="text-muted-foreground text-xs truncate">{mood.description}</p>

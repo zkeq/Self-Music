@@ -17,12 +17,13 @@ import {
   Clock, 
   ArrowLeft, 
   Check, 
-  Share2
+  Link2
 } from 'lucide-react';
 import { usePlayerStore } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Artist, Song, Album } from '@/types';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, getArtistShareUrl, copyShareLink } from '@/lib/share-utils';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -61,6 +62,8 @@ function ArtistDetailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
+  const [copiedArtist, setCopiedArtist] = useState(false);
   const { replacePlaylistAndPlay } = usePlayerStore();
 
   useEffect(() => {
@@ -126,6 +129,26 @@ function ArtistDetailContent() {
       // 按播放数排序，播放最受欢迎的歌曲
       const sortedSongs = [...artistSongs].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
       replacePlaylistAndPlay(sortedSongs, 0);
+    }
+  };
+
+  const handleShareArtist = async () => {
+    if (!artist) return;
+    const url = getArtistShareUrl(artist.id);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedArtist(true);
+      setTimeout(() => setCopiedArtist(false), 2000);
+    }
+  };
+
+  const handleShareSong = async (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = getSongShareUrl(songId);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedSongId(songId);
+      setTimeout(() => setCopiedSongId(null), 2000);
     }
   };
 
@@ -328,8 +351,18 @@ function ArtistDetailContent() {
                     <Play className="w-4 h-4 mr-2" />
                     播放热门
                   </Button>
-                  <Button variant="ghost" size="icon">
-                    <Share2 className="w-4 h-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={handleShareArtist}
+                    title={copiedArtist ? '已复制链接' : '复制歌手链接'}
+                    aria-label="复制歌手链接"
+                  >
+                    {copiedArtist ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Link2 className="w-4 h-4" />
+                    )}
                   </Button>
                   <Button variant="ghost" size="icon">
                     <Music className="w-4 h-4" />
@@ -383,6 +416,18 @@ function ArtistDetailContent() {
                         </div>
                         
                         <div className="flex items-center space-x-2 w-20">
+                          <button
+                            onClick={(e) => handleShareSong(song.id, e)}
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={copiedSongId === song.id ? '已复制链接' : '复制播放链接'}
+                            aria-label="复制播放链接"
+                          >
+                            {copiedSongId === song.id ? (
+                              <Check className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <Link2 className="w-3 h-3" />
+                            )}
+                          </button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -474,6 +519,19 @@ function ArtistDetailContent() {
                                   <div className="flex-1 ml-2 min-w-0">
                                     <div className="font-medium text-xs truncate">{song.title}</div>
                                   </div>
+                                  
+                                  <button
+                                    onClick={(e) => handleShareSong(song.id, e)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                                    title={copiedSongId === song.id ? '已复制链接' : '复制播放链接'}
+                                    aria-label="复制播放链接"
+                                  >
+                                    {copiedSongId === song.id ? (
+                                      <Check className="w-3 h-3 text-green-500" />
+                                    ) : (
+                                      <Link2 className="w-3 h-3" />
+                                    )}
+                                  </button>
                                   
                                   <span className="text-xs text-muted-foreground">
                                     {formatDuration(song.duration)}
