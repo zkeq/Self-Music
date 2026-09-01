@@ -14,6 +14,8 @@ import {
   Volume2,
   VolumeX,
   Heart,
+  Link2,
+  Check,
 } from 'lucide-react';
 
 interface PlayerControlsProps {
@@ -32,6 +34,8 @@ interface PlayerControlsProps {
   onRepeat: () => void;
   onMute: () => void;
   onLike: () => void;
+  onShare?: () => void;
+  shareCopied?: boolean;
   onVolumeChange: (value: number[]) => void;
   onSeek: (value: number[]) => void;
   // Mobile-only fullscreen lyrics toggle
@@ -55,6 +59,8 @@ export function PlayerControls({
   onRepeat,
   onMute,
   onLike,
+  onShare,
+  shareCopied,
   onVolumeChange,
   onSeek,
   onFullscreen,
@@ -183,6 +189,24 @@ export function PlayerControls({
         >
           <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
         </Button>
+
+        {/* Share/Copy Link Button */}
+        {onShare && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onShare}
+            className="transition-all duration-200 hover:scale-110"
+            title={shareCopied ? '已复制链接' : '复制播放链接'}
+            aria-label="复制播放链接"
+          >
+            {shareCopied ? (
+              <Check className="h-4 w-4 text-green-500" />
+            ) : (
+              <Link2 className="h-4 w-4" />
+            )}
+          </Button>
+        )}
 
         {/* Volume Control */}
         <div className="flex items-center space-x-2 flex-1 max-w-32 ml-4">

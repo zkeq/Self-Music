@@ -1,16 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePlayerStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { MiniPlayerControls } from '@/components/player-controls';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, Heart, MoreHorizontal } from 'lucide-react';
+import { ChevronUp, Heart, MoreHorizontal, Check, Link2 } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
 
 export function BottomPlayer() {
   const pathname = usePathname();
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
   
   const {
@@ -42,6 +45,16 @@ export function BottomPlayer() {
 
   const handleExpandToFullPlayer = () => {
     router.push('/play');
+  };
+
+  const handleShareSong = async () => {
+    if (!currentSong) return;
+    const url = getSongShareUrl(currentSong.id);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleSeek = (value: number[]) => {
@@ -165,6 +178,22 @@ export function BottomPlayer() {
                 className="h-8 w-8 hidden sm:flex"
               >
                 <Heart className="h-4 w-4" />
+              </Button>
+
+              {/* 复制播放链接 */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleShareSong}
+                className="h-8 w-8 hidden sm:flex"
+                title={copied ? '已复制链接' : '复制播放链接'}
+                aria-label="复制播放链接"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
               </Button>
 
               {/* 更多选项 */}

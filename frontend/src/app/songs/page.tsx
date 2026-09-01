@@ -28,6 +28,7 @@ import {
 } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
 import { cn } from '@/lib/utils';
 import type { Song } from '@/types';
 
@@ -164,14 +165,11 @@ export default function SongsPage() {
 
   const handleShareSong = async (song: Song, e: React.MouseEvent) => {
     e.stopPropagation();
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = `${origin}/play?music=${encodeURIComponent(song.id)}`;
-    try {
-      await navigator.clipboard.writeText(url);
+    const url = getSongShareUrl(song.id);
+    const success = await copyShareLink(url);
+    if (success) {
       setCopiedSongId(song.id);
       setTimeout(() => setCopiedSongId(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
   };
 

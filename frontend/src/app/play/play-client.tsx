@@ -15,6 +15,7 @@ import { FullscreenLyrics } from '@/components/fullscreen-lyrics';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AmbientGlow } from '@/components/ambient-glow';
 import { api } from '@/lib/api';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
 import { PlaylistPanel } from '@/components/playlist-panel';
 import { isModernBrowser } from '@/lib/utils';
 import { LightSongMoments } from '@/components/light-song-moments';
@@ -67,6 +68,7 @@ export default function PlayClient() {
   const [isMomentVisible, setIsMomentVisible] = useState(true);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const searchParams = useSearchParams();
   const handledParamsRef = useRef(false);
 
@@ -219,6 +221,15 @@ export default function PlayClient() {
       setIsShareDialogOpen(true);
     } else {
       console.log('Like song:', currentSong?.title);
+    }
+  };
+  const handleShareSong = async () => {
+    if (!currentSong) return;
+    const url = getSongShareUrl(currentSong.id);
+    const success = await copyShareLink(url);
+    if (success) {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
     }
   };
   const handleVolumeChange = (value: number[]) => setVolume(value[0] / 100);
@@ -380,6 +391,8 @@ export default function PlayClient() {
                 onRepeat={handleRepeat}
                 onMute={handleMute}
                 onLike={handleLike}
+                onShare={handleShareSong}
+                shareCopied={shareCopied}
                 onVolumeChange={handleVolumeChange}
                 onSeek={handleSeek}
                 onFullscreen={handleFullscreenLyrics}

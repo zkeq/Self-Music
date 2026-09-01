@@ -16,7 +16,9 @@ import {
   Shuffle,
   Repeat,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Link2,
+  Check
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { getIconComponent } from '@/lib/icon-map';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, copyShareLink } from '@/lib/share-utils';
 
 interface PlaylistPanelProps {
   className?: string;
@@ -34,6 +37,7 @@ interface PlaylistPanelProps {
 
 export function PlaylistPanel({ className }: PlaylistPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
   const {
     playlist,
     currentIndex,
@@ -83,6 +87,15 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
   const handleMoveDown = (index: number) => {
     if (index < playlist.length - 1) {
       moveSongInPlaylist(index, index + 1);
+    }
+  };
+
+  const handleShareSong = async (songId: string) => {
+    const url = getSongShareUrl(songId);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedSongId(songId);
+      setTimeout(() => setCopiedSongId(null), 2000);
     }
   };
 
@@ -333,6 +346,14 @@ export function PlaylistPanel({ className }: PlaylistPanelProps) {
                                 <DropdownMenuItem onClick={() => playFromIndex(index)}>
                                   <Play className="h-4 w-4 mr-2" />
                                   播放此歌曲
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleShareSong(song.id)}>
+                                  {copiedSongId === song.id ? (
+                                    <Check className="h-4 w-4 mr-2 text-green-500" />
+                                  ) : (
+                                    <Link2 className="h-4 w-4 mr-2" />
+                                  )}
+                                  {copiedSongId === song.id ? '已复制链接' : '复制播放链接'}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleMoveUp(index)}

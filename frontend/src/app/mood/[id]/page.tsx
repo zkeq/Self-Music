@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sidebar } from '@/components/sidebar';
@@ -8,12 +8,13 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Play, Music2, ArrowLeft } from 'lucide-react';
+import { Play, Music2, ArrowLeft, Check, Link2 } from 'lucide-react';
 import { useMoodsStore } from '@/lib/data-stores';
 import { usePlayerStore } from '@/lib/store';
 import type { Song } from '@/types';
 import { getIconComponent } from '@/lib/icon-map';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { getSongShareUrl, getMoodShareUrl, copyShareLink } from '@/lib/share-utils';
 
 const formatDuration = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -35,6 +36,8 @@ export default function MoodDetailPage() {
   } = useMoodsStore();
   
   const { setSong, play, setPlaylist } = usePlayerStore();
+  const [copiedSongId, setCopiedSongId] = useState<string | null>(null);
+  const [copiedMood, setCopiedMood] = useState(false);
 
   useEffect(() => {
     if (moodId) {
@@ -53,6 +56,26 @@ export default function MoodDetailPage() {
       // 设置整个心情的歌曲列表为播放列表
       setPlaylist(moodSongs, 0);
       play();
+    }
+  };
+
+  const handleShareSong = async (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = getSongShareUrl(songId);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedSongId(songId);
+      setTimeout(() => setCopiedSongId(null), 2000);
+    }
+  };
+
+  const handleShareMood = async () => {
+    if (!currentMood) return;
+    const url = getMoodShareUrl(currentMood.id);
+    const success = await copyShareLink(url);
+    if (success) {
+      setCopiedMood(true);
+      setTimeout(() => setCopiedMood(false), 2000);
     }
   };
 
@@ -185,6 +208,19 @@ export default function MoodDetailPage() {
                     <Play className="w-5 h-5 mr-2" />
                     播放全部
                   </Button>
+                  <Button variant="ghost" size="lg" onClick={handleShareMood} title="复制心情链接">
+                    {copiedMood ? (
+                      <>
+                        <Check className="w-5 h-5 mr-2 text-green-500" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="w-5 h-5 mr-2" />
+                        分享
+                      </>
+                    )}
+                  </Button>
                 </div>
               </motion.div>
             </motion.div>
@@ -231,8 +267,22 @@ export default function MoodDetailPage() {
                         <div className="text-sm text-muted-foreground">{song.artist.name}</div>
                       </div>
                       
-                      <div className="w-20 text-right text-sm text-muted-foreground">
-                        {formatDuration(song.duration)}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => handleShareSong(song.id, e)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          title={copiedSongId === song.id ? '已复制链接' : '复制播放链接'}
+                          aria-label="复制播放链接"
+                        >
+                          {copiedSongId === song.id ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Link2 className="w-4 h-4" />
+                          )}
+                        </button>
+                        <div className="w-20 text-right text-sm text-muted-foreground">
+                          {formatDuration(song.duration)}
+                        </div>
                       </div>
                     </motion.div>
                   ))}
