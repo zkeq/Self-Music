@@ -29,8 +29,13 @@ export default function PlayClient() {
   useEffect(() => {
     setIsModern(isModernBrowser());
   }, []);
-  // 自动加载默认歌曲
-  useDefaultSongLoader();
+
+  const searchParams = useSearchParams();
+  // 检测 URL 参数是否指定了播放内容（?playlist= 或 ?music= / ?song=）
+  const hasUrlParams = !!(searchParams.get('playlist') || searchParams.get('music') || searchParams.get('song'));
+
+  // 自动加载默认歌曲 - 如果有 URL 参数指定播放内容则跳过
+  useDefaultSongLoader(hasUrlParams);
 
   const {
     currentSong,
@@ -69,13 +74,15 @@ export default function PlayClient() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const searchParams = useSearchParams();
   const handledParamsRef = useRef(false);
 
   // 初始化播放列表 - 新用户或没有播放列表时自动加载推荐列表
+  // 当通过 URL 参数指定了播放内容时，跳过默认列表的初始化，避免覆盖链接指定的内容
   useEffect(() => {
-    initializePlaylist();
-  }, [initializePlaylist]);
+    if (!hasUrlParams) {
+      initializePlaylist();
+    }
+  }, [initializePlaylist, hasUrlParams]);
 
   // 检查管理员状态
   useEffect(() => {
