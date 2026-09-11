@@ -123,6 +123,142 @@
 
 /* Custom animations and effects for Self-Music */
 @layer components {
+  /* Album-colour ambience for the player. Oversized blurred colour fields
+     overlap into a continuous, slow-moving glow rather than visible blobs. */
+  .ambient-glow {
+    --ambient-opacity: 0.78;
+    --ambient-blur: 12px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 18% 12%, hsla(var(--ambient-accent, 350, 62%, 48%), 0.48), transparent 47%),
+      linear-gradient(
+        145deg,
+        hsl(var(--ambient-dominant, 245, 50%, 36%)) 0%,
+        hsl(var(--ambient-accent, 350, 62%, 48%)) 48%,
+        hsl(var(--ambient-muted, 270, 38%, 28%)) 100%
+      );
+  }
+
+  .ambient-glow--low {
+    --ambient-opacity: 0.62;
+    --ambient-blur: 24px;
+  }
+
+  .ambient-glow--high {
+    --ambient-opacity: 0.84;
+    --ambient-blur: 8px;
+  }
+
+  .ambient-glow__wash,
+  .ambient-glow__bloom,
+  .ambient-glow__veil {
+    position: absolute;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .ambient-fluid-canvas {
+    position: absolute;
+    inset: -8%;
+    z-index: 1;
+    width: 116%;
+    height: 116%;
+    opacity: 0;
+    transform: translateZ(0) scale(1.05);
+    filter: blur(36px) saturate(116%) contrast(102%) brightness(106%);
+    transition: opacity 900ms ease;
+  }
+
+  .ambient-fluid-canvas--ready {
+    opacity: 1;
+  }
+
+  .ambient-glow__wash {
+    border-radius: 44% 56% 58% 42% / 52% 40% 60% 48%;
+    filter: blur(var(--ambient-blur)) saturate(132%);
+    opacity: var(--ambient-opacity);
+    mix-blend-mode: screen;
+    will-change: transform;
+  }
+
+  .ambient-glow__wash--primary {
+    width: 98vmax;
+    height: 76vmax;
+    top: -42vmax;
+    left: -24vmax;
+    background: radial-gradient(
+      ellipse at 58% 57%,
+      hsla(var(--ambient-dominant, 245, 50%, 36%), 0.9) 0%,
+      hsla(var(--ambient-dominant, 245, 50%, 36%), 0.62) 42%,
+      transparent 74%
+    );
+  }
+
+  .ambient-glow__wash--accent {
+    width: 92vmax;
+    height: 82vmax;
+    top: -8vmax;
+    right: -41vmax;
+    background: radial-gradient(
+      ellipse at 44% 42%,
+      hsla(var(--ambient-accent, 350, 62%, 48%), 0.9) 0%,
+      hsla(var(--ambient-accent, 350, 62%, 48%), 0.58) 42%,
+      transparent 75%
+    );
+  }
+
+  .ambient-glow__wash--soft {
+    width: 98vmax;
+    height: 70vmax;
+    bottom: -38vmax;
+    left: -16vmax;
+    background: radial-gradient(
+      ellipse at 48% 38%,
+      hsla(var(--ambient-muted, 270, 38%, 28%), 0.92) 0%,
+      hsla(var(--ambient-muted, 270, 38%, 28%), 0.6) 43%,
+      transparent 76%
+    );
+  }
+
+  .ambient-glow__bloom {
+    inset: -10%;
+    opacity: 0.5;
+    background:
+      radial-gradient(circle at 23% 42%, hsla(var(--ambient-muted, 270, 38%, 28%), 0.3), transparent 31%),
+      radial-gradient(circle at 64% 27%, hsla(var(--ambient-accent, 350, 62%, 48%), 0.38), transparent 36%),
+      radial-gradient(circle at 76% 76%, hsla(var(--ambient-dominant, 245, 50%, 36%), 0.34), transparent 35%);
+    filter: blur(6px) saturate(125%);
+    will-change: transform;
+  }
+
+  .ambient-glow__veil {
+    inset: 0;
+    z-index: 2;
+    background:
+      radial-gradient(ellipse at center, transparent 42%, rgba(15, 10, 24, 0.07) 100%),
+      linear-gradient(to bottom, transparent, rgba(15, 10, 24, 0.08));
+  }
+
+  .ambient-glow--animated .ambient-glow__wash--primary {
+    animation: ambient-drift-primary 22s ease-in-out infinite alternate;
+  }
+
+  .ambient-glow--animated .ambient-glow__wash--accent {
+    animation: ambient-drift-accent 27s ease-in-out -7s infinite alternate;
+  }
+
+  .ambient-glow--animated .ambient-glow__wash--soft {
+    animation: ambient-drift-soft 31s ease-in-out -13s infinite alternate;
+  }
+
+  .ambient-glow--animated .ambient-glow__bloom {
+    animation: ambient-breathe 18s ease-in-out -4s infinite alternate;
+  }
+
   /* Glass morphism effects */
   .glass-effect {
     background: rgba(255, 255, 255, 0.1);
@@ -165,5 +301,35 @@
   
   .glow-accent {
     box-shadow: 0 0 20px hsl(var(--accent) / 0.3);
+  }
+}
+
+@keyframes ambient-drift-primary {
+  0% { transform: translate3d(-4%, -2%, 0) rotate(-4deg) scale(1.02); }
+  48% { transform: translate3d(8%, 7%, 0) rotate(4deg) scale(1.13); }
+  100% { transform: translate3d(15%, -1%, 0) rotate(9deg) scale(1.06); }
+}
+
+@keyframes ambient-drift-accent {
+  0% { transform: translate3d(4%, -5%, 0) rotate(5deg) scale(1.08); }
+  52% { transform: translate3d(-13%, 4%, 0) rotate(-7deg) scale(0.98); }
+  100% { transform: translate3d(-5%, 12%, 0) rotate(-2deg) scale(1.12); }
+}
+
+@keyframes ambient-drift-soft {
+  0% { transform: translate3d(-7%, 4%, 0) rotate(-3deg) scale(1.04); }
+  50% { transform: translate3d(5%, -10%, 0) rotate(6deg) scale(1.14); }
+  100% { transform: translate3d(12%, -2%, 0) rotate(2deg) scale(1.02); }
+}
+
+@keyframes ambient-breathe {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); opacity: 0.48; }
+  to { transform: translate3d(3%, 2%, 0) scale(1.12); opacity: 0.72; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow--animated .ambient-glow__wash,
+  .ambient-glow--animated .ambient-glow__bloom {
+    animation: none;
   }
 }

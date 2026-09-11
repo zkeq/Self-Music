@@ -345,11 +345,11 @@ export default function PlayClient() {
   const displayLyrics = currentSong ? currentLyrics : defaultLyrics;
 
   return (
-    <div className="h-full bg-background relative lg:flex lg:overflow-hidden">
+    <div className="relative h-full bg-[#241722] lg:flex lg:overflow-hidden">
       {/* Dynamic Ambient Glow Background */}
       <AmbientGlow
         imageUrl={currentSong?.coverUrl || displaySong.coverUrl}
-        intensity="medium"
+        intensity="high"
         animated={isModern}
         className="fixed inset-0 z-0"
       />

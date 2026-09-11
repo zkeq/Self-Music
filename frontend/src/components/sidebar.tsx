@@ -30,6 +30,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   
   const pathname = usePathname();
+  const isPlayerPage = pathname === '/play';
 
   const menuItems = [
     {
@@ -101,7 +102,12 @@ export function Sidebar({ className }: SidebarProps) {
         variant="ghost"
         size="icon"
         onClick={toggleMobile}
-        className="fixed top-4 left-4 z-50 lg:hidden bg-background/80 backdrop-blur-sm border"
+        className={cn(
+          "fixed top-4 left-4 z-50 border backdrop-blur-xl lg:hidden",
+          isPlayerPage
+            ? "border-white/15 bg-black/20 text-white hover:bg-white/15 hover:text-white"
+            : "bg-background/80",
+        )}
       >
         <Menu className="h-4 w-4" />
       </Button>
@@ -110,7 +116,10 @@ export function Sidebar({ className }: SidebarProps) {
       <aside
         suppressHydrationWarning
         className={cn(
-          "h-[100dvh] bg-background/95 backdrop-blur-sm border-r border-border transition-all duration-300",
+          "h-[100dvh] border-r transition-all duration-300",
+          isPlayerPage
+            ? "border-white/10 bg-black/20 text-white backdrop-blur-2xl"
+            : "border-border bg-background/95 backdrop-blur-sm",
           // Mobile: fixed overlay, Desktop: takes layout space
           "fixed left-0 top-0 z-[50] w-[280px] lg:relative lg:z-auto",
           isCollapsed && "lg:w-16",
@@ -135,10 +144,16 @@ export function Sidebar({ className }: SidebarProps) {
                 transition={{ duration: 0.4, delay: 0.4 }}
                 className="flex flex-col min-w-0 flex-1"
               >
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent whitespace-nowrap">
+                <h1 className={cn(
+                  "text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent whitespace-nowrap",
+                  isPlayerPage ? "from-white to-white/60" : "from-primary to-primary/60",
+                )}>
                   Self-Music
                 </h1>
-                <p className="text-sm text-muted-foreground mt-1 whitespace-nowrap">
+                <p className={cn(
+                  "mt-1 whitespace-nowrap text-sm",
+                  isPlayerPage ? "text-white/55" : "text-muted-foreground",
+                )}>
                   你的音乐流媒体平台
                 </p>
               </motion.div>
@@ -150,6 +165,7 @@ export function Sidebar({ className }: SidebarProps) {
               onClick={toggleCollapse}
               className={cn(
                 "hidden lg:flex shrink-0 h-8 w-8 transition-all",
+                isPlayerPage && "text-white/75 hover:bg-white/12 hover:text-white",
                 isCollapsed ? "mx-auto" : ""
               )}
             >
@@ -161,7 +177,7 @@ export function Sidebar({ className }: SidebarProps) {
             </Button>
           </div>
 
-          <Separator />
+          <Separator className={isPlayerPage ? "bg-white/10" : undefined} />
 
           {/* Navigation */}
           <nav
@@ -183,8 +199,14 @@ export function Sidebar({ className }: SidebarProps) {
                       variant="ghost"
                       className={cn(
                         "w-full justify-start text-left font-normal transition-all duration-300",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        isInitialized && pathname === item.href && "bg-accent text-accent-foreground",
+                        isPlayerPage
+                          ? "text-white/72 hover:bg-white/12 hover:text-white"
+                          : "hover:bg-accent hover:text-accent-foreground",
+                        isInitialized && pathname === item.href && (
+                          isPlayerPage
+                            ? "bg-white/16 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            : "bg-accent text-accent-foreground"
+                        ),
                         isCollapsed ? "px-0 justify-center" : "px-3"
                       )}
                     >
@@ -229,7 +251,9 @@ export function Sidebar({ className }: SidebarProps) {
                   variant="ghost"
                   className={cn(
                     "w-full justify-start text-left font-normal transition-all duration-300",
-                    "hover:bg-accent hover:text-accent-foreground border border-border/50",
+                    isPlayerPage
+                      ? "border border-white/10 text-white/70 hover:bg-white/12 hover:text-white"
+                      : "hover:bg-accent hover:text-accent-foreground border border-border/50",
                     isCollapsed ? "px-0 justify-center" : "px-3"
                   )}
                 >
@@ -245,7 +269,10 @@ export function Sidebar({ className }: SidebarProps) {
             </div>
             
             {!isCollapsed && (
-              <div className="text-xs text-muted-foreground text-center">
+              <div className={cn(
+                "text-center text-xs",
+                isPlayerPage ? "text-white/45" : "text-muted-foreground",
+              )}>
                 © 2024 Self-Music
               </div>
             )}

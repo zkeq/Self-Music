@@ -1,170 +1,95 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ColorPalette, extractColorsFromImage, getDefaultColorPalette, createColorCSSVariables } from '@/lib/color-utils';
-import { getSafariOptimizedAnimation } from '@/lib/safari-fixes';
+import { FluidCoverCanvas } from '@/components/fluid-cover-canvas';
+import {
+  ColorPalette,
+  createColorCSSVariables,
+  extractColorsFromImage,
+  getDefaultColorPalette,
+} from '@/lib/color-utils';
 
 interface AmbientGlowProps {
   imageUrl?: string;
   className?: string;
   intensity?: 'low' | 'medium' | 'high';
   animated?: boolean;
-  enableColorExtraction?: boolean; // New prop to disable expensive color extraction
+  enableColorExtraction?: boolean;
 }
 
+function gradeColorForAmbient(
+  color: ColorPalette['dominant'],
+  lightnessRange: [number, number],
+) {
+  const [hue, saturation, lightness] = color.hsl;
+  const gradedSaturation = Math.min(82, Math.max(46, saturation * 1.45));
+  const gradedLightness = Math.min(
+    lightnessRange[1],
+    Math.max(lightnessRange[0], lightness * 0.68),
+  );
+
+  return `${hue}, ${Math.round(gradedSaturation)}%, ${Math.round(gradedLightness)}%`;
+}
+
+/**
+ * A full-viewport colour field derived from the current cover artwork.
+ * The oversized layers extend outside the viewport so the motion reads as a
+ * slow wash of light instead of separate floating circles.
+ */
 export function AmbientGlow({
   imageUrl,
   className,
   intensity = 'medium',
   animated = true,
-  enableColorExtraction = true
+  enableColorExtraction = true,
 }: AmbientGlowProps) {
-  // Initialize with default palette immediately to prevent white background
   const [colorPalette, setColorPalette] = useState<ColorPalette>(getDefaultColorPalette());
 
-  // Use current palette (always has a value now)
-  const currentPalette = colorPalette;
-  
-  // Memoize CSS variables to prevent recalculation
-  const cssVars = useMemo(() => {
-    return createColorCSSVariables(currentPalette);
-  }, [currentPalette]);
-
-  // Debounce color extraction for performance
   const extractColors = useCallback(async (url: string) => {
     if (!enableColorExtraction) {
-      const defaultPalette = getDefaultColorPalette();
-      setColorPalette(defaultPalette);
+      setColorPalette(getDefaultColorPalette());
       return;
     }
 
     try {
-      const palette = await extractColorsFromImage(url);
-      setColorPalette(palette);
+      setColorPalette(await extractColorsFromImage(url));
     } catch (error) {
-      console.warn('Failed to extract colors from image, using default palette:', error);
-      // Keep current palette on error instead of switching to default
-      // This prevents visual flashing when switching songs
+      // Retain the previous palette so an unavailable cover does not flash the
+      // player back to its default colours.
+      console.warn('Failed to extract colors from image, keeping current palette:', error);
     }
   }, [enableColorExtraction]);
 
   useEffect(() => {
-    if (imageUrl) {
-      // Start extraction immediately when imageUrl changes
-      extractColors(imageUrl);
-    }
-    // Don't reset to default when imageUrl is empty - keep current colors
+    if (imageUrl) void extractColors(imageUrl);
   }, [imageUrl, extractColors]);
 
-  const intensityConfig = {
-    low: { blur: 'blur-2xl', opacity: 'opacity-20', scale: 'scale-150' },
-    medium: { blur: 'blur-[60px]', opacity: 'opacity-40', scale: 'scale-[225%]' }, // Significantly increased opacity and scale
-    high: { blur: 'blur-[80px]', opacity: 'opacity-50', scale: 'scale-[275%]' } // Maximum visual impact
-  };
-
-  const config = intensityConfig[intensity];
-  
-  // Get Safari-optimized animation styles
-  const safariAnimationStyles = getSafariOptimizedAnimation();
+  const style = useMemo(() => ({
+    ...createColorCSSVariables(colorPalette),
+    '--ambient-dominant': gradeColorForAmbient(colorPalette.dominant, [30, 43]),
+    '--ambient-accent': gradeColorForAmbient(colorPalette.accent, [38, 52]),
+    '--ambient-muted': gradeColorForAmbient(colorPalette.muted, [24, 36]),
+  }) as React.CSSProperties, [colorPalette]);
 
   return (
-    <motion.div
-      className={cn("absolute inset-0 overflow-hidden pointer-events-none -z-10", className)}
-      style={cssVars}
-      animate={cssVars}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
+    <div
+      aria-hidden="true"
+      className={cn(
+        'ambient-glow',
+        `ambient-glow--${intensity}`,
+        animated && 'ambient-glow--animated',
+        className,
+      )}
+      style={style}
     >
-      {/* Main ambient glow - optimized with will-change */}
-      <motion.div
-        className={cn(
-          "absolute top-1/2 left-1/2 w-96 h-96 rounded-full",
-          config.blur,
-          config.opacity,
-          config.scale
-        )}
-        style={{
-          background: `radial-gradient(circle, rgb(var(--glow-dominant-rgb, 139, 92, 246)) 0%, rgba(var(--glow-dominant-rgb, 139, 92, 246), 0.7) 25%, rgba(var(--glow-dominant-rgb, 139, 92, 246), 0.4) 50%, transparent 75%)`,
-          ...safariAnimationStyles
-        }}
-        animate={animated ? {
-          x: [-50, -45, -55, -50],
-          y: [-50, -55, -45, -50],
-          scale: [1, 1.05, 0.95, 1], // Reduced scale animation range
-        } : { x: -50, y: -50 }}
-        transition={{
-          duration: 12, // Increased duration for smoother animation
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-
-      {/* Enhanced accent glow for better visibility */}
-      {animated ? (
-        <motion.div
-          className={cn(
-            "absolute top-1/3 right-1/4 w-96 h-96 rounded-full", // Increased size
-            config.blur,
-            "opacity-30" // Increased opacity significantly
-          )}
-          style={{
-            background: `radial-gradient(circle, rgb(var(--glow-accent-rgb, 236, 72, 153)) 0%, rgba(var(--glow-accent-rgb, 236, 72, 153), 0.6) 30%, rgba(var(--glow-accent-rgb, 236, 72, 153), 0.3) 60%, transparent 85%)`,
-            ...safariAnimationStyles
-          }}
-          animate={{
-            x: [0, 15, -8, 0], // Increased movement for more dynamic effect
-            y: [0, -15, 8, 0],
-            scale: [1, 0.8, 1.2, 1], // More dramatic scaling
-          }}
-          transition={{
-            duration: 13, // Slightly faster for more liveliness
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
-      ) : (
-        // Static accent glow when animation is disabled
-        <div
-          className={cn(
-            "absolute top-1/3 right-1/4 w-96 h-96 rounded-full",
-            config.blur,
-            "opacity-25"
-          )}
-          style={{
-            background: `radial-gradient(circle, rgb(var(--glow-accent-rgb, 236, 72, 153)) 0%, rgba(var(--glow-accent-rgb, 236, 72, 153), 0.5) 30%, rgba(var(--glow-accent-rgb, 236, 72, 153), 0.2) 60%, transparent 85%)`,
-            ...safariAnimationStyles
-          }}
-        />
-      )}
-
-      {/* Enhanced third glow for depth and ambiance */}
-      {animated && (
-        <motion.div
-          className={cn(
-            "absolute bottom-1/4 left-1/3 w-80 h-80 rounded-full", // Increased size
-            "blur-[50px]", // Moderate blur
-            "opacity-15" // Increased opacity
-          )}
-          style={{
-            background: `radial-gradient(circle, rgb(var(--glow-muted-rgb, 71, 85, 105)) 0%, rgba(var(--glow-muted-rgb, 71, 85, 105), 0.5) 40%, rgba(var(--glow-muted-rgb, 71, 85, 105), 0.2) 70%, transparent 95%)`,
-            ...safariAnimationStyles
-          }}
-          animate={{
-            x: [0, -10, 12, 0], // Increased movement
-            y: [0, 10, -12, 0],
-            scale: [1, 1.3, 0.7, 1], // More dynamic scaling
-          }}
-          transition={{
-            duration: 18, // Slower for subtle depth effect
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4
-          }}
-        />
-      )}
-    </motion.div>
+      <div className="ambient-glow__wash ambient-glow__wash--primary" />
+      <div className="ambient-glow__wash ambient-glow__wash--accent" />
+      <div className="ambient-glow__wash ambient-glow__wash--soft" />
+      <div className="ambient-glow__bloom" />
+      <FluidCoverCanvas imageUrl={imageUrl} animated={animated} />
+      <div className="ambient-glow__veil" />
+    </div>
   );
 }
 
@@ -175,26 +100,11 @@ interface PremiumGlowEffectProps {
 }
 
 export function PremiumGlowEffect({ imageUrl, className, children }: PremiumGlowEffectProps) {
-  const safariAnimationStyles = getSafariOptimizedAnimation();
-  
   return (
-    <div className={cn("relative", className)}>
-      <AmbientGlow imageUrl={imageUrl} intensity="medium" enableColorExtraction={true} />
-      
-      {/* Glass morphism backdrop - optimized for Safari */}
-      <div 
-        className="absolute inset-0 bg-background/20 rounded-xl -z-5" 
-        style={{
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          ...safariAnimationStyles
-        }}
-      />
-      
-      {/* Content */}
-      <div className="relative z-10">
-        {children}
-      </div>
+    <div className={cn('relative isolate', className)}>
+      <AmbientGlow imageUrl={imageUrl} intensity="medium" className="absolute inset-0 -z-10" />
+      <div className="absolute inset-0 -z-[5] rounded-xl bg-background/20 backdrop-blur-lg" />
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }
